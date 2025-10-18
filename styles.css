@@ -1,15 +1,16 @@
-// ============================================================
-// Águila Inventario Pro - Módulo: style.css
-// Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
-//
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
-// ============================================================
+/* ============================================================
+   Águila Inventario Pro - Módulo: styles.css
+   Copyright © 2025 José A. G. Betancourt
+   Todos los derechos reservados
+   
+   Este archivo forma parte del sistema Águila Inventario Pro,
+   desarrollado para promotores de PepsiCo con funcionalidades
+   de gestión, auditoría y sincronización de inventario.
+   
+   Queda prohibida la reproducción, distribución o modificación
+   sin autorización expresa del autor.
+   ============================================================ */
+
 :root {
   --primary: #004aad;
   --primary-dark: #003a9c;
@@ -42,6 +43,19 @@ body {
   display: none !important;
 }
 
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 /* Header */
 .app-header {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -58,6 +72,14 @@ body {
   margin: 0 0 8px 0;
   font-size: 1.8em;
   font-weight: 700;
+}
+
+#promoter-info-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
 }
 
 /* Cards */
@@ -109,6 +131,10 @@ button:hover {
   box-shadow: 0 4px 12px rgba(0,74,173,0.3);
 }
 
+button:active {
+  transform: translateY(0);
+}
+
 button.secondary {
   background: var(--secondary);
 }
@@ -121,12 +147,24 @@ button.success {
   background: var(--success);
 }
 
+button.success:hover {
+  background: #0d9668;
+}
+
 button.warning {
   background: var(--warning);
 }
 
+button.warning:hover {
+  background: #d97706;
+}
+
 button.error {
   background: var(--error);
+}
+
+button.error:hover {
+  background: #dc2626;
 }
 
 /* Tabs */
@@ -154,12 +192,21 @@ button.error {
   font-weight: 500;
   font-size: 14px;
   color: var(--text);
+  margin: 0;
 }
 
 .tabs button.active {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.tabs button:hover {
+  transform: scale(1.02);
+}
+
+.tabs button.active:hover {
   transform: scale(1.05);
 }
 
@@ -192,6 +239,7 @@ button.error {
   right: 20px;
   z-index: 9999;
   max-width: 400px;
+  pointer-events: none;
 }
 
 .toast {
@@ -202,6 +250,7 @@ button.error {
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   border-left: 4px solid var(--primary);
   animation: slideIn 0.3s ease-out;
+  pointer-events: auto;
 }
 
 .toast-success {
@@ -236,10 +285,11 @@ button.error {
 /* Status Indicator */
 .status-indicator {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   margin-right: 6px;
+  animation: pulse 2s infinite;
 }
 
 .status-online {
@@ -254,6 +304,15 @@ button.error {
   background: var(--error);
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 /* Form Groups */
 .form-group {
   margin-bottom: 20px;
@@ -264,6 +323,7 @@ button.error {
   margin-bottom: 6px;
   font-weight: 600;
   color: var(--text);
+  font-size: 14px;
 }
 
 .form-row {
@@ -284,11 +344,16 @@ button.error {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0,0,0,0.95);
   z-index: 10001;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+}
+
+#scanner-modal.hidden {
+  display: none !important;
 }
 
 #scanner-modal:not(.hidden) {
@@ -301,8 +366,9 @@ button.error {
   height: 300px;
   background: black;
   position: relative;
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 
 #scanner-view video {
@@ -313,12 +379,15 @@ button.error {
 
 #scanner-status {
   color: white;
-  margin-top: 10px;
+  margin-top: 20px;
   text-align: center;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 #close-scanner {
   margin-top: 20px;
+  max-width: 200px;
 }
 
 /* Dashboard Stats */
@@ -359,6 +428,26 @@ button.error {
   font-size: 0.85em;
 }
 
+/* Inventory List */
+#inventory-list {
+  margin-top: 20px;
+}
+
+.inventory-item {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.inventory-item:hover {
+  border-color: var(--primary);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
 /* Utilities */
 .text-center {
   text-align: center;
@@ -369,11 +458,21 @@ button.error {
 }
 
 .mb-0 {
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 }
 
 .mt-2 {
   margin-top: 16px;
+}
+
+/* Links */
+a {
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  opacity: 0.8;
 }
 
 /* Responsive */
@@ -385,6 +484,12 @@ button.error {
   
   .tabs {
     padding: 0 8px;
+  }
+  
+  .tabs button {
+    min-width: 100px;
+    font-size: 13px;
+    padding: 10px 16px;
   }
   
   .form-row {
@@ -400,5 +505,39 @@ button.error {
     right: 10px;
     left: 10px;
     max-width: none;
+  }
+  
+  .stat-value {
+    font-size: 2em;
+  }
+  
+  #scanner-view {
+    max-width: 100%;
+    height: 250px;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 15px 10px;
+  }
+  
+  .app-header h1 {
+    font-size: 1.3em;
+  }
+  
+  .card {
+    padding: 16px;
+    margin: 10px 6px;
+  }
+  
+  .tabs button {
+    min-width: 90px;
+    font-size: 12px;
+    padding: 8px 12px;
   }
 }

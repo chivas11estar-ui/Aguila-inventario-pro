@@ -1,14 +1,14 @@
 // ============================================================
-// 脕guila Inventario Pro - M贸dulo: style.css
-// Copyright 漏 2025 Jos茅 A. G. Betancourt
+// águila Inventario Pro - M贸dulo: style.css
+// Copyright 漏 2025 José A. G. Betancourt
 // Todos los derechos reservados
 //
-// Este archivo forma parte del sistema 脕guila Inventario Pro,
+// Este archivo forma parte del sistema águila Inventario Pro,
 // desarrollado para promotores de PepsiCo con funcionalidades
-// de gesti贸n, auditor铆a y sincronizaci贸n de inventario.
+// de gestión, auditoría y sincronización de inventario.
 //
-// Queda prohibida la reproducci贸n, distribuci贸n o modificaci贸n
-// sin autorizaci贸n expresa del autor.
+// Queda prohibida la reproducción, distribución o modificación 
+// sin autorización expresa del autor.
 // ============================================================
 
 const CACHE_NAME = "aguila-inventario-v7";
