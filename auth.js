@@ -14,7 +14,7 @@
 // FALLBACK TEMPORAL para showToast - evita ReferenceError
 if (typeof window.showToast !== 'function') {
   window.showToast = function(message, type = 'info') {
-    console.log('[TOAST]', type.toUpperCase(), message);
+    console.log('[TOAST FALLBACK]', type.toUpperCase(), message);
     const el = document.createElement('div');
     el.textContent = message;
     el.style.cssText = 'position:fixed;bottom:18px;left:18px;padding:12px 16px;background:#333;color:#fff;border-radius:8px;z-index:99999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
@@ -26,11 +26,91 @@ if (typeof window.showToast !== 'function') {
 // Variables globales
 let currentUser = null;
 
-// Manejo de autenticación
+// ============================================================
+// REGISTRO ROBUSTO DE EVENTOS
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🎯 DOM Loaded - Registrando eventos de autenticación');
+  
+  // Prevenir submit por defecto en todos los formularios de auth
+  document.addEventListener('submit', (e) => {
+    const formId = e.target?.id;
+    console.log('📝 Submit detectado en:', formId);
+    
+    if (formId === 'login-form' || formId === 'register-form' || formId === 'forgot-password-form') {
+      e.preventDefault();
+      console.log('✋ Submit prevenido en:', formId);
+    }
+  });
+  
+  // Manejar click en botón de login
+  const btnLogin = document.getElementById('btn-login');
+  if (btnLogin) {
+    console.log('✅ Botón login encontrado, registrando evento');
+    btnLogin.addEventListener('click', async (e) => {
+      e.preventDefault();
+      console.log('🔐 DEBUG: Click en btn-login detectado');
+      await handleLogin();
+    });
+  } else {
+    console.warn('⚠️ Botón login NO encontrado');
+  }
+  
+  // Manejar formulario de login como backup
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      console.log('🔐 DEBUG: Submit en login-form detectado');
+      await handleLogin();
+    });
+  }
+});
+
+// ============================================================
+// MANEJO DE AUTENTICACIÓN
+// ============================================================
+
+// Función principal de login
+async function handleLogin() {
+  console.log('🚀 DEBUG handleLogin: inicio');
+  
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  
+  if (!emailInput || !passwordInput) {
+    console.error('❌ Inputs de login no encontrados');
+    showToast('Error: formulario no encontrado', 'error');
+    return;
+  }
+  
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+  
+  console.log('📧 DEBUG: Email:', email);
+  console.log('🔑 DEBUG: Password length:', password.length);
+  
+  if (!email || !password) {
+    showToast('Por favor completa todos los campos', 'warning');
+    return;
+  }
+  
+  try {
+    await login(email, password);
+  } catch (error) {
+    console.error('❌ DEBUG: Error en handleLogin:', error);
+    // Error ya manejado en función login
+  }
+}
+
+// Manejo de autenticación con Firebase
 firebase.auth().onAuthStateChanged((user) => {
+  console.log('🔄 onAuthStateChanged disparado');
+  
   if (user) {
     currentUser = user;
     console.log('✅ Usuario autenticado:', user.email);
+    console.log('🆔 UID:', user.uid);
     loadUserData();
   } else {
     currentUser = null;
@@ -41,18 +121,21 @@ firebase.auth().onAuthStateChanged((user) => {
 
 // Mostrar sección de autenticación
 function showAuthSection() {
+  console.log('📱 Mostrando sección de auth');
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
 }
 
 // Mostrar aplicación principal
 function showAppSection() {
+  console.log('📱 Mostrando aplicación principal');
   document.getElementById('auth-setup').style.display = 'none';
   document.getElementById('app-container').style.display = 'block';
 }
 
 // Cargar datos del usuario
 function loadUserData() {
+  console.log('📦 Cargando datos del usuario...');
   const userId = currentUser.uid;
   const userRef = firebase.database().ref('usuarios/' + userId);
   
@@ -60,10 +143,14 @@ function loadUserData() {
     .then((snapshot) => {
       const userData = snapshot.val();
       if (userData) {
-        console.log('📦 Datos de usuario cargados:', userData);
+        console.log('✅ Datos de usuario cargados:', userData);
         displayUserInfo(userData);
         showAppSection();
-        loadInventory();
+        
+        // Cargar inventario si la función existe
+        if (typeof loadInventory === 'function') {
+          loadInventory();
+        }
       } else {
         console.warn('⚠️ No se encontraron datos del usuario');
         showToast('No se encontraron datos del usuario', 'warning');
@@ -94,14 +181,26 @@ function displayUserInfo(userData) {
 
 // Login
 async function login(email, password) {
+  console.log('🔐 DEBUG login: Intentando autenticación...');
+  console.log('📧 Email:', email);
+  
   try {
-    console.log('🔐 Intentando login:', email);
     const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-    console.log('✅ Login exitoso:', userCredential.user.email);
+    console.log('✅ DEBUG login: Autenticación exitosa');
+    console.log('👤 Usuario:', userCredential.user.email);
+    
     showToast('Inicio de sesión exitoso', 'success');
+    
+    // NO llamar location.reload() aquí
+    // El onAuthStateChanged se encargará de mostrar la app
+    console.log('✅ DEBUG login: Esperando onAuthStateChanged...');
+    
     return userCredential.user;
   } catch (error) {
-    console.error('❌ Error en login:', error);
+    console.error('❌ DEBUG login: Error de autenticación');
+    console.error('📋 Código de error:', error.code);
+    console.error('📋 Mensaje:', error.message);
+    
     let mensaje = 'Error al iniciar sesión';
     
     switch (error.code) {
@@ -120,6 +219,9 @@ async function login(email, password) {
       case 'auth/invalid-credential':
         mensaje = 'Credenciales inválidas';
         break;
+      case 'auth/network-request-failed':
+        mensaje = 'Error de red. Verifica tu conexión';
+        break;
       default:
         mensaje = error.message;
     }
@@ -131,10 +233,14 @@ async function login(email, password) {
 
 // Registro
 async function register(email, password, userData) {
+  console.log('📝 DEBUG register: Iniciando registro...');
+  console.log('📧 Email:', email);
+  
   try {
-    console.log('📝 Intentando registro:', email);
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
     const userId = userCredential.user.uid;
+    
+    console.log('✅ Usuario creado con UID:', userId);
     
     // Guardar datos adicionales en Firebase Realtime Database
     await firebase.database().ref('usuarios/' + userId).set({
@@ -145,11 +251,14 @@ async function register(email, password, userData) {
       fechaRegistro: new Date().toISOString()
     });
     
-    console.log('✅ Registro exitoso');
+    console.log('✅ Datos guardados en Firebase');
     showToast('Registro exitoso. Bienvenido!', 'success');
+    
     return userCredential.user;
   } catch (error) {
-    console.error('❌ Error en registro:', error);
+    console.error('❌ DEBUG register: Error en registro');
+    console.error('📋 Código de error:', error.code);
+    
     let mensaje = 'Error al registrar usuario';
     
     switch (error.code) {
@@ -173,13 +282,15 @@ async function register(email, password, userData) {
 
 // Recuperar contraseña
 async function resetPassword(email) {
+  console.log('📧 DEBUG resetPassword: Enviando email...');
+  
   try {
-    console.log('📧 Enviando email de recuperación a:', email);
     await firebase.auth().sendPasswordResetEmail(email);
-    console.log('✅ Email enviado');
+    console.log('✅ Email de recuperación enviado');
     showToast('Email de recuperación enviado. Revisa tu bandeja de entrada.', 'success');
   } catch (error) {
     console.error('❌ Error al enviar email:', error);
+    
     let mensaje = 'Error al enviar email de recuperación';
     
     switch (error.code) {
@@ -200,10 +311,11 @@ async function resetPassword(email) {
 
 // Logout
 async function logout() {
+  console.log('🚪 DEBUG logout: Cerrando sesión...');
+  
   try {
-    console.log('🚪 Cerrando sesión...');
     await firebase.auth().signOut();
-    console.log('✅ Sesión cerrada');
+    console.log('✅ Sesión cerrada exitosamente');
     showToast('Sesión cerrada exitosamente', 'success');
     showAuthSection();
   } catch (error) {
@@ -213,81 +325,82 @@ async function logout() {
 }
 
 // ============================================================
-// EVENT LISTENERS
+// EVENT LISTENERS PARA FORMULARIOS
 // ============================================================
 
-// Login form
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  
-  try {
-    await login(email, password);
-  } catch (error) {
-    // Error ya manejado en la función login
-  }
-});
-
 // Register form
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('register-email').value.trim();
-  const password = document.getElementById('register-password').value;
-  const determinante = document.getElementById('register-determinante').value;
-  const nombreTienda = document.getElementById('register-store-name').value.trim();
-  const nombrePromotor = document.getElementById('register-promoter-name').value.trim();
-  
-  try {
-    await register(email, password, {
-      determinante: determinante,
-      nombreTienda: nombreTienda,
-      nombrePromotor: nombrePromotor
-    });
-  } catch (error) {
-    // Error ya manejado en la función register
-  }
-});
+const registerForm = document.getElementById('register-form');
+if (registerForm) {
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    console.log('📝 Submit en register-form');
+    
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    const determinante = document.getElementById('register-determinante').value;
+    const nombreTienda = document.getElementById('register-store-name').value.trim();
+    const nombrePromotor = document.getElementById('register-promoter-name').value.trim();
+    
+    try {
+      await register(email, password, {
+        determinante: determinante,
+        nombreTienda: nombreTienda,
+        nombrePromotor: nombrePromotor
+      });
+    } catch (error) {
+      // Error ya manejado
+    }
+  });
+}
 
 // Forgot password form
-document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('forgot-email').value.trim();
-  
-  try {
-    await resetPassword(email);
-  } catch (error) {
-    // Error ya manejado en la función resetPassword
-  }
-});
+const forgotForm = document.getElementById('forgot-password-form');
+if (forgotForm) {
+  forgotForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    console.log('📧 Submit en forgot-password-form');
+    
+    const email = document.getElementById('forgot-email').value.trim();
+    
+    try {
+      await resetPassword(email);
+    } catch (error) {
+      // Error ya manejado
+    }
+  });
+}
 
 // Toggle forms
-document.getElementById('show-register').addEventListener('click', (e) => {
+document.getElementById('show-register')?.addEventListener('click', (e) => {
   e.preventDefault();
+  console.log('🔄 Mostrando formulario de registro');
   document.getElementById('login-form').classList.add('hidden');
   document.getElementById('register-form').classList.remove('hidden');
   document.getElementById('forgot-password-form').classList.add('hidden');
 });
 
-document.getElementById('show-login').addEventListener('click', (e) => {
+document.getElementById('show-login')?.addEventListener('click', (e) => {
   e.preventDefault();
+  console.log('🔄 Mostrando formulario de login');
   document.getElementById('login-form').classList.remove('hidden');
   document.getElementById('register-form').classList.add('hidden');
   document.getElementById('forgot-password-form').classList.add('hidden');
 });
 
-document.getElementById('show-forgot-password').addEventListener('click', (e) => {
+document.getElementById('show-forgot-password')?.addEventListener('click', (e) => {
   e.preventDefault();
+  console.log('🔄 Mostrando formulario de recuperación');
   document.getElementById('login-form').classList.add('hidden');
   document.getElementById('register-form').classList.add('hidden');
   document.getElementById('forgot-password-form').classList.remove('hidden');
 });
 
-document.getElementById('show-login-from-forgot').addEventListener('click', (e) => {
+document.getElementById('show-login-from-forgot')?.addEventListener('click', (e) => {
   e.preventDefault();
+  console.log('🔄 Volviendo a login desde recuperación');
   document.getElementById('login-form').classList.remove('hidden');
   document.getElementById('register-form').classList.add('hidden');
   document.getElementById('forgot-password-form').classList.add('hidden');
 });
 
-console.log('✅ auth.js cargado correctamente');
+console.log('✅ auth.js cargado completamente');

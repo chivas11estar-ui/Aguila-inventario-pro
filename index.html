@@ -55,44 +55,45 @@
     </h2>
 
     <!-- Formulario Login -->
-    <form id="login-form" aria-label="Formulario de inicio de sesión">
-      <div class="form-group">
-        <label for="login-email">Email</label>
-        <input 
-          id="login-email" 
-          type="email" 
-          name="email"
-          placeholder="tu.email@empresa.com" 
-          autocomplete="email"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="login-password">Contraseña</label>
-        <input 
-          id="login-password" 
-          type="password" 
-          name="password"
-          placeholder="Mínimo 6 caracteres" 
-          autocomplete="current-password"
-          minlength="6"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <button type="submit" class="success">Iniciar Sesión</button>
-      <p style="text-align: center; margin-top: 15px;">
-        <a href="#" id="show-forgot-password" style="color: var(--warning);">
-          ¿Olvidaste tu contraseña?
-        </a>
-      </p>
-      <p style="text-align: center;">
-        <a href="#" id="show-register" style="color: var(--primary);">
-          ¿Eres nuevo? Regístrate aquí
-        </a>
-      </p>
-    </form>
+<form id="login-form" aria-label="Formulario de inicio de sesión">
+  <div class="form-group">
+    <label for="login-email">Email</label>
+    <input 
+      id="login-email" 
+      type="email" 
+      name="email"
+      placeholder="tu.email@empresa.com" 
+      autocomplete="email"
+      required 
+      aria-required="true"
+    />
+  </div>
+  <div class="form-group">
+    <label for="login-password">Contraseña</label>
+    <input 
+      id="login-password" 
+      type="password" 
+      name="password"
+      placeholder="Mínimo 6 caracteres" 
+      autocomplete="current-password"
+      minlength="6"
+      required 
+      aria-required="true"
+    />
+  </div>
+  <!-- CAMBIO CRÍTICO: type="button" previene submit automático -->
+  <button type="button" id="btn-login" class="success">Iniciar Sesión</button>
+  <p style="text-align: center; margin-top: 15px;">
+    <a href="#" id="show-forgot-password" style="color: var(--warning);">
+      ¿Olvidaste tu contraseña?
+    </a>
+  </p>
+  <p style="text-align: center;">
+    <a href="#" id="show-register" style="color: var(--primary);">
+      ¿Eres nuevo? Regístrate aquí
+    </a>
+  </p>
+</form>
 
     <!-- Formulario Recuperar Contraseña -->
     <form id="forgot-password-form" class="hidden" aria-label="Recuperar contraseña">
@@ -470,8 +471,8 @@
 
   <!-- Scripts - ORDEN CRÍTICO -->
   <script src="firebase-config.js"></script>
-  <script src="auth.js"></script>
   <script src="ui.js"></script>
+  <script src="auth.js"></script>
   <script src="inventory.js"></script>
   <script src="audit.js"></script>
   <script src="system.js"></script>
