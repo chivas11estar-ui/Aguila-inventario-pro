@@ -19,16 +19,25 @@
   projectId: "promosentry",
   storageBucket: "promosentry.firebasestorage.app",
   messagingSenderId: "140188605265",
-  appId: "1:140188605265:web:c53fe5b09ea08793e6d170"
+  appId: "1:140188605265:web:c53fe5b09ea08793e6d170",
 };
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-
-// Referencias globales
-const auth = firebase.auth();
-const db = firebase.database();
-
-// Exportar si usas módulos ES6 (opcional, según tu setup)
-window.auth = auth;
-window.db = db;
+(function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') {
+      console.error('Firebase SDK no cargado. Verifica tus <script> de Firebase en index.html');
+      return;
+    }
+    // Evitar reinicializar si ya existe
+    if (!firebase.apps || firebase.apps.length === 0) {
+      firebase.initializeApp(firebaseConfig);
+      console.log('Firebase inicializada correctamente');
+    } else {
+      console.log('Firebase ya estaba inicializada');
+    }
+    // Exponer firebase globalmente por seguridad
+    window.firebase = firebase;
+  } catch (err) {
+    console.error('Error inicializando Firebase:', err);
+  }
+})();
