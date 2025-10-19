@@ -291,23 +291,43 @@
     </section>
 
     <!-- Inventario -->
-    <section id="tab-inventario" class="tab" role="tabpanel" aria-labelledby="tab-inventario">
-      <div class="card">
-        <h3 style="color: var(--primary);">Inventario Actual</h3>
-        <div class="form-group">
+<section id="tab-inventario" class="tab" role="tabpanel" aria-labelledby="tab-inventario">
+  <div class="card">
+    <h3 style="color: var(--primary);">Inventario Actual</h3>
+    
+    <!-- Búsqueda con escáner -->
+    <div class="search-container">
+      <div class="form-row">
+        <div class="form-group" style="flex: 2; margin: 0;">
           <label for="inventory-search" class="sr-only">Buscar en inventario</label>
           <input 
             type="text" 
             id="inventory-search" 
             placeholder="Buscar por nombre, marca o código..." 
             aria-label="Buscar en inventario"
+            style="margin: 0;"
           />
         </div>
-        <div id="inventory-list" role="region" aria-live="polite" aria-label="Lista de inventario">
-          <p class="text-center text-muted">Cargando inventario...</p>
-        </div>
+        <button type="button" id="inventory-scan-btn" class="success" style="width: auto; min-width: 140px; margin: 0;">
+          📷 Escanear
+        </button>
       </div>
-    </section>
+    </div>
+    
+    <!-- Filtros de marca -->
+    <div class="brand-filters-container">
+      <h4 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--muted);">Filtrar por marca:</h4>
+      <div id="brand-filters" class="brand-filters">
+        <!-- Los filtros se generan dinámicamente -->
+      </div>
+    </div>
+    
+    <!-- Lista de inventario -->
+    <div id="inventory-list" role="region" aria-live="polite" aria-label="Lista de inventario">
+      <p class="text-center text-muted">Cargando inventario...</p>
+    </div>
+  </div>
+</section>
 
     <!-- Relleno -->
     <section id="tab-relleno" class="tab" role="tabpanel" aria-labelledby="tab-relleno">

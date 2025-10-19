@@ -541,3 +541,292 @@ a:hover {
     padding: 8px 12px;
   }
 }
+/* ============================================================
+   ESTILOS PARA INVENTARIO MEJORADO
+   ============================================================ */
+
+/* Contenedor de búsqueda */
+.search-container {
+  margin-bottom: 20px;
+}
+
+/* Filtros de marca */
+.brand-filters-container {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.brand-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.brand-filter-btn {
+  padding: 8px 16px;
+  margin: 0;
+  width: auto;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.brand-filter-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,74,173,0.2);
+}
+
+.brand-filter-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Secciones por marca */
+.brand-section {
+  margin-bottom: 20px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.brand-section-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.brand-section-header:hover {
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+}
+
+.brand-section-header h4 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1.1em;
+}
+
+.brand-count {
+  font-size: 0.9em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.toggle-icon {
+  font-size: 1.2em;
+  color: var(--primary);
+  transition: transform 0.3s ease;
+}
+
+.brand-section-content {
+  padding: 12px;
+  display: block;
+}
+
+/* Items de inventario */
+.inventory-item {
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.inventory-item:hover {
+  border-color: var(--primary);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.inventory-item.low-stock {
+  border-left: 4px solid var(--warning);
+}
+
+.inventory-item.out-of-stock {
+  border-left: 4px solid var(--error);
+  opacity: 0.7;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.item-header h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1em;
+}
+
+.item-brand {
+  padding: 4px 12px;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.item-details {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.detail-value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.stock-value {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.inventory-item.low-stock .stock-value {
+  color: var(--warning);
+}
+
+.inventory-item.out-of-stock .stock-value {
+  color: var(--error);
+}
+
+.code-value {
+  font-family: 'Courier New', monospace;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* Estados de caducidad */
+.expiry-expired {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.expiry-expiring-soon {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.expiry-expiring-warning {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* Acciones */
+.item-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.action-btn {
+  padding: 8px 16px;
+  margin: 0;
+  width: auto;
+  border-radius: 8px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.edit-btn:hover {
+  background: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+.delete-btn {
+  background: var(--error);
+  border: 2px solid var(--error);
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .brand-filters {
+    gap: 6px;
+  }
+  
+  .brand-filter-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .brand-section-header {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .brand-count {
+    font-size: 0.85em;
+  }
+  
+  .item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .item-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+}
