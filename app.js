@@ -11,105 +11,117 @@
 // sin autorización expresa del autor.
 // ============================================================
 
-// ==========================
-// Inicialización de la UI
-// ==========================
-setupTabNavigation();
 
-// ==========================
-// Formularios de autenticación
-// ==========================
+console.log('🚀 Iniciando Águila Inventario Pro v7.0...');
 
-// Mostrar formularios
-document.getElementById('show-register')?.addEventListener('click', () => switchForm('register-form'));
-document.getElementById('show-login')?.addEventListener('click', () => switchForm('login-form'));
-document.getElementById('show-forgot-password')?.addEventListener('click', () => switchForm('forgot-password-form'));
-document.getElementById('show-login-from-forgot')?.addEventListener('click', () => switchForm('login-form'));
-
-// Login
-document.getElementById('login-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  await login(email, password);
-});
-
-// Registro
-document.getElementById('register-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const data = {
-    email: document.getElementById('register-email').value.trim(),
-    password: document.getElementById('register-password').value,
-    determinante: document.getElementById('register-determinante').value.trim(),
-    storeName: document.getElementById('register-store-name').value.trim(),
-    promoterName: document.getElementById('register-promoter-name').value.trim()
+// ============================================================
+// VERIFICAR DEPENDENCIAS
+// ============================================================
+function checkDependencies() {
+  const dependencies = {
+    firebase: typeof firebase !== 'undefined',
+    showToast: typeof showToast === 'function',
+    openScanner: typeof openScanner === 'function',
+    Quagga: typeof Quagga !== 'undefined'
   };
-  await register(data);
-});
-
-// Recuperar contraseña
-document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('forgot-email').value.trim();
-  await recoverPassword(email);
-});
-
-// ==========================
-// Inventario
-// ==========================
-document.getElementById('add-product-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const data = {
-    barcode: document.getElementById('add-barcode').value.trim(),
-    name: document.getElementById('add-product-name').value.trim(),
-    brand: document.getElementById('add-brand').value,
-    piecesPerBox: parseInt(document.getElementById('add-pieces-per-box').value),
-    warehouse: document.getElementById('add-warehouse').value.trim(),
-    expiryDate: document.getElementById('add-expiry-date').value,
-    boxes: parseInt(document.getElementById('add-boxes').value)
-  };
-  await addProduct(data);
-});
-
-// ==========================
-// Auditoría
-// ==========================
-document.getElementById('audit-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const barcode = document.getElementById('audit-barcode').value.trim();
-  const countedBoxes = parseInt(document.getElementById('audit-boxes').value);
-  const warehouse = document.getElementById('audit-warehouse').value.trim();
-  await registerAudit(barcode, countedBoxes, warehouse);
-});
-
-// ==========================
-// Sistema
-// ==========================
-document.getElementById('force-sync-btn')?.addEventListener('click', forceSyncNow);
-document.getElementById('show-stats-btn')?.addEventListener('click', showSystemStats);
-document.getElementById('logout-btn')?.addEventListener('click', logout);
-
-// ==========================
-// Escáner de códigos
-// ==========================
-document.getElementById('add-scan-btn')?.addEventListener('click', () => startScanner('add-barcode'));
-document.getElementById('refill-scan-btn')?.addEventListener('click', () => startScanner('refill-barcode'));
-document.getElementById('audit-scan-btn')?.addEventListener('click', () => startScanner('audit-barcode'));
-document.getElementById('close-scanner')?.addEventListener('click', stopScanner);
-
-// ==========================
-// Confirmación de carga
-// ==========================
-console.log('✅ Águila Inventario Pro v7.0 cargado correctamente');
-
-// ==========================
-// Registro del Service Worker
-// ==========================
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((reg) => console.log("✅ Service Worker registrado:", reg.scope))
-      .catch((err) => console.error("❌ Error al registrar SW:", err));
-  });
+  
+  console.log('📦 Dependencias verificadas:', dependencies);
+  
+  const allLoaded = Object.values(dependencies).every(dep => dep);
+  
+  if (!allLoaded) {
+    console.warn('⚠️ Algunas dependencias no están cargadas:', dependencies);
+  }
+  
+  return allLoaded;
 }
+
+// ============================================================
+// INICIALIZACIÓN DE LA APLICACIÓN
+// ============================================================
+function initializeApp() {
+  console.log('⚙️ Inicializando aplicación...');
+  
+  // Verificar que Firebase esté inicializado
+  if (typeof firebase === 'undefined') {
+    console.error('❌ Firebase no está cargado');
+    alert('Error: Firebase no está cargado. Recarga la página.');
+    return;
+  }
+  
+  if (!firebase.apps || firebase.apps.length === 0) {
+    console.error('❌ Firebase no está inicializado');
+    alert('Error: Firebase no está inicializado. Recarga la página.');
+    return;
+  }
+  
+  console.log('✅ Firebase inicializado correctamente');
+  console.log('📱 Apps de Firebase:', firebase.apps.length);
+  
+  // El resto de la inicialización se maneja en auth.js
+  // cuando el usuario se autentica
+  
+  checkDependencies();
+}
+
+// ============================================================
+// ESPERAR A QUE TODO ESTÉ CARGADO
+// ============================================================
+window.addEventListener('load', () => {
+  console.log('🎨 Página completamente cargada');
+  
+  // Pequeño delay para asegurar que todos los scripts defer se ejecutaron
+  setTimeout(() => {
+    initializeApp();
+  }, 100);
+});
+
+// ============================================================
+// MANEJO DE ERRORES GLOBALES
+// ============================================================
+window.addEventListener('error', (event) => {
+  console.error('❌ Error global capturado:', event.error);
+  
+  // No mostrar toast para cada error (puede ser molesto)
+  // Solo loggear en consola
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('❌ Promise rechazada sin manejar:', event.reason);
+});
+
+// ============================================================
+// INFORMATION
+// ============================================================
+console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║       🦅 ÁGUILA INVENTARIO PRO v7.0                      ║
+║                                                           ║
+║       Sistema de Gestión de Inventario                   ║
+║       para Promotores PepsiCo                            ║
+║                                                           ║
+║       © 2025 José A. G. Betancourt                       ║
+║       Todos los derechos reservados                      ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+📋 Módulos cargados:
+   ✅ firebase-config.js
+   ✅ auth.js
+   ✅ ui.js
+   ✅ inventory.js
+   ✅ refill.js
+   ✅ audit.js
+   ✅ system.js
+   ✅ app.js
+
+🔥 Firebase: Conectado
+📱 Modo: Producción
+🌐 Entorno: Web App
+
+Para soporte o reportar bugs:
+📧 Email: soporte@aguilainventario.com
+`);
+
+console.log('✅ app.js cargado correctamente');
