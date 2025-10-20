@@ -1,14 +1,15 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: [nombre del archivo]
+// Águila Inventario Pro - Módulo: system.js
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
 //
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
+// Lógica de diagnóstico mejorada para proporcionar información
+// más detallada y amigable para el usuario sobre el entorno
+// de la aplicación.
+// ============================================================
+
+// ============================================================
+// DIAGNÓSTICO DE FIREBASE (Lógica Mejorada)
 // ============================================================
 
 // ============================================================
@@ -16,6 +17,60 @@
 // ============================================================
 function diagnosticoFirebase() {
   console.log('🔍 Iniciando diagnóstico de Firebase...');
+  
+  // Detectar tipo de dispositivo/navegador
+  const getDeviceType = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone === true;
+    
+    // Detectar si es PWA instalada
+    if (isStandalone) {
+      if (ua.includes('android')) return 'App Instalada (Android)';
+      if (ua.includes('iphone') || ua.includes('ipad')) return 'App Instalada (iOS)';
+      return 'App Instalada (Escritorio)';
+    }
+    
+    // Detectar navegador móvil
+    if (ua.includes('android')) return 'Navegador Móvil (Android)';
+    if (ua.includes('iphone') || ua.includes('ipad')) return 'Navegador Móvil (iOS)';
+    
+    // Escritorio
+    if (ua.includes('chrome')) return 'Chrome (Escritorio)';
+    if (ua.includes('firefox')) return 'Firefox (Escritorio)';
+    if (ua.includes('safari')) return 'Safari (Escritorio)';
+    if (ua.includes('edge')) return 'Edge (Escritorio)';
+    
+    return 'Navegador Web';
+  };
+  
+  // Detectar tipo de conexión de forma segura
+  const getConnectionType = () => {
+    if (!navigator.onLine) return 'Sin Conexión';
+    
+    const connection = navigator.connection || 
+                      navigator.mozConnection || 
+                      navigator.webkitConnection;
+    
+    if (!connection) return 'Wi-Fi o Datos';
+    
+    // Obtener tipo de conexión sin exponer detalles sensibles
+    const type = connection.type || connection.effectiveType;
+    
+    if (type === 'wifi') return 'Wi-Fi';
+    if (type === 'cellular' || type === '4g' || type === '3g' || type === '2g') return 'Datos Móviles';
+    if (type === 'ethernet') return 'Ethernet';
+    if (type === 'bluetooth') return 'Bluetooth';
+    
+    // Velocidad estimada (sin exponer red específica)
+    const effectiveType = connection.effectiveType;
+    if (effectiveType === '4g') return 'Datos Móviles (4G)';
+    if (effectiveType === '3g') return 'Datos Móviles (3G)';
+    if (effectiveType === '2g') return 'Datos Móviles (2G)';
+    if (effectiveType === 'slow-2g') return 'Datos Móviles (Lento)';
+    
+    return 'Conectado';
+  };
   
   const diagnostico = {
     timestamp: new Date().toISOString(),
@@ -32,11 +87,10 @@ function diagnosticoFirebase() {
     },
     conexion: {
       online: navigator.onLine,
-      tipoConexion: navigator?.connection?.effectiveType || 'desconocido'
+      tipo: getConnectionType()
     },
-    navegador: {
-      userAgent: navigator.userAgent,
-      plataforma: navigator.platform,
+    dispositivo: {
+      tipo: getDeviceType(),
       idioma: navigator.language
     }
   };
@@ -54,9 +108,9 @@ function diagnosticoFirebase() {
 📧 Email: ${diagnostico.usuario.email || 'N/A'}
 
 🌐 Conexión: ${diagnostico.conexion.online ? '✅ Online' : '❌ Offline'}
-📶 Tipo: ${diagnostico.conexion.tipoConexion}
+📶 Tipo: ${diagnostico.conexion.tipo}
 
-💻 Navegador: ${diagnostico.navegador.plataforma}
+💻 Navegador: ${diagnostico.dispositivo.tipo}
   `;
   
   alert(mensaje);
