@@ -11,14 +11,36 @@
 // sin autorización expresa del autor.
 // ============================================================
 
+// ============================================================
+// Águila Inventario Pro - Módulo: inventory.js (Multi-Usuario)
+// ============================================================
+
 let inventoryData = [];
 let filteredInventory = [];
 let currentBrandFilter = 'all';
+let userDeterminante = null;
+
+// ============================================================
+// OBTENER DETERMINANTE DEL USUARIO
+// ============================================================
+async function getUserDeterminante() {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) return null;
+  
+  try {
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+    return userData?.determinante || null;
+  } catch (error) {
+    console.error('❌ Error al obtener determinante:', error);
+    return null;
+  }
+}
 
 // ============================================================
 // CARGAR INVENTARIO
 // ============================================================
-function loadInventory() {
+async function loadInventory() {
   console.log('📦 Cargando inventario...');
   
   const userId = firebase.auth().currentUser?.uid;
@@ -27,7 +49,21 @@ function loadInventory() {
     return;
   }
   
-  const inventoryRef = firebase.database().ref('inventario/' + userId);
+  // Obtener determinante del usuario
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    console.error('❌ No se pudo obtener el determinante');
+    showToast('Error: No se encontró información de la tienda', 'error');
+    return;
+  }
+  
+  console.log('🏪 Cargando inventario de tienda:', userDeterminante);
+  
+  // Cargar inventario por determinante (compartido)
+  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
   
   inventoryRef.on('value', (snapshot) => {
     if (snapshot.exists()) {
@@ -39,14 +75,9 @@ function loadInventory() {
       
       console.log('✅ Inventario cargado:', inventoryData.length, 'productos');
       
-      // Actualizar estadísticas
       updateDashboardStats();
-      
-      // Mostrar inventario
       filteredInventory = [...inventoryData];
       displayInventory(filteredInventory);
-      
-      // Actualizar filtros de marca
       updateBrandFilters();
       
     } else {
@@ -65,15 +96,12 @@ function loadInventory() {
 // ACTUALIZAR ESTADÍSTICAS DEL DASHBOARD
 // ============================================================
 function updateDashboardStats() {
-  // Total de productos únicos
   const totalProducts = inventoryData.length;
   document.getElementById('total-products').textContent = totalProducts;
   
-  // Total de cajas
   const totalBoxes = inventoryData.reduce((sum, item) => sum + (item.cajas || 0), 0);
   document.getElementById('total-inventory-value').textContent = totalBoxes;
   
-  // Productos por vencer (próximos 30 días)
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
   
@@ -85,7 +113,6 @@ function updateDashboardStats() {
   
   document.getElementById('expiry-alert').textContent = expiringSoon;
   
-  // Movimientos hoy (esto se actualiza desde otros módulos)
   console.log('📊 Estadísticas actualizadas');
 }
 
@@ -117,7 +144,6 @@ function filterByBrand(brand) {
   console.log('🏷️ Filtrando por marca:', brand);
   currentBrandFilter = brand;
   
-  // Actualizar botones activos
   document.querySelectorAll('.brand-filter-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-brand') === brand) {
@@ -125,14 +151,12 @@ function filterByBrand(brand) {
     }
   });
   
-  // Aplicar filtro
   if (brand === 'all') {
     filteredInventory = [...inventoryData];
   } else {
     filteredInventory = inventoryData.filter(item => item.marca === brand);
   }
   
-  // Aplicar búsqueda si hay texto
   const searchInput = document.getElementById('inventory-search');
   if (searchInput && searchInput.value.trim()) {
     applySearch(searchInput.value.trim());
@@ -169,7 +193,6 @@ function applySearch(query) {
   console.log('🔍 Buscando:', query);
   
   if (!query) {
-    // Si no hay búsqueda, mostrar según filtro de marca actual
     if (currentBrandFilter === 'all') {
       filteredInventory = [...inventoryData];
     } else {
@@ -181,7 +204,6 @@ function applySearch(query) {
   
   const lowerQuery = query.toLowerCase();
   
-  // Buscar en datos filtrados por marca
   let baseData = currentBrandFilter === 'all' 
     ? inventoryData 
     : inventoryData.filter(item => item.marca === currentBrandFilter);
@@ -203,7 +225,7 @@ function applySearch(query) {
 }
 
 // ============================================================
-// MOSTRAR INVENTARIO
+// MOSTRAR INVENTARIO (igual que antes)
 // ============================================================
 function displayInventory(items) {
   const container = document.getElementById('inventory-list');
@@ -218,7 +240,6 @@ function displayInventory(items) {
     return;
   }
   
-  // Agrupar por marca si es vista "Todas"
   if (currentBrandFilter === 'all') {
     displayInventoryGrouped(items);
   } else {
@@ -229,7 +250,6 @@ function displayInventory(items) {
 function displayInventoryGrouped(items) {
   const container = document.getElementById('inventory-list');
   
-  // Agrupar por marca
   const grouped = items.reduce((acc, item) => {
     const brand = item.marca || 'Sin Marca';
     if (!acc[brand]) acc[brand] = [];
@@ -366,11 +386,9 @@ function editProduct(productId) {
     return;
   }
   
-  // Cambiar a tab de agregar producto
   const addTab = document.querySelector('[data-tab="agregar-producto"]');
   if (addTab) addTab.click();
   
-  // Llenar formulario con datos del producto
   document.getElementById('add-barcode').value = product.codigoBarras || '';
   document.getElementById('add-product-name').value = product.nombre || '';
   document.getElementById('add-brand').value = product.marca || '';
@@ -379,7 +397,6 @@ function editProduct(productId) {
   document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
   document.getElementById('add-boxes').value = product.cajas || '';
   
-  // Guardar ID para actualizar en lugar de crear
   document.getElementById('add-product-form').dataset.editingId = productId;
   
   showToast('Editando producto. Modifica los campos y guarda.', 'info');
@@ -388,20 +405,23 @@ function editProduct(productId) {
 // ============================================================
 // ELIMINAR PRODUCTO
 // ============================================================
-function deleteProduct(productId, productName) {
+async function deleteProduct(productId, productName) {
   if (!confirm(`¿Estás seguro de eliminar "${productName}"?`)) {
     return;
   }
   
   console.log('🗑️ Eliminando producto:', productId);
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
-  firebase.database().ref('inventario/' + userId + '/' + productId).remove()
+  firebase.database().ref('inventario/' + userDeterminante + '/' + productId).remove()
     .then(() => {
       console.log('✅ Producto eliminado');
       showToast('Producto eliminado correctamente', 'success');
@@ -419,9 +439,12 @@ document.getElementById('add-product-form')?.addEventListener('submit', async (e
   e.preventDefault();
   console.log('💾 Guardando producto...');
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
@@ -433,7 +456,8 @@ document.getElementById('add-product-form')?.addEventListener('submit', async (e
     ubicacion: document.getElementById('add-warehouse').value.trim(),
     fechaCaducidad: document.getElementById('add-expiry-date').value,
     cajas: parseInt(document.getElementById('add-boxes').value),
-    fechaActualizacion: new Date().toISOString()
+    fechaActualizacion: new Date().toISOString(),
+    actualizadoPor: firebase.auth().currentUser.email
   };
   
   const form = document.getElementById('add-product-form');
@@ -441,21 +465,17 @@ document.getElementById('add-product-form')?.addEventListener('submit', async (e
   
   try {
     if (editingId) {
-      // Actualizar producto existente
-      await firebase.database().ref('inventario/' + userId + '/' + editingId).update(formData);
+      await firebase.database().ref('inventario/' + userDeterminante + '/' + editingId).update(formData);
       showToast('Producto actualizado correctamente', 'success');
       delete form.dataset.editingId;
     } else {
-      // Crear nuevo producto
       formData.fechaCreacion = new Date().toISOString();
-      await firebase.database().ref('inventario/' + userId).push(formData);
+      formData.creadoPor = firebase.auth().currentUser.email;
+      await firebase.database().ref('inventario/' + userDeterminante).push(formData);
       showToast('Producto agregado correctamente', 'success');
     }
     
-    // Limpiar formulario
     form.reset();
-    
-    // Volver a inventario
     document.querySelector('[data-tab="inventario"]')?.click();
     
   } catch (error) {
@@ -478,4 +498,4 @@ window.toggleBrandSection = toggleBrandSection;
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 
-console.log('✅ inventory.js cargado correctamente');
+console.log('✅ inventory.js (multi-usuario) cargado correctamente');
