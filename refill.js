@@ -12,20 +12,41 @@
    ============================================================ */
 
 let currentRefillProduct = null;
+let userDeterminante = null;
+
+// ============================================================
+// OBTENER DETERMINANTE DEL USUARIO
+// ============================================================
+async function getUserDeterminante() {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) return null;
+  
+  try {
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+    return userData?.determinante || null;
+  } catch (error) {
+    console.error('❌ Error al obtener determinante:', error);
+    return null;
+  }
+}
 
 // ============================================================
 // BUSCAR PRODUCTO PARA RELLENO
 // ============================================================
-function searchProductForRefill(barcode) {
+async function searchProductForRefill(barcode) {
   console.log('🔍 Buscando producto para relleno:', barcode);
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
-  const inventoryRef = firebase.database().ref('inventario/' + userId);
+  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
   
   inventoryRef.orderByChild('codigoBarras').equalTo(barcode).once('value')
     .then((snapshot) => {
@@ -69,7 +90,6 @@ function displayRefillProductInfo(product) {
     stockEl.textContent = 'Stock actual: ' + (product.cajas || 0) + ' cajas en almacén';
     infoDiv.style.display = 'block';
     
-    // Enfocar campo de cajas
     const boxesInput = document.getElementById('refill-boxes');
     if (boxesInput) {
       boxesInput.focus();
@@ -87,7 +107,7 @@ function hideRefillProductInfo() {
 // ============================================================
 // REGISTRAR MOVIMIENTO DE RELLENO
 // ============================================================
-function processRefillMovement(boxes) {
+async function processRefillMovement(boxes) {
   if (!currentRefillProduct) {
     showToast('Primero busca un producto', 'warning');
     return;
@@ -95,16 +115,18 @@ function processRefillMovement(boxes) {
   
   console.log('📦 Procesando relleno:', boxes, 'cajas');
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
   const currentStock = currentRefillProduct.cajas || 0;
   const boxesToMove = parseInt(boxes);
   
-  // Validar que haya suficiente stock
   if (boxesToMove > currentStock) {
     showToast(`Stock insuficiente. Solo hay ${currentStock} cajas disponibles`, 'error');
     return;
@@ -115,69 +137,73 @@ function processRefillMovement(boxes) {
     return;
   }
   
-  // Actualizar stock en Firebase
   const newStock = currentStock - boxesToMove;
-  const productRef = firebase.database().ref('inventario/' + userId + '/' + currentRefillProduct.id);
+  const productRef = firebase.database().ref('inventario/' + userDeterminante + '/' + currentRefillProduct.id);
   
-  productRef.update({
-    cajas: newStock,
-    fechaActualizacion: new Date().toISOString()
-  })
-    .then(() => {
-      console.log('✅ Movimiento registrado');
-      
-      // Registrar movimiento en historial
-      registerMovement(userId, {
-        tipo: 'relleno',
-        productoId: currentRefillProduct.id,
-        productoNombre: currentRefillProduct.nombre,
-        cantidad: boxesToMove,
-        stockAnterior: currentStock,
-        stockNuevo: newStock,
-        fecha: new Date().toISOString()
-      });
-      
-      showToast(`Movimiento registrado: ${boxesToMove} cajas al piso de venta`, 'success');
-      
-      // Limpiar formulario
-      document.getElementById('refill-form').reset();
-      currentRefillProduct = null;
-      hideRefillProductInfo();
-      
-      // Actualizar estadísticas si es hoy
-      updateTodayMovements();
-      
-    })
-    .catch((error) => {
-      console.error('❌ Error al registrar movimiento:', error);
-      showToast('Error al registrar movimiento: ' + error.message, 'error');
+  try {
+    // Actualizar stock
+    await productRef.update({
+      cajas: newStock,
+      fechaActualizacion: new Date().toISOString(),
+      actualizadoPor: firebase.auth().currentUser.email
     });
+    
+    console.log('✅ Movimiento registrado');
+    
+    // Registrar movimiento en historial
+    await registerMovement(userDeterminante, {
+      tipo: 'relleno',
+      productoId: currentRefillProduct.id,
+      productoNombre: currentRefillProduct.nombre,
+      cantidad: boxesToMove,
+      stockAnterior: currentStock,
+      stockNuevo: newStock,
+      fecha: new Date().toISOString(),
+      realizadoPor: firebase.auth().currentUser.email
+    });
+    
+    showToast(`Movimiento registrado: ${boxesToMove} cajas al piso de venta`, 'success');
+    
+    // Limpiar formulario
+    document.getElementById('refill-form').reset();
+    currentRefillProduct = null;
+    hideRefillProductInfo();
+    
+    // Actualizar estadísticas
+    updateTodayMovements();
+    
+  } catch (error) {
+    console.error('❌ Error al registrar movimiento:', error);
+    showToast('Error al registrar movimiento: ' + error.message, 'error');
+  }
 }
 
 // ============================================================
 // REGISTRAR MOVIMIENTO EN HISTORIAL
 // ============================================================
-function registerMovement(userId, movementData) {
-  const movementsRef = firebase.database().ref('movimientos/' + userId);
+async function registerMovement(determinante, movementData) {
+  const movementsRef = firebase.database().ref('movimientos/' + determinante);
   
-  movementsRef.push(movementData)
-    .then(() => {
-      console.log('✅ Movimiento guardado en historial');
-    })
-    .catch((error) => {
-      console.error('⚠️ Error al guardar en historial:', error);
-    });
+  try {
+    await movementsRef.push(movementData);
+    console.log('✅ Movimiento guardado en historial');
+  } catch (error) {
+    console.error('⚠️ Error al guardar en historial:', error);
+  }
 }
 
 // ============================================================
 // ACTUALIZAR CONTADOR DE MOVIMIENTOS HOY
 // ============================================================
-function updateTodayMovements() {
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) return;
+async function updateTodayMovements() {
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) return;
   
   const today = new Date().toISOString().split('T')[0];
-  const movementsRef = firebase.database().ref('movimientos/' + userId);
+  const movementsRef = firebase.database().ref('movimientos/' + userDeterminante);
   
   movementsRef.orderByChild('fecha').startAt(today).once('value')
     .then((snapshot) => {
@@ -226,7 +252,6 @@ function setupRefillForm() {
       }
     });
     
-    // Buscar al presionar Enter
     barcodeInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -270,7 +295,6 @@ function setupRefillForm() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🔄 Inicializando módulo de relleno...');
   
-  // Esperar a que Firebase esté listo
   const initInterval = setInterval(() => {
     if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
       setupRefillForm();
@@ -278,11 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 500);
   
-  // Timeout de seguridad (10 segundos)
   setTimeout(() => {
     clearInterval(initInterval);
     setupRefillForm();
   }, 10000);
 });
 
-console.log('✅ Módulo de relleno cargado');
+console.log('✅ refill.js (multi-usuario) cargado correctamente');

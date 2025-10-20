@@ -14,6 +14,24 @@
 let currentAuditWarehouse = null;
 let currentAuditProduct = null;
 let todayAuditCount = 0;
+let userDeterminante = null;
+
+// ============================================================
+// OBTENER DETERMINANTE DEL USUARIO
+// ============================================================
+async function getUserDeterminante() {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) return null;
+  
+  try {
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+    return userData?.determinante || null;
+  } catch (error) {
+    console.error('❌ Error al obtener determinante:', error);
+    return null;
+  }
+}
 
 // ============================================================
 // CONFIGURAR BODEGA A AUDITAR
@@ -42,7 +60,6 @@ function setupAuditWarehouse() {
       
       showToast(`Bodega seleccionada: ${warehouseName}`, 'success');
       
-      // Enfocar campo de código de barras
       const barcodeInput = document.getElementById('audit-barcode');
       if (barcodeInput) {
         barcodeInput.focus();
@@ -54,7 +71,7 @@ function setupAuditWarehouse() {
 // ============================================================
 // BUSCAR PRODUCTO PARA AUDITAR
 // ============================================================
-function searchProductForAudit(barcode) {
+async function searchProductForAudit(barcode) {
   console.log('🔍 Buscando producto para auditar:', barcode);
   
   if (!currentAuditWarehouse) {
@@ -62,13 +79,16 @@ function searchProductForAudit(barcode) {
     return;
   }
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
-  const inventoryRef = firebase.database().ref('inventario/' + userId);
+  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
   
   inventoryRef.orderByChild('codigoBarras').equalTo(barcode).once('value')
     .then((snapshot) => {
@@ -88,7 +108,6 @@ function searchProductForAudit(barcode) {
           displayAuditProductInfo(currentAuditProduct);
           showToast('Producto encontrado: ' + productData.nombre, 'success');
           
-          // Enfocar campo de cantidad
           const boxesInput = document.getElementById('audit-boxes');
           if (boxesInput) {
             boxesInput.focus();
@@ -140,7 +159,7 @@ function hideAuditProductInfo() {
 // ============================================================
 // REGISTRAR CONTEO DE AUDITORÍA
 // ============================================================
-function processAuditCount(countedBoxes) {
+async function processAuditCount(countedBoxes) {
   if (!currentAuditWarehouse) {
     showToast('Primero selecciona una bodega', 'warning');
     return;
@@ -153,9 +172,12 @@ function processAuditCount(countedBoxes) {
   
   console.log('📊 Procesando conteo:', countedBoxes, 'cajas');
   
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
@@ -183,35 +205,34 @@ function processAuditCount(countedBoxes) {
     auditor: firebase.auth().currentUser.email
   };
   
-  firebase.database().ref('auditorias/' + userId).push(auditData)
-    .then(() => {
-      console.log('✅ Auditoría registrada');
-      
-      // Actualizar contador
-      todayAuditCount += counted;
-      updateAuditTotalDisplay();
-      
-      // Agregar a historial
-      addAuditToHistory(auditData);
-      
-      // Mostrar resultado
-      let mensaje = `Conteo registrado: ${counted} cajas`;
-      if (difference !== 0) {
-        mensaje += ` (Diferencia: ${difference > 0 ? '+' : ''}${difference})`;
-      }
-      showToast(mensaje, difference === 0 ? 'success' : 'warning');
-      
-      // Limpiar formulario
-      document.getElementById('audit-form').reset();
-      document.getElementById('audit-barcode').focus();
-      currentAuditProduct = null;
-      hideAuditProductInfo();
-      
-    })
-    .catch((error) => {
-      console.error('❌ Error al registrar auditoría:', error);
-      showToast('Error al registrar auditoría: ' + error.message, 'error');
-    });
+  try {
+    await firebase.database().ref('auditorias/' + userDeterminante).push(auditData);
+    console.log('✅ Auditoría registrada');
+    
+    // Actualizar contador
+    todayAuditCount += counted;
+    updateAuditTotalDisplay();
+    
+    // Agregar a historial
+    addAuditToHistory(auditData);
+    
+    // Mostrar resultado
+    let mensaje = `Conteo registrado: ${counted} cajas`;
+    if (difference !== 0) {
+      mensaje += ` (Diferencia: ${difference > 0 ? '+' : ''}${difference})`;
+    }
+    showToast(mensaje, difference === 0 ? 'success' : 'warning');
+    
+    // Limpiar formulario
+    document.getElementById('audit-form').reset();
+    document.getElementById('audit-barcode').focus();
+    currentAuditProduct = null;
+    hideAuditProductInfo();
+    
+  } catch (error) {
+    console.error('❌ Error al registrar auditoría:', error);
+    showToast('Error al registrar auditoría: ' + error.message, 'error');
+  }
 }
 
 // ============================================================
@@ -231,7 +252,6 @@ function addAuditToHistory(auditData) {
   const historyContainer = document.getElementById('audit-history');
   if (!historyContainer) return;
   
-  // Si está vacío, limpiar mensaje de "sin datos"
   if (historyContainer.querySelector('.text-muted')) {
     historyContainer.innerHTML = '';
   }
@@ -267,19 +287,21 @@ function addAuditToHistory(auditData) {
     </div>
   `;
   
-  // Insertar al inicio
   historyContainer.insertBefore(historyItem, historyContainer.firstChild);
 }
 
 // ============================================================
 // CARGAR AUDITORÍAS DE HOY
 // ============================================================
-function loadTodayAudits() {
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) return;
+async function loadTodayAudits() {
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) return;
   
   const today = new Date().toISOString().split('T')[0];
-  const auditsRef = firebase.database().ref('auditorias/' + userId);
+  const auditsRef = firebase.database().ref('auditorias/' + userDeterminante);
   
   auditsRef.orderByChild('fecha').startAt(today).once('value')
     .then((snapshot) => {
@@ -289,14 +311,11 @@ function loadTodayAudits() {
           audits.push(child.val());
         });
         
-        // Ordenar por fecha descendente
         audits.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         
-        // Calcular total
         todayAuditCount = audits.reduce((sum, audit) => sum + (audit.stockContado || 0), 0);
         updateAuditTotalDisplay();
         
-        // Mostrar historial
         audits.forEach(audit => addAuditToHistory(audit));
         
         console.log('📊 Auditorías de hoy cargadas:', audits.length);
@@ -313,7 +332,6 @@ function loadTodayAudits() {
 function setupAuditForm() {
   console.log('🔧 Configurando formulario de auditoría...');
   
-  // Configurar bodega
   setupAuditWarehouse();
   
   // Botón de escaneo
@@ -392,7 +410,6 @@ function setupAuditForm() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🎯 Inicializando módulo de auditoría...');
   
-  // Esperar a que Firebase esté listo
   const initInterval = setInterval(() => {
     if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
       setupAuditForm();
@@ -401,11 +418,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 500);
   
-  // Timeout de seguridad
   setTimeout(() => {
     clearInterval(initInterval);
     setupAuditForm();
   }, 10000);
 });
 
-console.log('✅ audit.js cargado correctamente');
+console.log('✅ audit.js (multi-usuario) cargado correctamente');
