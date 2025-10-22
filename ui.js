@@ -195,92 +195,17 @@ function setupScanButtons() {
     });
   }
   
-  // Botón de escaneo en "Relleno"
-  const refillScanBtn = document.getElementById('refill-scan-btn');
-  if (refillScanBtn) {
-    refillScanBtn.addEventListener('click', () => {
-      openScanner((code) => {
-        document.getElementById('refill-barcode').value = code;
-        // Buscar producto por código
-        searchProductByBarcode(code, 'refill');
-      });
-    });
-  }
-  
-  // Botón de escaneo en "Auditoría"
-  const auditScanBtn = document.getElementById('audit-scan-btn');
-  if (auditScanBtn) {
-    auditScanBtn.addEventListener('click', () => {
-      openScanner((code) => {
-        document.getElementById('audit-barcode').value = code;
-        // Buscar producto por código
-        searchProductByBarcode(code, 'audit');
-      });
-    });
-  }
+  // LOS OTROS BOTONES SE QUITARON PARA EVITAR CONFLICTOS
+  // (Se manejan en sus respectivos archivos, ej: audit.js, refill.js)
 }
 
 // ============================================================
-// BUSCAR PRODUCTO POR CÓDIGO
+// (FUNCIONES REMOVIDAS)
 // ============================================================
-function searchProductByBarcode(barcode, context) {
-  console.log('🔍 Buscando producto:', barcode, 'en contexto:', context);
-  
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    showToast('No hay usuario autenticado', 'error');
-    return;
-  }
-  
-  const inventoryRef = firebase.database().ref('inventario/' + userId);
-  
-  inventoryRef.orderByChild('codigoBarras').equalTo(barcode).once('value')
-    .then((snapshot) => {
-      if (snapshot.exists()) {
-        const productData = Object.values(snapshot.val())[0];
-        console.log('✅ Producto encontrado:', productData);
-        
-        if (context === 'refill') {
-          displayRefillProductInfo(productData);
-        } else if (context === 'audit') {
-          displayAuditProductInfo(productData);
-        }
-        
-        showToast('Producto encontrado: ' + productData.nombre, 'success');
-      } else {
-        console.log('⚠️ Producto no encontrado');
-        showToast('Producto no encontrado en el inventario', 'warning');
-      }
-    })
-    .catch((error) => {
-      console.error('❌ Error al buscar producto:', error);
-      showToast('Error al buscar producto: ' + error.message, 'error');
-    });
-}
-
-function displayRefillProductInfo(product) {
-  const infoDiv = document.getElementById('refill-product-info');
-  const nameEl = document.getElementById('refill-product-name');
-  const stockEl = document.getElementById('refill-current-stock');
-  
-  if (infoDiv && nameEl && stockEl) {
-    nameEl.innerHTML = '<strong>Producto:</strong> ' + product.nombre;
-    stockEl.textContent = 'Stock actual: ' + (product.cajas || 0) + ' cajas';
-    infoDiv.style.display = 'block';
-  }
-}
-
-function displayAuditProductInfo(product) {
-  const infoDiv = document.getElementById('audit-product-info');
-  const nameEl = document.getElementById('audit-product-name');
-  const brandEl = document.getElementById('audit-product-brand');
-  
-  if (infoDiv && nameEl && brandEl) {
-    nameEl.innerHTML = '<strong>Producto:</strong> <span style="color: var(--primary);">' + product.nombre + '</span>';
-    brandEl.textContent = 'Marca: ' + (product.marca || 'N/A');
-    infoDiv.style.display = 'block';
-  }
-}
+// Se eliminaron las funciones 'searchProductByBarcode',
+// 'displayRefillProductInfo' y 'displayAuditProductInfo'
+// porque ya existen en los archivos 'audit.js' y 'refill.js',
+// y mantenerlas aquí causaba el conflicto.
 
 // ============================================================
 // ESTADO DE CONEXIÓN
@@ -332,3 +257,4 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ ui.js cargado correctamente');
+
