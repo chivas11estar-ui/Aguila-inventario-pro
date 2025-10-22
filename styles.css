@@ -304,6 +304,7 @@ button.error:hover {
   background: var(--error);
 }
 
+/* Esta animación de pulso es para el indicador de conexión */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -733,7 +734,7 @@ a:hover {
   font-size: 0.9em;
 }
 
-/* Estados de caducidad */
+/* Estados de caducidad (Versión anterior - ahora manejado en línea) */
 .expiry-expired {
   color: var(--error);
   font-weight: 700;
@@ -828,5 +829,23 @@ a:hover {
   
   .action-btn {
     width: 100%;
+  }
+}
+
+/* ============================================================
+   ANIMACIÓN DE ALERTA DE CADUCIDAD
+   ============================================================ */
+
+/* Esta animación es para los items de inventario críticos */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+    border-color: var(--border);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
+    border-color: #dc2626; /* Rojo intenso */
   }
 }

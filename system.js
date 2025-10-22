@@ -121,7 +121,9 @@ function diagnosticoFirebase() {
 // ============================================================
 // ESTADÍSTICAS DEL SISTEMA
 // ============================================================
-function showSystemStats() {
+// --- INICIO REEMPLAZO: showSystemStats ---
+// Esta función ahora usa el 'determinante' para evitar el error 'permission_denied'
+async function showSystemStats() {
   console.log('📊 Mostrando estadísticas del sistema...');
   
   const userId = firebase.auth().currentUser?.uid;
@@ -130,32 +132,51 @@ function showSystemStats() {
     return;
   }
   
-  // Obtener estadísticas de Firebase
-  firebase.database().ref('inventario/' + userId).once('value')
-    .then((snapshot) => {
-      const data = snapshot.val();
-      
-      if (!data) {
-        showToast('No hay datos en el inventario', 'warning');
-        return;
-      }
-      
-      const productos = Object.values(data);
-      
-      // Calcular estadísticas
-      const stats = {
-        totalProductos: productos.length,
-        totalCajas: productos.reduce((sum, p) => sum + (p.cajas || 0), 0),
-        totalPiezas: productos.reduce((sum, p) => {
-          return sum + ((p.cajas || 0) * (p.piezasPorCaja || 0));
-        }, 0),
-        marcas: [...new Set(productos.map(p => p.marca))].length,
-        ubicaciones: [...new Set(productos.map(p => p.ubicacion))].length,
-        sinStock: productos.filter(p => (p.cajas || 0) === 0).length,
-        stockBajo: productos.filter(p => (p.cajas || 0) > 0 && (p.cajas || 0) < 5).length
-      };
-      
+  try {
+    // PASO 1: Obtener el determinante del usuario
+    const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = userSnapshot.val();
+    const determinante = userData?.determinante;
+    
+    if (!determinante) {
+      showToast('No se encontró información de la tienda', 'error');
+      return;
+    }
+    
+    console.log('🏪 Cargando estadísticas de tienda:', determinante);
+    
+    // PASO 2: Usar el determinante para consultar el inventario
+    const snapshot = await firebase.database().ref('inventario/' + determinante).once('value');
+    const data = snapshot.val();
+    
+    if (!data) {
       const mensaje = `
+📦 ESTADÍSTICAS DEL INVENTARIO
+
+⚠️ El inventario está vacío
+
+Agrega productos desde la pestaña "Agregar" para comenzar a ver estadísticas.
+      `;
+      alert(mensaje);
+      return;
+    }
+    
+    const productos = Object.values(data);
+    
+    // Calcular estadísticas (esto ya estaba bien)
+    const stats = {
+      totalProductos: productos.length,
+      totalCajas: productos.reduce((sum, p) => sum + (p.cajas || 0), 0),
+      totalPiezas: productos.reduce((sum, p) => {
+        return sum + ((p.cajas || 0) * (p.piezasPorCaja || 0));
+      }, 0),
+      marcas: [...new Set(productos.map(p => p.marca))].length,
+      ubicaciones: [...new Set(productos.map(p => p.ubicacion))].length,
+      sinStock: productos.filter(p => (p.cajas || 0) === 0).length,
+      stockBajo: productos.filter(p => (p.cajas || 0) > 0 && (p.cajas || 0) < 5).length
+    };
+    
+    const mensaje = `
 📦 ESTADÍSTICAS DEL INVENTARIO
 
 Productos únicos: ${stats.totalProductos}
@@ -167,17 +188,17 @@ Total de piezas: ${stats.totalPiezas}
 
 ⚠️ Sin stock: ${stats.sinStock}
 🟡 Stock bajo (<5): ${stats.stockBajo}
-      `;
-      
-      alert(mensaje);
-      console.log('📊 Estadísticas completas:', stats);
-      
-    })
-    .catch((error) => {
-      console.error('❌ Error al obtener estadísticas:', error);
-      showToast('Error al cargar estadísticas: ' + error.message, 'error');
-    });
+    `;
+    
+    alert(mensaje);
+    console.log('📊 Estadísticas completas:', stats);
+    
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas:', error);
+    showToast('Error al cargar estadísticas: ' + error.message, 'error');
+  }
 }
+// --- FIN REEMPLAZO: showSystemStats ---
 
 // ============================================================
 // LIMPIAR DATOS LOCALES
