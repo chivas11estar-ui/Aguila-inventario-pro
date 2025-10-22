@@ -524,20 +524,23 @@ console.log('✅ inventory.js (multi-usuario) cargado correctamente');
 
 
 // ============================================================
-// SISTEMA DE ALERTAS DE CADUCIDAD POR MARCA (v2.0)
+// ============================================================
+// SISTEMA DE ALERTAS DE CADUCIDAD (v3.0 - DÍAS FIJOS)
 // ============================================================
 
 /**
- * Configuración de días de vigencia estándar por marca.
- * Este es el "tiempo de vida" que usamos como referencia.
+ * --- MODIFICADO ---
+ * Configuración de DÍAS DE ALERTA por marca.
+ * El sistema enviará una notificación push si a un producto
+ * le quedan ESTOS días o menos.
  */
-const BRAND_EXPIRY_CONFIG = {
-  'Sabritas': 30,
-  'Gamesa': 60,
-  'Quaker': 60,
-  "Sonric's": 60,
-  'Cacahuate': 60,
-  'default': 30  // Días por defecto para marcas no listadas
+const ALERT_DAYS_CONFIG = {
+  'Sabritas': 35,      // Alerta a los 60 días o menos
+  'Gamesa': 65,        // Alerta a los 65 días o menos
+  'Quaker': 65,
+  "Sonric's": 65,
+  'Cacahuate': 65,
+  'default': 60        // Alerta a los 60 días para marcas no listadas
 };
 
 /**
