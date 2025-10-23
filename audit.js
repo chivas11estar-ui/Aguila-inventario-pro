@@ -407,9 +407,9 @@ function setupAuditForm() {
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initAuditModule() {
   console.log('🎯 Inicializando módulo de auditoría...');
-  
+
   const initInterval = setInterval(() => {
     if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
       setupAuditForm();
@@ -417,11 +417,23 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(initInterval);
     }
   }, 500);
-  
+
   setTimeout(() => {
     clearInterval(initInterval);
-    setupAuditForm();
+    // Fallback por si la autenticación tarda demasiado
+    if (typeof setupAuditForm === 'function') {
+        setupAuditForm();
+    }
   }, 10000);
-});
+}
+
+// Corrección para scripts 'defer':
+// Comprobar si el DOM ya está cargado
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuditModule);
+} else {
+  // El DOM ya está listo, ejecutar ahora
+  initAuditModule();
+}
 
 console.log('✅ audit.js (multi-usuario) cargado correctamente');
