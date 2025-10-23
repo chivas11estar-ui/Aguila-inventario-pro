@@ -1,5 +1,5 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: inventory
+// Águila Inventario Pro - Módulo: inventory.js
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
 //
@@ -11,14 +11,260 @@
 // sin autorización expresa del autor.
 // ============================================================
 
-// ============================================================
-// Águila Inventario Pro - Módulo: inventory.js (Multi-Usuario)
-// ============================================================
-
 let inventoryData = [];
 let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
+
+// ============================================================
+// SISTEMA DE ALERTAS DE CADUCIDAD POR MARCA
+// ============================================================
+
+// Días de vigencia por marca
+const BRAND_EXPIRY_CONFIG = {
+  'Sabritas': 30,
+  'Gamesa': 60,
+  'Quaker': 60,
+  "Sonric's": 60,
+  'Cacahuate': 60,
+  'default': 30
+};
+
+// Solicitar permisos de notificación
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.log('❌ Este navegador no soporta notificaciones');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    console.log('✅ Permisos de notificación ya otorgados');
+    return true;
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      console.log('✅ Permisos de notificación otorgados');
+      showToast('Notificaciones activadas. Recibirás alertas de productos próximos a vencer.', 'success');
+      return true;
+    }
+  }
+  
+  console.log('❌ Permisos de notificación denegados');
+  return false;
+}
+
+// Obtener urgencia y color según días REALES restantes vs límite de marca
+function getExpiryUrgency(marca, daysUntilExpiry) {
+  const maxDays = BRAND_EXPIRY_CONFIG[marca] || BRAND_EXPIRY_CONFIG['default'];
+  
+  // CADUCADO
+  if (daysUntilExpiry < 0) {
+    return {
+      level: 'expired',
+      color: '#7f1d1d',  // Rojo muy oscuro
+      bgColor: '#fecaca',
+      intensity: 100,
+      shouldAlert: true,
+      shouldVibrate: true,
+      text: `⚠️ CADUCADO hace ${Math.abs(daysUntilExpiry)} días`
+    };
+  }
+  
+  // YA PASÓ EL LÍMITE DE VIGENCIA (ejemplo: Sabritas con 25 días = ya pasó los 30)
+  if (daysUntilExpiry < maxDays) {
+    // Calcular qué tan cerca está de caducar
+    const daysAfterLimit = maxDays - daysUntilExpiry;
+    const percentageExpired = (daysAfterLimit / maxDays) * 100;
+    
+    if (percentageExpired >= 90) {  // Quedan 3 días o menos (90% consumido)
+      return {
+        level: 'critical',
+        color: '#991b1b',  // Rojo muy intenso
+        bgColor: '#fee2e2',
+        intensity: 95,
+        shouldAlert: true,
+        shouldVibrate: true,
+        text: `🚨 CRÍTICO: Solo ${daysUntilExpiry} días`
+      };
+    } else if (percentageExpired >= 70) {  // Quedan 9 días o menos
+      return {
+        level: 'severe',
+        color: '#b91c1c',  // Rojo intenso
+        bgColor: '#fef2f2',
+        intensity: 85,
+        shouldAlert: true,
+        shouldVibrate: true,
+        text: `🔴 URGENTE: ${daysUntilExpiry} días`
+      };
+    } else if (percentageExpired >= 50) {  // Quedan 15 días o menos
+      return {
+        level: 'high',
+        color: '#dc2626',  // Rojo
+        bgColor: '#fef2f2',
+        intensity: 70,
+        shouldAlert: true,
+        shouldVibrate: false,
+        text: `🔴 ${daysUntilExpiry} días restantes`
+      };
+    } else if (percentageExpired >= 33) {  // Quedan 20 días o menos
+      return {
+        level: 'medium',
+        color: '#ea580c',  // Naranja-rojo
+        bgColor: '#ffedd5',
+        intensity: 50,
+        shouldAlert: false,
+        shouldVibrate: false,
+        text: `🟠 ${daysUntilExpiry} días restantes`
+      };
+    } else {  // Entre el límite y 33% consumido
+      return {
+        level: 'warning',
+        color: '#f59e0b',  // Amarillo-naranja
+        bgColor: '#fef3c7',
+        intensity: 30,
+        shouldAlert: false,
+        shouldVibrate: false,
+        text: `🟡 ${daysUntilExpiry} días restantes`
+      };
+    }
+  }
+  
+  // TODAVÍA TIENE MÁS DÍAS QUE EL LÍMITE DE VIGENCIA
+  // (ejemplo: Sabritas con 45 días = está fresco, aún no llega a los 30)
+  
+  // Si está muy cerca del límite (dentro de 5 días)
+  const daysUntilLimit = daysUntilExpiry - maxDays;
+  
+  if (daysUntilLimit <= 5 && daysUntilLimit > 0) {
+    return {
+      level: 'approaching',
+      color: '#eab308',  // Amarillo
+      bgColor: '#fefce8',
+      intensity: 20,
+      shouldAlert: false,
+      shouldVibrate: false,
+      text: `🟡 ${daysUntilExpiry} días (próximo a límite)`
+    };
+  }
+  
+  // VERDE - Todo está bien
+  return {
+    level: 'safe',
+    color: '#16a34a',  // Verde
+    bgColor: '#f0fdf4',
+    intensity: 0,
+    shouldAlert: false,
+    shouldVibrate: false,
+    text: `✅ ${daysUntilExpiry} días restantes`
+  };
+}
+
+// Mostrar notificación del navegador
+function showExpiryNotification(product, urgency) {
+  if (Notification.permission !== 'granted') return;
+  
+  const notification = new Notification('⚠️ Alerta de Caducidad - Águila Inventario', {
+    body: `${product.nombre}\n${urgency.text}\nMarca: ${product.marca}\nStock: ${product.cajas} cajas`,
+    icon: 'icon-192x192.png',
+    badge: 'icon-192x192.png',
+    tag: product.id,
+    requireInteraction: urgency.intensity >= 85,
+    vibrate: urgency.shouldVibrate ? [200, 100, 200, 100, 200] : [200, 100, 200]
+  });
+  
+  notification.onclick = () => {
+    window.focus();
+    document.querySelector('[data-tab="inventario"]')?.click();
+    notification.close();
+  };
+  
+  // Reproducir sonido
+  if (urgency.intensity >= 50) {
+    playAlertSound(urgency.intensity);
+  }
+}
+
+// Reproducir sonido de alerta
+function playAlertSound(intensity) {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Frecuencia según intensidad
+    const frequency = 400 + (intensity * 8);
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    
+    // Volumen
+    const volume = Math.min(0.3, intensity / 250);
+    gainNode.gain.value = volume;
+    
+    // Duración
+    const duration = intensity >= 85 ? 0.3 : 0.15;
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+    
+    // Repetir si es muy urgente
+    if (intensity >= 85) {
+      setTimeout(() => {
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.frequency.value = frequency + 100;
+        osc2.type = 'sine';
+        gain2.gain.value = volume;
+        osc2.start();
+        osc2.stop(audioContext.currentTime + duration);
+      }, 400);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al reproducir sonido:', error);
+  }
+}
+
+// Verificar productos por vencer
+function checkExpiringProducts() {
+  console.log('🔔 Verificando productos por vencer...');
+  
+  const today = new Date();
+  const alertsToShow = [];
+  
+  inventoryData.forEach(product => {
+    if (!product.fechaCaducidad || (product.cajas || 0) === 0) return;
+    
+    const expiryDate = new Date(product.fechaCaducidad);
+    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+    const urgency = getExpiryUrgency(product.marca, daysUntilExpiry);
+    
+    // Solo alertar productos que necesitan atención
+    if (urgency.shouldAlert) {
+      alertsToShow.push({ product, urgency, daysUntilExpiry });
+    }
+  });
+  
+  // Mostrar alertas más urgentes
+  const criticalAlerts = alertsToShow
+    .filter(a => a.urgency.intensity >= 70)
+    .sort((a, b) => b.urgency.intensity - a.urgency.intensity)
+    .slice(0, 3);
+  
+  criticalAlerts.forEach(({ product, urgency }) => {
+    showExpiryNotification(product, urgency);
+  });
+  
+  if (alertsToShow.length > 0) {
+    console.log(`⚠️ ${alertsToShow.length} productos requieren atención`);
+  }
+}
 
 // ============================================================
 // OBTENER DETERMINANTE DEL USUARIO
@@ -80,12 +326,10 @@ async function loadInventory() {
       displayInventory(filteredInventory);
       updateBrandFilters();
       
-      // --- INICIO MODIFICACIÓN: Verificar alertas de caducidad ---
-      // Esperamos 2 segundos para no sobrecargar al inicio
+      // Verificar alertas de caducidad
       setTimeout(() => {
         checkExpiringProducts();
       }, 2000);
-      // --- FIN MODIFICACIÓN ---
       
     } else {
       console.log('📭 No hay productos en el inventario');
@@ -232,7 +476,7 @@ function applySearch(query) {
 }
 
 // ============================================================
-// MOSTRAR INVENTARIO (igual que antes)
+// MOSTRAR INVENTARIO
 // ============================================================
 function displayInventory(items) {
   const container = document.getElementById('inventory-list');
@@ -285,24 +529,22 @@ function displayInventoryFlat(items) {
   container.innerHTML = items.map(item => renderInventoryItem(item)).join('');
 }
 
-// --- INICIO REEMPLAZO: renderInventoryItem ---
-// Esta función ahora incluye "Total Piezas" y las alertas de caducidad progresivas
 function renderInventoryItem(item) {
   const expiryDate = item.fechaCaducidad ? new Date(item.fechaCaducidad) : null;
   const today = new Date();
   const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)) : null;
   
-  // Obtener el objeto de urgencia (color, texto, etc.)
   let urgency = { level: 'none', color: '#6b7280', bgColor: '#f9fafb', text: 'Sin fecha' };
+  
   if (expiryDate && daysUntilExpiry !== null) {
     urgency = getExpiryUrgency(item.marca, daysUntilExpiry);
   }
-
+  
   const stockClass = (item.cajas || 0) === 0 ? 'out-of-stock' : (item.cajas || 0) < 5 ? 'low-stock' : '';
   const totalPiezas = (item.cajas || 0) * (item.piezasPorCaja || 0);
-
-  // Añadir animación de pulso si la intensidad es muy alta (crítica)
-  const pulseAnimation = urgency.intensity >= 80 ? 'style="animation: pulse 2s infinite;"' : '';
+  
+  // Animación de pulso solo para productos críticos
+  const pulseAnimation = urgency.intensity >= 85 ? 'style="animation: pulse 2s infinite;"' : '';
   
   return `
     <div class="inventory-item ${stockClass}" data-id="${item.id}" ${pulseAnimation}>
@@ -327,14 +569,12 @@ function renderInventoryItem(item) {
           <span class="detail-label">📍 Ubicación:</span>
           <span class="detail-value">${item.ubicacion || 'N/A'}</span>
         </div>
-        
         <div class="detail-row" style="background: ${urgency.bgColor}; padding: 8px; border-radius: 6px; margin: 4px 0; border-left: 4px solid ${urgency.color};">
           <span class="detail-label" style="font-weight: 700;">📅 Caducidad:</span>
           <span class="detail-value" style="font-weight: 700; color: ${urgency.color}; font-size: 1.05em;">
             ${urgency.text}
           </span>
         </div>
-
         <div class="detail-row">
           <span class="detail-label">🔢 Código:</span>
           <span class="detail-value code-value">${item.codigoBarras || 'N/A'}</span>
@@ -351,7 +591,6 @@ function renderInventoryItem(item) {
     </div>
   `;
 }
-// --- FIN REEMPLAZO: renderInventoryItem ---
 
 function displayEmptyInventory() {
   const container = document.getElementById('inventory-list');
@@ -497,22 +736,20 @@ document.getElementById('add-product-form')?.addEventListener('submit', async (e
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-// --- INICIO REEMPLAZO: DOMContentLoaded ---
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🎨 Inicializando módulo de inventario...');
   setupInventorySearch();
   
-  // Solicitar permisos de notificación después de 3 segundos
+  // Solicitar permisos de notificación
   setTimeout(() => {
     requestNotificationPermission();
   }, 3000);
   
-  // Verificar productos por vencer cada hora, por si la app queda abierta
+  // Verificar productos por vencer cada hora
   setInterval(() => {
     checkExpiringProducts();
-  }, 60 * 60 * 1000); // 60 minutos * 60 segundos * 1000 ms = 1 hora
+  }, 60 * 60 * 1000);
 });
-// --- FIN REEMPLAZO: DOMContentLoaded ---
 
 // Exponer funciones globalmente
 window.filterByBrand = filterByBrand;
@@ -520,273 +757,16 @@ window.toggleBrandSection = toggleBrandSection;
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 
-console.log('✅ inventory.js (multi-usuario) cargado correctamente');
-
-
-// ============================================================
-// ============================================================
-// SISTEMA DE ALERTAS DE CADUCIDAD (v3.0 - DÍAS FIJOS)
-// ============================================================
-
-/**
- * --- MODIFICADO ---
- * Configuración de DÍAS DE ALERTA por marca.
- * El sistema enviará una notificación push si a un producto
- * le quedan ESTOS días o menos.
- */
-const ALERT_DAYS_CONFIG = {
-  'Sabritas': 35,      // Alerta a los 60 días o menos
-  'Gamesa': 65,        // Alerta a los 65 días o menos
-  'Quaker': 65,
-  "Sonric's": 65,
-  'Cacahuate': 65,
-  'default': 60        // Alerta a los 60 días para marcas no listadas
-};
-
-/**
- * Solicita permiso al usuario para mostrar notificaciones.
- * Se debe llamar una vez que la app haya cargado.
- */
-async function requestNotificationPermission() {
-  // Verificar si el navegador soporta notificaciones
-  if (!('Notification' in window)) {
-    console.log('❌ Este navegador no soporta notificaciones');
-    return false;
+console.log('✅ inventory.js cargado correctamente');
+Ahora también necesitas agregar este CSS al final de tu archivo styles.css:
+/* Animación de pulso para productos urgentes */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
   }
-  
-  // Si ya tenemos permiso, no hacemos nada
-  if (Notification.permission === 'granted') {
-    console.log('✅ Permisos de notificación ya otorgados');
-    return true;
-  }
-  
-  // Si no nos han denegado, pedimos permiso
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      console.log('✅ Permisos de notificación otorgados');
-      showToast('¡Notificaciones activadas! Recibirás alertas de productos por vencer.', 'success');
-      return true;
-    }
-  }
-  
-  // Si llegamos aquí, el permiso fue denegado
-  console.log('❌ Permisos de notificación denegados');
-  return false;
-}
-
-/**
- * Calcula el nivel de urgencia, color y texto basado en la marca y los días restantes.
- * Esta es la lógica central del sistema progresivo.
- * @param {string} marca - La marca del producto
- * @param {number} daysUntilExpiry - Días restantes (puede ser negativo)
- * @returns {object} Objeto de urgencia
- */
-function getExpiryUrgency(marca, daysUntilExpiry) {
-  // Obtener los días de vigencia estándar para esta marca
-  const maxDays = BRAND_EXPIRY_CONFIG[marca] || BRAND_EXPIRY_CONFIG['default'];
-  
-  // Nivel 1: Caducado
-  if (daysUntilExpiry < 0) {
-    return {
-      level: 'expired',
-      color: '#dc2626',  // Rojo oscuro
-      bgColor: '#fee2e2',
-      intensity: 100, // Máxima intensidad
-      shouldAlert: true,
-      text: `⚠️ CADUCADO hace ${Math.abs(daysUntilExpiry)} días`
-    };
-  }
-  
-  // Calcular el porcentaje de vigencia restante
-  const percentage = (daysUntilExpiry / maxDays) * 100;
-  
-  // Nivel 2: Crítico (Menos del 10% de vigencia)
-  if (percentage <= 10) {
-    return {
-      level: 'critical',
-      color: '#b91c1c',  // Rojo muy intenso
-      bgColor: '#fecaca',
-      intensity: 95,
-      shouldAlert: true,
-      text: `🚨 URGENTE: ${daysUntilExpiry} días`
-    };
-  }
-  // Nivel 3: Severo (Menos del 20% de vigencia)
-  else if (percentage <= 20) {
-    return {
-      level: 'severe',
-      color: '#dc2626',  // Rojo intenso
-      bgColor: '#fef2f2',
-      intensity: 80,
-      shouldAlert: true,
-      text: `⚠️ MUY URGENTE: ${daysUntilExpiry} días`
-    };
-  }
-  // Nivel 4: Alto (Menos del 33% de vigencia)
-  else if (percentage <= 33) {
-    return {
-      level: 'high',
-      color: '#ea580c',  // Naranja-rojo
-      bgColor: '#ffedd5',
-      intensity: 65,
-      shouldAlert: true,
-      text: `⚠️ ${daysUntilExpiry} días restantes`
-    };
-  }
-  // Nivel 5: Medio (Menos del 50% de vigencia)
-  else if (percentage <= 50) {
-    return {
-      level: 'medium',
-      color: '#f59e0b',  // Naranja
-      bgColor: '#fef3c7',
-      intensity: 50,
-      shouldAlert: false, // No enviamos push-notification por esto
-      text: `⏰ ${daysUntilExpiry} días restantes`
-    };
-  }
-  // Nivel 6: Bajo (Menos del 75% de vigencia)
-  else if (percentage <= 75) {
-    return {
-      level: 'low',
-      color: '#eab308',  // Amarillo
-      bgColor: '#fefce8',
-      intensity: 30,
-      shouldAlert: false,
-      text: `📅 ${daysUntilExpiry} días restantes`
-    };
-  }
-  // Nivel 7: Seguro (Más del 75% de vigencia)
-  else {
-    return {
-      level: 'safe',
-      color: '#22c55e',  // Verde
-      bgColor: '#f0fdf4',
-      intensity: 0,
-      shouldAlert: false,
-      text: `✅ ${daysUntilExpiry} días restantes`
-    };
-  }
-}
-
-/**
- * Muestra una notificación Push (del navegador/PWA)
- * @param {object} product - El objeto del producto
- * @param {object} urgency - El objeto de urgencia de getExpiryUrgency
- */
-function showExpiryNotification(product, urgency) {
-  if (Notification.permission !== 'granted') return;
-  
-  const notificationTitle = '⚠️ Alerta de Caducidad - Águila Inventario';
-  const notificationBody = `${product.nombre}\n${urgency.text}\nMarca: ${product.marca}\nStock: ${product.cajas} cajas`;
-  
-  const options = {
-    body: notificationBody,
-    icon: 'icon-192x192.png', // Icono de la PWA
-    badge: 'icon-192x192.png', // Icono para Android
-    tag: product.id, // Evita notificaciones duplicadas para el mismo producto
-    requireInteraction: urgency.intensity >= 80, // Requiere que el usuario la cierre si es muy urgente
-    vibrate: urgency.intensity >= 65 ? [200, 100, 200, 100, 200] : [200, 100, 200] // Vibra más si es urgente
-  };
-  
-  // Mostrar la notificación
-  const notification = new Notification(notificationTitle, options);
-  
-  // Reproducir sonido de alerta
-  playAlertSound(urgency.intensity);
-  
-  // Al hacer clic, lleva al usuario a la app
-  notification.onclick = () => {
-    window.focus(); // Enfoca la pestaña de la app si está abierta
-    document.querySelector('[data-tab="inventario"]')?.click(); // Cambia a la pestaña de inventario
-    notification.close();
-  };
-}
-
-/**
- * Reproduce un sonido de alerta usando la Web Audio API.
- * La intensidad del sonido varía según la urgencia.
- * @param {number} intensity - Nivel de 0 a 100
- */
-function playAlertSound(intensity) {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Frecuencia más alta = más urgente
-    const frequency = 400 + (intensity * 8); // Rango de 400Hz a 1200Hz
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine'; // Un tono limpio
-    
-    // Volumen (bajo para no ser molesto)
-    const volume = Math.min(0.3, intensity / 200);
-    gainNode.gain.value = volume;
-    
-    // Duración
-    const duration = intensity >= 80 ? 0.3 : 0.15; // Más largo si es crítico
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration);
-    
-    // Si es muy urgente, reproduce un segundo tono (efecto "bi-bip")
-    if (intensity >= 80) {
-      setTimeout(() => {
-        const osc2 = audioContext.createOscillator();
-        const gain2 = audioContext.createGain();
-        osc2.connect(gain2);
-        gain2.connect(audioContext.destination);
-        osc2.frequency.value = frequency + 100; // Tono ligeramente diferente
-        osc2.type = 'sine';
-        gain2.gain.value = volume;
-        osc2.start();
-        osc2.stop(audioContext.currentTime + duration);
-      }, 400); // 400ms después
-    }
-    
-  } catch (error) {
-    console.error('❌ Error al reproducir sonido de alerta:', error);
-  }
-}
-
-/**
- * Revisa todo el inventario en busca de productos por vencer
- * y dispara las notificaciones necesarias.
- */
-function checkExpiringProducts() {
-  console.log('🔔 Verificando productos por vencer...');
-  
-  const today = new Date();
-  const alertsToShow = [];
-  
-  inventoryData.forEach(product => {
-    // Ignorar si no tiene fecha o no hay stock
-    if (!product.fechaCaducidad || (product.cajas || 0) === 0) return;
-    
-    const expiryDate = new Date(product.fechaCaducidad);
-    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-    const urgency = getExpiryUrgency(product.marca, daysUntilExpiry);
-    
-    // Solo nos interesan los que marcamos como "alertables"
-    if (urgency.shouldAlert) {
-      alertsToShow.push({ product, urgency, daysUntilExpiry });
-    }
-  });
-  
-  // Para no saturar al usuario, mostramos solo las 3 alertas más críticas
-  const criticalAlerts = alertsToShow
-    .filter(a => a.urgency.intensity >= 65) // Filtramos por nivel 'Alto' o superior
-    .sort((a, b) => b.urgency.intensity - a.urgency.intensity) // Ordenamos por más urgente
-    .slice(0, 3); // Tomamos solo las 3 primeras
-  
-  criticalAlerts.forEach(({ product, urgency }) => {
-    showExpiryNotification(product, urgency);
-  });
-  
-  if (alertsToShow.length > 0) {
-    console.log(`⚠️ ${alertsToShow.length} productos requieren atención de caducidad.`);
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
   }
 }
