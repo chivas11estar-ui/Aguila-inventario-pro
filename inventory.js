@@ -544,7 +544,7 @@ function renderInventoryItem(item) {
   const totalPiezas = (item.cajas || 0) * (item.piezasPorCaja || 0);
   
   // Animación de pulso solo para productos críticos
-  const pulseAnimation = urgency.intensity >= 85 ? 'style="animation: pulse 2s infinite;"' : '';
+  const pulseAnimation = urgency.intensity >= 85 ? 'style="animation: alertPulse 2s infinite;"' : '';
   
   return `
     <div class="inventory-item ${stockClass}" data-id="${item.id}" ${pulseAnimation}>
