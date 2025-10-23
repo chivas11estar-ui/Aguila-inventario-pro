@@ -758,15 +758,3 @@ window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 
 console.log('✅ inventory.js cargado correctamente');
-Ahora también necesitas agregar este CSS al final de tu archivo styles.css:
-/* Animación de pulso para productos urgentes */
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-  }
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
-  }
-}
