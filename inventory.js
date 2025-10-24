@@ -758,3 +758,164 @@ window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 
 console.log('✅ inventory.js cargado correctamente');
+// ============================================================
+// AUTOCOMPLETAR PRODUCTOS EXISTENTES AL ESCANEAR
+// Agregar este código al final de inventory.js o app.js
+// ============================================================
+
+// Variable global para almacenar productos
+let productCache = {};
+
+// ============================================================
+// BUSCAR Y AUTOCOMPLETAR PRODUCTO EXISTENTE
+// ============================================================
+async function searchAndFillProduct(barcode) {
+  console.log('🔍 Buscando producto por código:', barcode);
+  
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) return;
+  
+  // Obtener determinante
+  const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+  const userData = userSnapshot.val();
+  const determinante = userData?.determinante;
+  
+  if (!determinante) {
+    console.error('❌ No se encontró determinante');
+    return;
+  }
+  
+  try {
+    // Buscar producto por código de barras
+    const snapshot = await firebase.database()
+      .ref('inventario/' + determinante)
+      .orderByChild('codigoBarras')
+      .equalTo(barcode)
+      .once('value');
+    
+    if (snapshot.exists()) {
+      const products = snapshot.val();
+      const productId = Object.keys(products)[0];
+      const productData = products[productId];
+      
+      console.log('✅ Producto encontrado:', productData);
+      
+      // Autocompletar campos
+      document.getElementById('add-product-name').value = productData.nombre || '';
+      document.getElementById('add-brand').value = productData.marca || '';
+      document.getElementById('add-pieces-per-box').value = productData.piezasPorCaja || '';
+      
+      // Dejar vacíos: fecha de caducidad y ubicación
+      document.getElementById('add-expiry-date').value = '';
+      document.getElementById('add-warehouse').value = '';
+      document.getElementById('add-boxes').value = '';
+      
+      // Focus en ubicación
+      document.getElementById('add-warehouse').focus();
+      
+      showToast('✅ Producto encontrado. Completa ubicación y fecha de caducidad', 'info');
+      
+    } else {
+      console.log('📭 Producto nuevo, campos en blanco');
+      showToast('📦 Producto nuevo. Completa todos los campos', 'info');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al buscar producto:', error);
+  }
+}
+
+// ============================================================
+// CONFIGURAR AUTOCOMPLETADO EN EL FORMULARIO
+// ============================================================
+function setupProductAutocomplete() {
+  console.log('🔧 Configurando autocompletado de productos...');
+  
+  const barcodeInput = document.getElementById('add-barcode');
+  
+  if (!barcodeInput) {
+    console.error('❌ Input add-barcode no encontrado');
+    return;
+  }
+  
+  // Buscar al presionar Enter
+  barcodeInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = e.target.value.trim();
+      if (code.length >= 8) {
+        searchAndFillProduct(code);
+      }
+    }
+  });
+  
+  // Buscar al salir del campo (blur)
+  barcodeInput.addEventListener('blur', () => {
+    const code = barcodeInput.value.trim();
+    if (code.length >= 8) {
+      searchAndFillProduct(code);
+    }
+  });
+  
+  console.log('✅ Autocompletado configurado');
+}
+
+// ============================================================
+// MODIFICAR EL BOTÓN DE ESCANEO PARA AUTOCOMPLETAR
+// ============================================================
+function setupScanButtonWithAutocomplete() {
+  const scanBtn = document.getElementById('add-scan-btn');
+  
+  if (!scanBtn) return;
+  
+  // Reemplazar el evento existente
+  scanBtn.onclick = () => {
+    if (typeof openScanner === 'function') {
+      openScanner((code) => {
+        const barcodeInput = document.getElementById('add-barcode');
+        if (barcodeInput) {
+          barcodeInput.value = code;
+          // Buscar y autocompletar
+          searchAndFillProduct(code);
+        }
+      });
+    } else {
+      showToast('❌ El escáner no está disponible', 'error');
+    }
+  };
+  
+  console.log('✅ Botón de escaneo configurado con autocompletado');
+}
+
+// ============================================================
+// INICIALIZAR AUTOCOMPLETADO
+// ============================================================
+function initProductAutocomplete() {
+  console.log('🎯 Inicializando autocompletado de productos...');
+  
+  // Esperar a que Firebase esté listo
+  const checkFirebase = setInterval(() => {
+    if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
+      clearInterval(checkFirebase);
+      
+      setupProductAutocomplete();
+      setupScanButtonWithAutocomplete();
+      
+      console.log('✅ Autocompletado inicializado');
+    }
+  }, 500);
+  
+  // Timeout después de 10 segundos
+  setTimeout(() => {
+    clearInterval(checkFirebase);
+  }, 10000);
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initProductAutocomplete);
+} else {
+  initProductAutocomplete();
+}
+
+console.log('✅ Módulo de autocompletado cargado');
