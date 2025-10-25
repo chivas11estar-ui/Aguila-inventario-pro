@@ -886,6 +886,184 @@ function setupScanButtonWithAutocomplete() {
   
   console.log('✅ Botón de escaneo configurado con autocompletado');
 }
+// ============================================================
+// AUTOCOMPLETAR PRODUCTOS EXISTENTES (CORREGIDO)
+// ============================================================
+
+let productAutocompleteInitialized = false;
+
+// ============================================================
+// BUSCAR Y AUTOCOMPLETAR PRODUCTO EXISTENTE
+// ============================================================
+async function searchAndFillProductAdd(barcode) {
+  console.log('🔍 Buscando producto por código:', barcode);
+  
+  if (!barcode || barcode.length < 8) {
+    console.log('⚠️ Código muy corto, ignorando');
+    return;
+  }
+  
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) {
+    console.error('❌ Usuario no autenticado');
+    return;
+  }
+  
+  try {
+    // Obtener determinante
+    const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = userSnapshot.val();
+    const determinante = userData?.determinante;
+    
+    if (!determinante) {
+      console.error('❌ No se encontró determinante');
+      return;
+    }
+    
+    console.log('🏪 Buscando en determinante:', determinante);
+    
+    // Buscar producto por código de barras
+    const snapshot = await firebase.database()
+      .ref('inventario/' + determinante)
+      .orderByChild('codigoBarras')
+      .equalTo(barcode)
+      .once('value');
+    
+    if (snapshot.exists()) {
+      const products = snapshot.val();
+      const productId = Object.keys(products)[0];
+      const productData = products[productId];
+      
+      console.log('✅ Producto encontrado:', productData);
+      
+      // Autocompletar campos
+      const nameInput = document.getElementById('add-product-name');
+      const brandInput = document.getElementById('add-brand');
+      const piecesInput = document.getElementById('add-pieces-per-box');
+      const warehouseInput = document.getElementById('add-warehouse');
+      const expiryInput = document.getElementById('add-expiry-date');
+      const boxesInput = document.getElementById('add-boxes');
+      
+      if (nameInput) nameInput.value = productData.nombre || '';
+      if (brandInput) brandInput.value = productData.marca || '';
+      if (piecesInput) piecesInput.value = productData.piezasPorCaja || '';
+      
+      // Dejar vacíos: fecha de caducidad, ubicación y cajas
+      if (warehouseInput) warehouseInput.value = '';
+      if (expiryInput) expiryInput.value = '';
+      if (boxesInput) boxesInput.value = '';
+      
+      // Focus en ubicación
+      if (warehouseInput) {
+        warehouseInput.focus();
+      }
+      
+      showToast('✅ Producto encontrado. Completa ubicación, fecha y cantidad', 'info');
+      
+    } else {
+      console.log('📭 Producto nuevo, campos en blanco');
+      showToast('📦 Producto nuevo. Completa todos los campos', 'info');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al buscar producto:', error);
+  }
+}
+
+// ============================================================
+// CONFIGURAR AUTOCOMPLETADO
+// ============================================================
+function setupProductAutocompleteAdd() {
+  if (productAutocompleteInitialized) {
+    console.log('⚠️ Autocompletado ya inicializado');
+    return;
+  }
+  
+  console.log('🔧 Configurando autocompletado en Agregar Producto...');
+  
+  const barcodeInput = document.getElementById('add-barcode');
+  const scanBtn = document.getElementById('add-scan-btn');
+  
+  if (!barcodeInput) {
+    console.error('❌ Input add-barcode no encontrado');
+    return;
+  }
+  
+  // Buscar al presionar Enter
+  barcodeInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = e.target.value.trim();
+      if (code.length >= 8) {
+        searchAndFillProductAdd(code);
+      }
+    }
+  });
+  
+  // Buscar al salir del campo (blur)
+  barcodeInput.addEventListener('blur', () => {
+    const code = barcodeInput.value.trim();
+    if (code.length >= 8) {
+      setTimeout(() => {
+        searchAndFillProductAdd(code);
+      }, 300);
+    }
+  });
+  
+  // Modificar botón de escaneo
+  if (scanBtn) {
+    const originalOnClick = scanBtn.onclick;
+    
+    scanBtn.onclick = () => {
+      if (typeof openScanner === 'function') {
+        openScanner((code) => {
+          if (barcodeInput) {
+            barcodeInput.value = code;
+            searchAndFillProductAdd(code);
+          }
+        });
+      } else {
+        showToast('❌ El escáner no está disponible', 'error');
+      }
+    };
+  }
+  
+  productAutocompleteInitialized = true;
+  console.log('✅ Autocompletado de productos configurado');
+}
+
+// ============================================================
+// INICIALIZAR AUTOCOMPLETADO
+// ============================================================
+function initProductAutocompleteAdd() {
+  console.log('🎯 Inicializando autocompletado...');
+  
+  // Esperar a que Firebase esté listo
+  const checkReady = setInterval(() => {
+    if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
+      clearInterval(checkReady);
+      
+      // Esperar un poco más para asegurar que el DOM esté listo
+      setTimeout(() => {
+        setupProductAutocompleteAdd();
+      }, 1000);
+    }
+  }, 500);
+  
+  // Timeout después de 10 segundos
+  setTimeout(() => {
+    clearInterval(checkReady);
+  }, 10000);
+}
+
+// Inicializar
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initProductAutocompleteAdd);
+} else {
+  initProductAutocompleteAdd();
+}
+
+console.log('✅ Módulo de autocompletado cargado');
 
 // ============================================================
 // INICIALIZAR AUTOCOMPLETADO
