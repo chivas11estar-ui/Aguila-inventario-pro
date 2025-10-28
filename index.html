@@ -418,7 +418,50 @@
           <div style="font-size: 3em; font-weight: 800;" id="audit-total-count" aria-label="Total de cajas contadas">0</div>
           <div style="font-size: 14px; opacity: 0.9;">cajas registradas</div>
         </div>
-        
+   
+     <!-- Después del resumen de cajas -->
+<div style="background: white; padding: 16px; border-radius: 12px; margin-top: 16px;">
+  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+    <span style="color: #6b7280;">📊 Productos auditados:</span>
+    <span id="audit-products-count" style="font-weight: 700; color: #004aad;">0</span>
+  </div>
+  <div style="display: flex; justify-content: space-between;">
+    <span style="color: #6b7280;">📦 Total cajas:</span>
+    <span id="audit-total-count" style="font-weight: 700; color: #004aad;">0</span>
+  </div>
+</div>
+
+<!-- BOTÓN TERMINAR AUDITORÍA -->
+<button 
+  id="finish-audit-btn"
+  style="
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transition: all 0.3s ease;
+    display: none;
+  "
+  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)';"
+  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)';"
+>
+  <div style="text-align: center;">
+    <div style="font-size: 13px; opacity: 0.9;">
+      📊 0 productos · 📦 0 cajas
+    </div>
+    <div style="font-size: 15px; font-weight: 700; margin-top: 4px;">
+      🏁 Terminar Auditoría
+    </div>
+  </div>
+</button>
+
         <div class="card mt-2" style="background: #f8fafc;">
           <h4 style="color: var(--secondary); margin: 0 0 15px 0;">Últimos Conteos</h4>
           <div id="audit-history" style="max-height: 200px; overflow-y: auto;" role="log" aria-live="polite">
