@@ -2,13 +2,7 @@
 // Águila Inventario Pro - Módulo: refill.js
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
-//
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
+// VERSIÓN CORREGIDA - Búsqueda manual funcionando
 // ============================================================
 
 let currentRefillProduct = null;
@@ -47,8 +41,8 @@ async function searchProductForRefill(barcode) {
   console.log('🔍 Buscando producto para relleno:', barcode);
   
   if (!barcode || barcode.length < 8) {
-    showToast('⚠️ Código de barras inválido', 'warning');
-    return;
+    showToast('⚠️ Código de barras inválido (mínimo 8 dígitos)', 'warning');
+    return false;
   }
   
   // Obtener determinante si no está cargado
@@ -58,7 +52,7 @@ async function searchProductForRefill(barcode) {
   
   if (!userDeterminanteRefill) {
     showToast('❌ Error: No se encontró información de la tienda', 'error');
-    return;
+    return false;
   }
   
   const inventoryRef = firebase.database().ref('inventario/' + userDeterminanteRefill);
@@ -80,15 +74,20 @@ async function searchProductForRefill(barcode) {
       displayRefillProductInfo(currentRefillProduct);
       showToast('✅ Producto encontrado: ' + productData.nombre, 'success');
       
+      return true;
+      
     } else {
       console.log('⚠️ Producto no encontrado');
       currentRefillProduct = null;
       hideRefillProductInfo();
       showToast('⚠️ Producto no encontrado en el inventario', 'warning');
+      
+      return false;
     }
   } catch (error) {
     console.error('❌ Error al buscar producto:', error);
     showToast('❌ Error al buscar producto: ' + error.message, 'error');
+    return false;
   }
 }
 
@@ -250,6 +249,33 @@ async function updateTodayMovements() {
 }
 
 // ============================================================
+// BUSCAR PRODUCTO MANUALMENTE (NUEVO)
+// ============================================================
+async function buscarProductoManual() {
+  const barcodeInput = document.getElementById('refill-barcode');
+  if (!barcodeInput) {
+    console.error('❌ Input de código de barras no encontrado');
+    return;
+  }
+  
+  const barcode = barcodeInput.value.trim();
+  
+  if (!barcode) {
+    showToast('⚠️ Ingresa un código de barras', 'warning');
+    barcodeInput.focus();
+    return;
+  }
+  
+  if (barcode.length < 8) {
+    showToast('⚠️ Código demasiado corto (mínimo 8 dígitos)', 'warning');
+    barcodeInput.focus();
+    return;
+  }
+  
+  await searchProductForRefill(barcode);
+}
+
+// ============================================================
 // CONFIGURAR EVENTOS DEL FORMULARIO
 // ============================================================
 function setupRefillForm() {
@@ -275,6 +301,13 @@ function setupRefillForm() {
     };
   }
   
+  // NUEVO: Botón de búsqueda manual
+  const searchBtn = document.getElementById('refill-search-btn');
+  if (searchBtn) {
+    searchBtn.onclick = buscarProductoManual;
+    console.log('✅ Botón de búsqueda manual configurado');
+  }
+  
   // Input de código de barras
   const barcodeInput = document.getElementById('refill-barcode');
   if (barcodeInput) {
@@ -282,12 +315,16 @@ function setupRefillForm() {
     barcodeInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const code = e.target.value.trim();
-        if (code.length >= 8) {
-          searchProductForRefill(code);
-        } else {
-          showToast('⚠️ Código demasiado corto', 'warning');
-        }
+        buscarProductoManual();
+      }
+    });
+    
+    // Limpiar producto actual cuando se edita el código
+    barcodeInput.addEventListener('input', () => {
+      if (currentRefillProduct) {
+        console.log('ℹ️ Código modificado, limpiando producto actual');
+        currentRefillProduct = null;
+        hideRefillProductInfo();
       }
     });
   }
@@ -299,16 +336,33 @@ function setupRefillForm() {
       e.preventDefault();
       console.log('📝 Submit de formulario de relleno');
       
+      const barcodeInput = document.getElementById('refill-barcode');
       const boxesInput = document.getElementById('refill-boxes');
       const boxes = boxesInput?.value;
       
+      // Si no hay producto seleccionado, buscar primero
       if (!currentRefillProduct) {
-        showToast('⚠️ Primero escanea o busca un producto', 'warning');
-        return;
+        const barcode = barcodeInput?.value.trim();
+        
+        if (!barcode) {
+          showToast('⚠️ Ingresa un código de barras', 'warning');
+          barcodeInput?.focus();
+          return;
+        }
+        
+        console.log('🔍 Buscando producto antes de registrar...');
+        const found = await searchProductForRefill(barcode);
+        
+        if (!found) {
+          console.log('❌ Producto no encontrado, abortando');
+          return;
+        }
       }
       
+      // Validar cantidad
       if (!boxes || boxes === '') {
         showToast('❌ Ingresa una cantidad válida', 'error');
+        boxesInput?.focus();
         return;
       }
       
