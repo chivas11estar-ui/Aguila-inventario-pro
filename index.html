@@ -294,34 +294,6 @@
 <section id="tab-inventario" class="tab" role="tabpanel" aria-labelledby="tab-inventario">
   <div class="card">
     <h3 style="color: var(--primary);">Inventario Actual</h3>
-
-    <!-- NUEVO: Botón Toggle Productos Sin Stock -->
-    <button 
-      id="toggle-stock-btn"
-      data-stock-visible="false"
-      style="
-        width: 100%;
-        padding: 14px;
-        margin-bottom: 16px;
-        background: var(--primary-light); /* Color más claro para que no compita con el botón principal */
-        color: var(--primary-dark);
-        border: none;
-        border-radius: 12px;
-        font-size: 15px;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      "
-      onmouseover="this.style.background='var(--primary-hover)'"
-      onmouseout="this.style.background='var(--primary-light)'"
-    >
-      <span id="toggle-icon">👁️‍🗨️</span> Mostrar Productos Sin Stock
-    </button>
     
     <!-- Búsqueda con escáner -->
     <div class="search-container">
@@ -532,7 +504,7 @@
         </div>
 
         <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
-          <h4 style="margin-top: 0;'>Zona de Peligro</h4>
+          <h4 style="margin-top: 0;">Zona de Peligro</h4>
           <button onclick="clearAllData()" class="error">Limpiar Datos Locales</button>
           <p class="text-muted" style="font-size: 12px; margin: 10px 0 0;">
             Esta acción eliminará los datos almacenados localmente.
@@ -552,26 +524,25 @@
   </footer>
 
   <!-- Scripts - ORDEN CRÍTICO CORREGIDO -->
-  <!-- 1. Firebase SDKs - USANDO LAS MÓDULOS UNIVERSALES -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+  <!-- 1. Firebase SDKs - SIN defer para cargar inmediatamente -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   
   <!-- 2. Quagga para escáner -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   
-  <!-- 3. Configuración Firebase - INICIALIZACIÓN GLOBAL -->
+  <!-- 3. Configuración Firebase - SIN defer, se ejecuta inmediatamente después de los SDKs -->
   <script src="firebase-config.js"></script>
   
   <!-- 4. Módulos de la aplicación - CON defer para no bloquear rendering -->
-  <script src="auth.js"></script>
-  <script src="ui.js"></script>
-  <script src="inventory.js"></script>
-  <script src="refill.js"></script>
-  <script src="audit.js"></script>
-  <script src="system.js"></script>
-  <script src="app.js"></script>
+  <script defer src="auth.js"></script>
+  <script defer src="ui.js"></script>
+  <script defer src="inventory.js"></script>
+  <script defer src="refill.js"></script>
+  <script defer src="audit.js"></script>
+  <script defer src="system.js"></script>
+  <script defer src="app.js"></script>
 
 </body>
 </html>
-
