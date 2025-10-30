@@ -20,7 +20,7 @@ const BRAND_EXPIRY_CONFIG = {
   'Quaker': 60,
   "Sonric's": 60,
   'Cacahuate': 30,
-  'default': 30
+  'default': 60
 };
 
 async function requestNotificationPermission() {
