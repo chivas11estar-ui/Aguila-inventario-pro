@@ -849,3 +849,11 @@ a:hover {
     border-color: #dc2626; /* Rojo intenso */
   }
 }
+#toggle-stock-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 74, 173, 0.3);
+}
+
+#toggle-stock-btn:active {
+  transform: translateY(0);
+}

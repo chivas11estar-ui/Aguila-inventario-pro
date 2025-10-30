@@ -1,36 +1,28 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
 // Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
-//
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
+// VERSIÓN CON FILTRO DE STOCK 0
 // ============================================================
 
 let inventoryData = [];
 let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
+let mostrarProductosSinStock = false; // NUEVO: Toggle para productos sin stock
 
 // ============================================================
 // SISTEMA DE ALERTAS DE CADUCIDAD POR MARCA
 // ============================================================
 
-// Días de vigencia por marca
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
   'Gamesa': 60,
   'Quaker': 60,
   "Sonric's": 60,
-  'Cacahuate': 60,
-  'default': 30
+  'Cacahuate': 30,
+  'default': 60
 };
 
-// Solicitar permisos de notificación
 async function requestNotificationPermission() {
   if (!('Notification' in window)) {
     console.log('❌ Este navegador no soporta notificaciones');
@@ -55,15 +47,13 @@ async function requestNotificationPermission() {
   return false;
 }
 
-// Obtener urgencia y color según días REALES restantes vs límite de marca
 function getExpiryUrgency(marca, daysUntilExpiry) {
   const maxDays = BRAND_EXPIRY_CONFIG[marca] || BRAND_EXPIRY_CONFIG['default'];
   
-  // CADUCADO
   if (daysUntilExpiry < 0) {
     return {
       level: 'expired',
-      color: '#7f1d1d',  // Rojo muy oscuro
+      color: '#7f1d1d',
       bgColor: '#fecaca',
       intensity: 100,
       shouldAlert: true,
@@ -72,56 +62,54 @@ function getExpiryUrgency(marca, daysUntilExpiry) {
     };
   }
   
-  // YA PASÓ EL LÍMITE DE VIGENCIA (ejemplo: Sabritas con 25 días = ya pasó los 30)
   if (daysUntilExpiry < maxDays) {
-    // Calcular qué tan cerca está de caducar
     const daysAfterLimit = maxDays - daysUntilExpiry;
     const percentageExpired = (daysAfterLimit / maxDays) * 100;
     
-    if (percentageExpired >= 90) {  // Quedan 3 días o menos (90% consumido)
+    if (percentageExpired >= 90) {
       return {
         level: 'critical',
-        color: '#991b1b',  // Rojo muy intenso
+        color: '#991b1b',
         bgColor: '#fee2e2',
         intensity: 95,
         shouldAlert: true,
         shouldVibrate: true,
         text: `🚨 CRÍTICO: Solo ${daysUntilExpiry} días`
       };
-    } else if (percentageExpired >= 70) {  // Quedan 9 días o menos
+    } else if (percentageExpired >= 70) {
       return {
         level: 'severe',
-        color: '#b91c1c',  // Rojo intenso
+        color: '#b91c1c',
         bgColor: '#fef2f2',
         intensity: 85,
         shouldAlert: true,
         shouldVibrate: true,
         text: `🔴 URGENTE: ${daysUntilExpiry} días`
       };
-    } else if (percentageExpired >= 50) {  // Quedan 15 días o menos
+    } else if (percentageExpired >= 50) {
       return {
         level: 'high',
-        color: '#dc2626',  // Rojo
+        color: '#dc2626',
         bgColor: '#fef2f2',
         intensity: 70,
         shouldAlert: true,
         shouldVibrate: false,
         text: `🔴 ${daysUntilExpiry} días restantes`
       };
-    } else if (percentageExpired >= 33) {  // Quedan 20 días o menos
+    } else if (percentageExpired >= 33) {
       return {
         level: 'medium',
-        color: '#ea580c',  // Naranja-rojo
+        color: '#ea580c',
         bgColor: '#ffedd5',
         intensity: 50,
         shouldAlert: false,
         shouldVibrate: false,
         text: `🟠 ${daysUntilExpiry} días restantes`
       };
-    } else {  // Entre el límite y 33% consumido
+    } else {
       return {
         level: 'warning',
-        color: '#f59e0b',  // Amarillo-naranja
+        color: '#f59e0b',
         bgColor: '#fef3c7',
         intensity: 30,
         shouldAlert: false,
@@ -131,16 +119,12 @@ function getExpiryUrgency(marca, daysUntilExpiry) {
     }
   }
   
-  // TODAVÍA TIENE MÁS DÍAS QUE EL LÍMITE DE VIGENCIA
-  // (ejemplo: Sabritas con 45 días = está fresco, aún no llega a los 30)
-  
-  // Si está muy cerca del límite (dentro de 5 días)
   const daysUntilLimit = daysUntilExpiry - maxDays;
   
   if (daysUntilLimit <= 5 && daysUntilLimit > 0) {
     return {
       level: 'approaching',
-      color: '#eab308',  // Amarillo
+      color: '#eab308',
       bgColor: '#fefce8',
       intensity: 20,
       shouldAlert: false,
@@ -149,10 +133,9 @@ function getExpiryUrgency(marca, daysUntilExpiry) {
     };
   }
   
-  // VERDE - Todo está bien
   return {
     level: 'safe',
-    color: '#16a34a',  // Verde
+    color: '#16a34a',
     bgColor: '#f0fdf4',
     intensity: 0,
     shouldAlert: false,
@@ -161,7 +144,6 @@ function getExpiryUrgency(marca, daysUntilExpiry) {
   };
 }
 
-// Mostrar notificación del navegador
 function showExpiryNotification(product, urgency) {
   if (Notification.permission !== 'granted') return;
   
@@ -180,13 +162,11 @@ function showExpiryNotification(product, urgency) {
     notification.close();
   };
   
-  // Reproducir sonido
   if (urgency.intensity >= 50) {
     playAlertSound(urgency.intensity);
   }
 }
 
-// Reproducir sonido de alerta
 function playAlertSound(intensity) {
   try {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -196,22 +176,18 @@ function playAlertSound(intensity) {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    // Frecuencia según intensidad
     const frequency = 400 + (intensity * 8);
     oscillator.frequency.value = frequency;
     oscillator.type = 'sine';
     
-    // Volumen
     const volume = Math.min(0.3, intensity / 250);
     gainNode.gain.value = volume;
     
-    // Duración
     const duration = intensity >= 85 ? 0.3 : 0.15;
     
     oscillator.start();
     oscillator.stop(audioContext.currentTime + duration);
     
-    // Repetir si es muy urgente
     if (intensity >= 85) {
       setTimeout(() => {
         const osc2 = audioContext.createOscillator();
@@ -231,7 +207,6 @@ function playAlertSound(intensity) {
   }
 }
 
-// Verificar productos por vencer
 function checkExpiringProducts() {
   console.log('🔔 Verificando productos por vencer...');
   
@@ -245,13 +220,11 @@ function checkExpiringProducts() {
     const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
     const urgency = getExpiryUrgency(product.marca, daysUntilExpiry);
     
-    // Solo alertar productos que necesitan atención
     if (urgency.shouldAlert) {
       alertsToShow.push({ product, urgency, daysUntilExpiry });
     }
   });
   
-  // Mostrar alertas más urgentes
   const criticalAlerts = alertsToShow
     .filter(a => a.urgency.intensity >= 70)
     .sort((a, b) => b.urgency.intensity - a.urgency.intensity)
@@ -295,7 +268,6 @@ async function loadInventory() {
     return;
   }
   
-  // Obtener determinante del usuario
   if (!userDeterminante) {
     userDeterminante = await getUserDeterminante();
   }
@@ -308,7 +280,6 @@ async function loadInventory() {
   
   console.log('🏪 Cargando inventario de tienda:', userDeterminante);
   
-  // Cargar inventario por determinante (compartido)
   const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
   
   inventoryRef.on('value', (snapshot) => {
@@ -326,7 +297,6 @@ async function loadInventory() {
       displayInventory(filteredInventory);
       updateBrandFilters();
       
-      // Verificar alertas de caducidad
       setTimeout(() => {
         checkExpiringProducts();
       }, 2000);
@@ -347,7 +317,9 @@ async function loadInventory() {
 // ACTUALIZAR ESTADÍSTICAS DEL DASHBOARD
 // ============================================================
 function updateDashboardStats() {
-  const totalProducts = inventoryData.length;
+  // NUEVO: Contar solo productos con stock
+  const productsWithStock = inventoryData.filter(item => (item.cajas || 0) > 0);
+  const totalProducts = productsWithStock.length;
   document.getElementById('total-products').textContent = totalProducts;
   
   const totalBoxes = inventoryData.reduce((sum, item) => sum + (item.cajas || 0), 0);
@@ -357,7 +329,7 @@ function updateDashboardStats() {
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
   
   const expiringSoon = inventoryData.filter(item => {
-    if (!item.fechaCaducidad) return false;
+    if (!item.fechaCaducidad || (item.cajas || 0) === 0) return false;
     const expiryDate = new Date(item.fechaCaducidad);
     return expiryDate <= thirtyDaysFromNow && expiryDate > new Date();
   }).length;
@@ -371,17 +343,19 @@ function updateDashboardStats() {
 // FILTROS DE MARCA
 // ============================================================
 function updateBrandFilters() {
-  const brands = [...new Set(inventoryData.map(item => item.marca))].sort();
+  // NUEVO: Contar solo productos con stock
+  const productsWithStock = inventoryData.filter(item => (item.cajas || 0) > 0);
+  const brands = [...new Set(productsWithStock.map(item => item.marca))].sort();
   
   const filterContainer = document.getElementById('brand-filters');
   if (!filterContainer) return;
   
   filterContainer.innerHTML = `
     <button class="brand-filter-btn active" data-brand="all" onclick="filterByBrand('all')">
-      Todas (${inventoryData.length})
+      Todas (${productsWithStock.length})
     </button>
     ${brands.map(brand => {
-      const count = inventoryData.filter(item => item.marca === brand).length;
+      const count = productsWithStock.filter(item => item.marca === brand).length;
       return `
         <button class="brand-filter-btn" data-brand="${brand}" onclick="filterByBrand('${brand}')">
           ${brand} (${count})
@@ -476,7 +450,23 @@ function applySearch(query) {
 }
 
 // ============================================================
-// MOSTRAR INVENTARIO
+// TOGGLE PRODUCTOS SIN STOCK (NUEVO)
+// ============================================================
+function toggleProductosSinStock() {
+  mostrarProductosSinStock = !mostrarProductosSinStock;
+  
+  const btn = document.getElementById('toggle-stock-btn');
+  if (btn) {
+    btn.textContent = mostrarProductosSinStock ? '👁️ Ocultar sin stock' : '👁️‍🗨️ Mostrar sin stock';
+    btn.style.background = mostrarProductosSinStock ? '#6b7280' : '#004aad';
+  }
+  
+  displayInventory(filteredInventory);
+  console.log('👁️ Toggle productos sin stock:', mostrarProductosSinStock);
+}
+
+// ============================================================
+// MOSTRAR INVENTARIO (MODIFICADO)
 // ============================================================
 function displayInventory(items) {
   const container = document.getElementById('inventory-list');
@@ -486,22 +476,29 @@ function displayInventory(items) {
     return;
   }
   
-  if (items.length === 0) {
+  // NUEVO: Separar productos con y sin stock
+  const conStock = items.filter(item => (item.cajas || 0) > 0);
+  const sinStock = items.filter(item => (item.cajas || 0) === 0);
+  
+  console.log(`📊 Productos con stock: ${conStock.length}, sin stock: ${sinStock.length}`);
+  
+  if (conStock.length === 0 && !mostrarProductosSinStock) {
     displayEmptyInventory();
     return;
   }
   
   if (currentBrandFilter === 'all') {
-    displayInventoryGrouped(items);
+    displayInventoryGroupedWithToggle(conStock, sinStock);
   } else {
-    displayInventoryFlat(items);
+    displayInventoryFlatWithToggle(conStock, sinStock);
   }
 }
 
-function displayInventoryGrouped(items) {
+function displayInventoryGroupedWithToggle(conStock, sinStock) {
   const container = document.getElementById('inventory-list');
   
-  const grouped = items.reduce((acc, item) => {
+  // Agrupar productos CON stock
+  const grouped = conStock.reduce((acc, item) => {
     const brand = item.marca || 'Sin Marca';
     if (!acc[brand]) acc[brand] = [];
     acc[brand].push(item);
@@ -510,7 +507,7 @@ function displayInventoryGrouped(items) {
   
   const brands = Object.keys(grouped).sort();
   
-  container.innerHTML = brands.map(brand => `
+  let html = brands.map(brand => `
     <div class="brand-section">
       <div class="brand-section-header" onclick="toggleBrandSection('${brand}')">
         <h4>${brand}</h4>
@@ -522,14 +519,45 @@ function displayInventoryGrouped(items) {
       </div>
     </div>
   `).join('');
+  
+  // NUEVO: Agregar productos SIN stock si el toggle está activado
+  if (mostrarProductosSinStock && sinStock.length > 0) {
+    html += `
+      <div style="margin: 24px 0; padding: 16px; background: #f3f4f6; border-radius: 12px; text-align: center;">
+        <h3 style="color: #6b7280; margin: 0;">📦 Productos sin stock (${sinStock.length})</h3>
+      </div>
+    `;
+    
+    sinStock.forEach(item => {
+      html += renderInventoryItem(item, true);
+    });
+  }
+  
+  container.innerHTML = html;
 }
 
-function displayInventoryFlat(items) {
+function displayInventoryFlatWithToggle(conStock, sinStock) {
   const container = document.getElementById('inventory-list');
-  container.innerHTML = items.map(item => renderInventoryItem(item)).join('');
+  
+  let html = conStock.map(item => renderInventoryItem(item)).join('');
+  
+  // NUEVO: Agregar productos SIN stock si el toggle está activado
+  if (mostrarProductosSinStock && sinStock.length > 0) {
+    html += `
+      <div style="margin: 24px 0; padding: 16px; background: #f3f4f6; border-radius: 12px; text-align: center;">
+        <h3 style="color: #6b7280; margin: 0;">📦 Productos sin stock (${sinStock.length})</h3>
+      </div>
+    `;
+    
+    sinStock.forEach(item => {
+      html += renderInventoryItem(item, true);
+    });
+  }
+  
+  container.innerHTML = html;
 }
 
-function renderInventoryItem(item) {
+function renderInventoryItem(item, isSinStock = false) {
   const expiryDate = item.fechaCaducidad ? new Date(item.fechaCaducidad) : null;
   const today = new Date();
   const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)) : null;
@@ -543,11 +571,13 @@ function renderInventoryItem(item) {
   const stockClass = (item.cajas || 0) === 0 ? 'out-of-stock' : (item.cajas || 0) < 5 ? 'low-stock' : '';
   const totalPiezas = (item.cajas || 0) * (item.piezasPorCaja || 0);
   
-  // Animación de pulso solo para productos críticos
   const pulseAnimation = urgency.intensity >= 85 ? 'style="animation: alertPulse 2s infinite;"' : '';
   
+  // NUEVO: Estilo especial para productos sin stock
+  const sinStockStyle = isSinStock ? 'opacity: 0.5; border: 2px dashed #e5e7eb; background: #f9fafb;' : '';
+  
   return `
-    <div class="inventory-item ${stockClass}" data-id="${item.id}" ${pulseAnimation}>
+    <div class="inventory-item ${stockClass}" data-id="${item.id}" ${pulseAnimation} style="${sinStockStyle}">
       <div class="item-header">
         <h4>${item.nombre}</h4>
         <span class="item-brand">${item.marca || 'N/A'}</span>
@@ -597,8 +627,8 @@ function displayEmptyInventory() {
   container.innerHTML = `
     <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
       <div style="font-size: 4em; margin-bottom: 16px;">📦</div>
-      <h3>No hay productos en el inventario</h3>
-      <p>Comienza agregando productos desde la pestaña "Agregar"</p>
+      <h3>No hay productos con stock disponible</h3>
+      <p>Los productos sin stock están ocultos. Click en "Mostrar sin stock" para verlos.</p>
     </div>
   `;
 }
@@ -719,381 +749,3 @@ document.getElementById('add-product-form')?.addEventListener('submit', async (e
       delete form.dataset.editingId;
     } else {
       formData.fechaCreacion = new Date().toISOString();
-      formData.creadoPor = firebase.auth().currentUser.email;
-      await firebase.database().ref('inventario/' + userDeterminante).push(formData);
-      showToast('Producto agregado correctamente', 'success');
-    }
-    
-    form.reset();
-    document.querySelector('[data-tab="inventario"]')?.click();
-    
-  } catch (error) {
-    console.error('❌ Error al guardar producto:', error);
-    showToast('Error al guardar producto: ' + error.message, 'error');
-  }
-});
-
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🎨 Inicializando módulo de inventario...');
-  setupInventorySearch();
-  
-  // Solicitar permisos de notificación
-  setTimeout(() => {
-    requestNotificationPermission();
-  }, 3000);
-  
-  // Verificar productos por vencer cada hora
-  setInterval(() => {
-    checkExpiringProducts();
-  }, 60 * 60 * 1000);
-});
-
-// Exponer funciones globalmente
-window.filterByBrand = filterByBrand;
-window.toggleBrandSection = toggleBrandSection;
-window.editProduct = editProduct;
-window.deleteProduct = deleteProduct;
-
-console.log('✅ inventory.js cargado correctamente');
-// ============================================================
-// AUTOCOMPLETAR PRODUCTOS EXISTENTES AL ESCANEAR
-// Agregar este código al final de inventory.js o app.js
-// ============================================================
-
-// Variable global para almacenar productos
-let productCache = {};
-
-// ============================================================
-// BUSCAR Y AUTOCOMPLETAR PRODUCTO EXISTENTE
-// ============================================================
-async function searchAndFillProduct(barcode) {
-  console.log('🔍 Buscando producto por código:', barcode);
-  
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) return;
-  
-  // Obtener determinante
-  const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
-  const userData = userSnapshot.val();
-  const determinante = userData?.determinante;
-  
-  if (!determinante) {
-    console.error('❌ No se encontró determinante');
-    return;
-  }
-  
-  try {
-    // Buscar producto por código de barras
-    const snapshot = await firebase.database()
-      .ref('inventario/' + determinante)
-      .orderByChild('codigoBarras')
-      .equalTo(barcode)
-      .once('value');
-    
-    if (snapshot.exists()) {
-      const products = snapshot.val();
-      const productId = Object.keys(products)[0];
-      const productData = products[productId];
-      
-      console.log('✅ Producto encontrado:', productData);
-      
-      // Autocompletar campos
-      document.getElementById('add-product-name').value = productData.nombre || '';
-      document.getElementById('add-brand').value = productData.marca || '';
-      document.getElementById('add-pieces-per-box').value = productData.piezasPorCaja || '';
-      
-      // Dejar vacíos: fecha de caducidad y ubicación
-      document.getElementById('add-expiry-date').value = '';
-      document.getElementById('add-warehouse').value = '';
-      document.getElementById('add-boxes').value = '';
-      
-      // Focus en ubicación
-      document.getElementById('add-warehouse').focus();
-      
-      showToast('✅ Producto encontrado. Completa ubicación y fecha de caducidad', 'info');
-      
-    } else {
-      console.log('📭 Producto nuevo, campos en blanco');
-      showToast('📦 Producto nuevo. Completa todos los campos', 'info');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error al buscar producto:', error);
-  }
-}
-
-// ============================================================
-// CONFIGURAR AUTOCOMPLETADO EN EL FORMULARIO
-// ============================================================
-function setupProductAutocomplete() {
-  console.log('🔧 Configurando autocompletado de productos...');
-  
-  const barcodeInput = document.getElementById('add-barcode');
-  
-  if (!barcodeInput) {
-    console.error('❌ Input add-barcode no encontrado');
-    return;
-  }
-  
-  // Buscar al presionar Enter
-  barcodeInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const code = e.target.value.trim();
-      if (code.length >= 8) {
-        searchAndFillProduct(code);
-      }
-    }
-  });
-  
-  // Buscar al salir del campo (blur)
-  barcodeInput.addEventListener('blur', () => {
-    const code = barcodeInput.value.trim();
-    if (code.length >= 8) {
-      searchAndFillProduct(code);
-    }
-  });
-  
-  console.log('✅ Autocompletado configurado');
-}
-
-// ============================================================
-// MODIFICAR EL BOTÓN DE ESCANEO PARA AUTOCOMPLETAR
-// ============================================================
-function setupScanButtonWithAutocomplete() {
-  const scanBtn = document.getElementById('add-scan-btn');
-  
-  if (!scanBtn) return;
-  
-  // Reemplazar el evento existente
-  scanBtn.onclick = () => {
-    if (typeof openScanner === 'function') {
-      openScanner((code) => {
-        const barcodeInput = document.getElementById('add-barcode');
-        if (barcodeInput) {
-          barcodeInput.value = code;
-          // Buscar y autocompletar
-          searchAndFillProduct(code);
-        }
-      });
-    } else {
-      showToast('❌ El escáner no está disponible', 'error');
-    }
-  };
-  
-  console.log('✅ Botón de escaneo configurado con autocompletado');
-}
-// ============================================================
-// AUTOCOMPLETAR PRODUCTOS EXISTENTES (CORREGIDO)
-// ============================================================
-
-let productAutocompleteInitialized = false;
-
-// ============================================================
-// BUSCAR Y AUTOCOMPLETAR PRODUCTO EXISTENTE
-// ============================================================
-async function searchAndFillProductAdd(barcode) {
-  console.log('🔍 Buscando producto por código:', barcode);
-  
-  if (!barcode || barcode.length < 8) {
-    console.log('⚠️ Código muy corto, ignorando');
-    return;
-  }
-  
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) {
-    console.error('❌ Usuario no autenticado');
-    return;
-  }
-  
-  try {
-    // Obtener determinante
-    const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
-    const userData = userSnapshot.val();
-    const determinante = userData?.determinante;
-    
-    if (!determinante) {
-      console.error('❌ No se encontró determinante');
-      return;
-    }
-    
-    console.log('🏪 Buscando en determinante:', determinante);
-    
-    // Buscar producto por código de barras
-    const snapshot = await firebase.database()
-      .ref('inventario/' + determinante)
-      .orderByChild('codigoBarras')
-      .equalTo(barcode)
-      .once('value');
-    
-    if (snapshot.exists()) {
-      const products = snapshot.val();
-      const productId = Object.keys(products)[0];
-      const productData = products[productId];
-      
-      console.log('✅ Producto encontrado:', productData);
-      
-      // Autocompletar campos
-      const nameInput = document.getElementById('add-product-name');
-      const brandInput = document.getElementById('add-brand');
-      const piecesInput = document.getElementById('add-pieces-per-box');
-      const warehouseInput = document.getElementById('add-warehouse');
-      const expiryInput = document.getElementById('add-expiry-date');
-      const boxesInput = document.getElementById('add-boxes');
-      
-      if (nameInput) nameInput.value = productData.nombre || '';
-      if (brandInput) brandInput.value = productData.marca || '';
-      if (piecesInput) piecesInput.value = productData.piezasPorCaja || '';
-      
-      // Dejar vacíos: fecha de caducidad, ubicación y cajas
-      if (warehouseInput) warehouseInput.value = '';
-      if (expiryInput) expiryInput.value = '';
-      if (boxesInput) boxesInput.value = '';
-      
-      // Focus en ubicación
-      if (warehouseInput) {
-        warehouseInput.focus();
-      }
-      
-      showToast('✅ Producto encontrado. Completa ubicación, fecha y cantidad', 'info');
-      
-    } else {
-      console.log('📭 Producto nuevo, campos en blanco');
-      showToast('📦 Producto nuevo. Completa todos los campos', 'info');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error al buscar producto:', error);
-  }
-}
-
-// ============================================================
-// CONFIGURAR AUTOCOMPLETADO
-// ============================================================
-function setupProductAutocompleteAdd() {
-  if (productAutocompleteInitialized) {
-    console.log('⚠️ Autocompletado ya inicializado');
-    return;
-  }
-  
-  console.log('🔧 Configurando autocompletado en Agregar Producto...');
-  
-  const barcodeInput = document.getElementById('add-barcode');
-  const scanBtn = document.getElementById('add-scan-btn');
-  
-  if (!barcodeInput) {
-    console.error('❌ Input add-barcode no encontrado');
-    return;
-  }
-  
-  // Buscar al presionar Enter
-  barcodeInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const code = e.target.value.trim();
-      if (code.length >= 8) {
-        searchAndFillProductAdd(code);
-      }
-    }
-  });
-  
-  // Buscar al salir del campo (blur)
-  barcodeInput.addEventListener('blur', () => {
-    const code = barcodeInput.value.trim();
-    if (code.length >= 8) {
-      setTimeout(() => {
-        searchAndFillProductAdd(code);
-      }, 300);
-    }
-  });
-  
-  // Modificar botón de escaneo
-  if (scanBtn) {
-    const originalOnClick = scanBtn.onclick;
-    
-    scanBtn.onclick = () => {
-      if (typeof openScanner === 'function') {
-        openScanner((code) => {
-          if (barcodeInput) {
-            barcodeInput.value = code;
-            searchAndFillProductAdd(code);
-          }
-        });
-      } else {
-        showToast('❌ El escáner no está disponible', 'error');
-      }
-    };
-  }
-  
-  productAutocompleteInitialized = true;
-  console.log('✅ Autocompletado de productos configurado');
-}
-
-// ============================================================
-// INICIALIZAR AUTOCOMPLETADO
-// ============================================================
-function initProductAutocompleteAdd() {
-  console.log('🎯 Inicializando autocompletado...');
-  
-  // Esperar a que Firebase esté listo
-  const checkReady = setInterval(() => {
-    if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
-      clearInterval(checkReady);
-      
-      // Esperar un poco más para asegurar que el DOM esté listo
-      setTimeout(() => {
-        setupProductAutocompleteAdd();
-      }, 1000);
-    }
-  }, 500);
-  
-  // Timeout después de 10 segundos
-  setTimeout(() => {
-    clearInterval(checkReady);
-  }, 10000);
-}
-
-// Inicializar
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initProductAutocompleteAdd);
-} else {
-  initProductAutocompleteAdd();
-}
-
-console.log('✅ Módulo de autocompletado cargado');
-
-// ============================================================
-// INICIALIZAR AUTOCOMPLETADO
-// ============================================================
-function initProductAutocomplete() {
-  console.log('🎯 Inicializando autocompletado de productos...');
-  
-  // Esperar a que Firebase esté listo
-  const checkFirebase = setInterval(() => {
-    if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
-      clearInterval(checkFirebase);
-      
-      setupProductAutocomplete();
-      setupScanButtonWithAutocomplete();
-      
-      console.log('✅ Autocompletado inicializado');
-    }
-  }, 500);
-  
-  // Timeout después de 10 segundos
-  setTimeout(() => {
-    clearInterval(checkFirebase);
-  }, 10000);
-}
-
-// Inicializar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initProductAutocomplete);
-} else {
-  initProductAutocomplete();
-}
-
-console.log('✅ Módulo de autocompletado cargado');
