@@ -552,15 +552,15 @@
   </footer>
 
   <!-- Scripts - ORDEN CRÍTICO CORREGIDO -->
-  <!-- 1. Firebase SDKs - SIN defer para cargar inmediatamente -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- 1. Firebase SDKs - USANDO LAS MÓDULOS UNIVERSALES -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
   
   <!-- 2. Quagga para escáner -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   
-  <!-- 3. Configuración Firebase - SIN defer, se ejecuta inmediatamente después de los SDKs -->
+  <!-- 3. Configuración Firebase - INICIALIZACIÓN GLOBAL -->
   <script src="firebase-config.js"></script>
   
   <!-- 4. Módulos de la aplicación - CON defer para no bloquear rendering -->
@@ -574,3 +574,4 @@
 
 </body>
 </html>
+

@@ -1,17 +1,12 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: firebase-config.js
 // Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
 //
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
+// Este archivo inicializa Firebase y expone los servicios
+// (Auth y Database) para el resto de la aplicación.
 // ============================================================
 
-// Configuración de Firebase
+// Configuración de Firebase (debe ser la que usa en su consola)
 const firebaseConfig = {
   apiKey: "AIzaSyBkzOZj4HIE0ikLZoYIhR99y8q7mhio5FE",
   authDomain: "promosentry.firebaseapp.com",
@@ -22,39 +17,60 @@ const firebaseConfig = {
   appId: "1:140188605265:web:c53fe5b09ea08793e6d170"
 };
 
-// Inicialización protegida de Firebase
-(function initFirebase() {
+// Variables globales que serán inicializadas
+export let app;
+export let auth;
+export let db;
+
+// ============================================================
+// Inicialización de Firebase (Llamada desde app.js)
+// ============================================================
+export function initFirebase() {
   console.log('🔥 Iniciando Firebase...');
   
-  try {
-    // Verificar que Firebase SDK esté cargado
-    if (typeof firebase === 'undefined') {
-      console.error('❌ Firebase SDK no cargado. Verifica los <script> en index.html');
-      return;
-    }
-    
-    // Evitar reinicialización
-    if (!firebase.apps || firebase.apps.length === 0) {
-      firebase.initializeApp(firebaseConfig);
-      console.log('✅ Firebase inicializado correctamente');
-      console.log('📦 Proyecto:', firebaseConfig.projectId);
-      console.log('🔗 Auth Domain:', firebaseConfig.authDomain);
-    } else {
-      console.log('⚠️ Firebase ya estaba inicializado');
-      console.log('📦 Apps activas:', firebase.apps.length);
-    }
-    
-    // Exponer Firebase globalmente
-    window.firebase = firebase;
-    
-    // Verificar servicios disponibles
-    console.log('🔐 Auth disponible:', typeof firebase.auth === 'function');
-    console.log('💾 Database disponible:', typeof firebase.database === 'function');
-    
-  } catch (err) {
-    console.error('❌ Error crítico inicializando Firebase:', err);
-    console.error('📋 Stack:', err.stack);
+  // Verificación de existencia de las funciones importadas
+  if (typeof window.initializeApp === 'undefined') {
+    const errorMsg = '❌ Error: Las funciones de Firebase no se cargaron correctamente en index.html.';
+    console.error(errorMsg);
+    // Usamos el DOM para mostrar un error visible sin depender de showToast
+    document.getElementById('connection-status-text').textContent = 'ERROR DE CONFIG.';
+    document.querySelector('.status-indicator').className = 'status-indicator status-error';
+    return;
   }
-})();
+  
+  try {
+    // 1. Inicializar la aplicación
+    if (!window.firebaseApp || !window.firebaseApp.name) {
+      app = window.initializeApp(firebaseConfig);
+      window.firebaseApp = app; // Exponer la app
+      console.log('✅ Firebase inicializado correctamente');
+    } else {
+      app = window.firebaseApp;
+      console.log('⚠️ Firebase ya estaba inicializado');
+    }
+    
+    // 2. Inicializar servicios y exponerlos
+    auth = window.getAuth(app);
+    db = window.getDatabase(app);
 
-console.log('✅ firebase-config.js cargado');
+    // Exportar variables para uso en otros módulos
+    window.firebaseAuth = auth;
+    window.firebaseDB = db;
+    
+    console.log('🔐 Servicios de Firebase listos (Auth, DB)');
+    
+    // Retornar éxito
+    return true;
+
+  } catch (error) {
+    const errorMsg = '❌ Error fatal al inicializar Firebase: ' + error.message;
+    console.error(errorMsg, error);
+    // Si showToast no está disponible, usamos el DOM
+    if (typeof showToast !== 'undefined') {
+      showToast('Error de configuración de Firebase: ' + error.message, 'error');
+    }
+    document.getElementById('connection-status-text').textContent = 'FALLO DE CONFIG.';
+    document.querySelector('.status-indicator').className = 'status-indicator status-error';
+    return false;
+  }
+}
