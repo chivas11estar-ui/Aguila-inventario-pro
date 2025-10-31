@@ -532,22 +532,24 @@
   <!-- SCRIPTS - ORDEN CRÍTICO PARA FIREBASE -->
   <!-- ============================================ -->
   
-  <!-- 1. Firebase Core (PRIMERO) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   
-  <!-- 2. Firebase Auth -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   
-  <!-- 3. Firebase Database -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   
-  <!-- 4. ZXing (ML Kit Scanner - Reemplazo de Quagga) -->
   <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
   
-  <!-- 5. Configuración de Firebase -->
   <script src="firebase-config.js"></script>
   
-  <!-- 6. Módulos de la aplicación -->
+  <script>
+    if (window.initFirebase) {
+      window.initFirebase(); 
+    } else {
+      console.error("Error crítico: initFirebase no definida después de cargar firebase-config.js");
+    }
+  </script> 
+  
   <script src="ui.js"></script>
   <script src="auth.js"></script>
   <script src="scanner.js"></script>
@@ -557,7 +559,6 @@
   <script src="system.js"></script>
   <script src="app.js"></script>
 
-  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -567,6 +568,5 @@
       });
     }
   </script>
-
 </body>
 </html>
