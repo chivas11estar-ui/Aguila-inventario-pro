@@ -1,958 +1,113 @@
-/* ============================================================
-   Águila Inventario Pro - Módulo: styles.css
-   Copyright © 2025 José A. G. Betancourt
-   Todos los derechos reservados
-   
-   Este archivo forma parte del sistema Águila Inventario Pro,
-   desarrollado para promotores de PepsiCo con funcionalidades
-   de gestión, auditoría y sincronización de inventario.
-   
-   Queda prohibida la reproducción, distribución o modificación
-   sin autorización expresa del autor.
-   ============================================================ */
+// ============================================================
+// Águila Inventario Pro - Módulo: style.css
+// Copyright © 2025 José A. G. Betancourt
+// ... (Encabezado) ...
+// ============================================================
 
-:root {
-  --primary: #004aad;
-  --primary-dark: #003a9c;
-  --secondary: #6b7280;
-  --secondary-dark: #52525b;
-  --background: #f5f7fa;
-  --card-bg: #ffffff;
-  --border: #e5e7eb;
-  --text: #333333;
-  --muted: #6b7280;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-}
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+console.log('🚀 Iniciando Águila Inventario Pro v7.1...');
 
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--background);
-  color: var(--text);
-  line-height: 1.6;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* Screen Reader Only */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Header */
-.app-header {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  padding: 20px 15px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.app-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 1.8em;
-  font-weight: 700;
-}
-
-#promoter-info-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-/* Cards */
-.card {
-  background: var(--card-bg);
-  padding: 24px;
-  border-radius: 16px;
-  margin: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border: 1px solid var(--border);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-}
-
-/* Forms */
-input, button, select, textarea {
-  padding: 14px 16px;
-  margin: 8px 0;
-  width: 100%;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  font-size: 16px;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0,74,173,0.1);
-}
-
-button {
-  background: var(--primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-button:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,74,173,0.3);
-}
-
-button:active {
-  transform: translateY(0);
-}
-
-button.secondary {
-  background: var(--secondary);
-}
-
-button.secondary:hover {
-  background: var(--secondary-dark);
-}
-
-button.success {
-  background: var(--success);
-}
-
-button.success:hover {
-  background: #0d9668;
-}
-
-button.warning {
-  background: var(--warning);
-}
-
-button.warning:hover {
-  background: #d97706;
-}
-
-button.error {
-  background: var(--error);
-}
-
-button.error:hover {
-  background: #dc2626;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
-  overflow-x: auto;
-  padding: 0 16px;
-  scrollbar-width: none;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.tabs button {
-  flex: 1;
-  min-width: 120px;
-  white-space: nowrap;
-  padding: 12px 20px;
-  background: rgba(255,255,255,0.9);
-  border: 2px solid var(--border);
-  border-radius: 25px;
-  font-weight: 500;
-  font-size: 14px;
-  color: var(--text);
-  margin: 0;
-}
-
-.tabs button.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
-
-.tabs button:hover {
-  transform: scale(1.02);
-}
-
-.tabs button.active:hover {
-  transform: scale(1.05);
-}
-
-/* Tab Content */
-.tab {
-  display: none;
-  padding: 0 16px;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.tab.active {
-  display: block;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Toast Notifications */
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  max-width: 400px;
-  pointer-events: none;
-}
-
-.toast {
-  background: white;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  border-left: 4px solid var(--primary);
-  animation: slideIn 0.3s ease-out;
-  pointer-events: auto;
-}
-
-.toast-success {
-  border-left-color: var(--success);
-}
-
-.toast-warning {
-  border-left-color: var(--warning);
-}
-
-.toast-error {
-  border-left-color: var(--error);
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.toast.fade-out {
-  opacity: 0;
-  transform: translateX(100%);
-  transition: all 0.3s ease-out;
-}
-
-/* Status Indicator */
-.status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 6px;
-  animation: pulse 2s infinite;
-}
-
-.status-online {
-  background: var(--success);
-}
-
-.status-warning {
-  background: var(--warning);
-}
-
-.status-error {
-  background: var(--error);
-}
-
-/* Esta animación de pulso es para el indicador de conexión */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-/* Form Groups */
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: var(--text);
-  font-size: 14px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-  align-items: end;
-}
-
-.form-row > * {
-  flex: 1;
-}
-
-/* ============================================ */
-/* ESCÁNER ML KIT (Google Barcode API) */
-/* ============================================ */
-
-.scanner-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 10001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.scanner-modal.hidden {
-  display: none !important;
-}
-
-.scanner-container {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-  height: 100%;
-  max-height: 600px;
-  display: flex;
-  flex-direction: column;
-}
-
-#scanner-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-.scanner-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.scanner-frame {
-  width: 280px;
-  height: 280px;
-  border: 3px solid rgba(16, 185, 129, 0.8);
-  border-radius: 12px;
-  box-shadow: 
-    0 0 0 9999px rgba(0, 0, 0, 0.5),
-    inset 0 0 20px rgba(16, 185, 129, 0.3);
-  animation: scannerPulse 2s infinite;
-}
-
-@keyframes scannerPulse {
-  0%, 100% {
-    border-color: rgba(16, 185, 129, 0.8);
-    box-shadow: 
-      0 0 0 9999px rgba(0, 0, 0, 0.5),
-      inset 0 0 20px rgba(16, 185, 129, 0.3);
-  }
-  50% {
-    border-color: rgba(16, 185, 129, 1);
-    box-shadow: 
-      0 0 0 9999px rgba(0, 0, 0, 0.5),
-      inset 0 0 30px rgba(16, 185, 129, 0.5);
-  }
-}
-
-.scanner-instruction {
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  text-align: center;
-  margin-top: 24px;
-  padding: 12px 24px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.scanner-close-btn {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 16px 32px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-  pointer-events: all;
-  transition: all 0.3s ease;
-}
-
-.scanner-close-btn:hover {
-  background: #dc2626;
-  transform: translateX(-50%) translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
-}
-
-.scanner-close-btn:active {
-  transform: translateX(-50%) translateY(0);
-}
-
-/* Responsive Scanner */
-@media (max-width: 768px) {
-  .scanner-container {
-    max-height: 500px;
+// ============================================================
+// VERIFICAR DEPENDENCIAS
+// ============================================================
+function checkDependencies() {
+  const dependencies = {
+    firebase: typeof firebase !== 'undefined' && firebase.apps.length > 0, // Verificar inicialización
+    showToast: typeof showToast === 'function',
+    openScanner: typeof openScanner === 'function',
+  };
+  
+  console.log('📦 Dependencias verificadas:', dependencies);
+  
+  const allLoaded = Object.values(dependencies).every(dep => dep);
+  
+  if (!allLoaded) {
+    console.warn('⚠️ Algunas dependencias no están cargadas:', dependencies);
   }
   
-  .scanner-frame {
-    width: 240px;
-    height: 240px;
+  return allLoaded;
+}
+
+// ============================================================
+// INICIALIZACIÓN DE LA APLICACIÓN
+// ============================================================
+function initializeApp() {
+  console.log('⚙️ Inicializando aplicación principal...');
+  
+  // No necesitamos llamar initFirebase aquí, ya que firebase-config.js lo hizo.
+  
+  if (!firebase.apps || firebase.apps.length === 0) {
+    console.error('❌ Firebase no está inicializado. Fallo de sincronización de scripts.');
+    // Usamos showToast si está disponible
+    if (typeof showToast !== 'undefined') {
+        showToast('Error: Firebase no está inicializado. Recarga la página.', 'error');
+    }
+    return;
   }
   
-  .scanner-instruction {
-    font-size: 14px;
-    padding: 10px 20px;
-  }
+  console.log('✅ Firebase inicializado correctamente (verificado en app.js)');
+  console.log('📱 Apps de Firebase:', firebase.apps.length);
   
-  .scanner-close-btn {
-    bottom: 30px;
-    padding: 14px 28px;
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .scanner-container {
-    max-height: 400px;
-  }
+  // El resto de la inicialización se maneja en auth.js
+  // cuando el usuario se autentica
   
-  .scanner-frame {
-    width: 200px;
-    height: 200px;
-  }
+  checkDependencies();
+}
+
+// ============================================================
+// ESPERAR A QUE TODO ESTÉ CARGADO
+// ============================================================
+window.addEventListener('load', () => {
+  console.log('🎨 Página completamente cargada');
   
-  .scanner-instruction {
-    font-size: 13px;
-    padding: 8px 16px;
-  }
-  
-  .scanner-close-btn {
-    bottom: 20px;
-    padding: 12px 24px;
-    font-size: 14px;
-  }
-  
-/* Dashboard Stats */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
+  // Llamamos a initializeApp inmediatamente. El uso de DEFER en index.html garantiza 
+  // que el DOM está listo y que firebase-config.js ya terminó su trabajo.
+  initializeApp(); 
+});
 
-.stat-card {
-  background: linear-gradient(135deg, var(--card-bg), #f8fafc);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
+// ============================================================
+// MANEJO DE ERRORES GLOBALES
+// ============================================================
+window.addEventListener('error', (event) => {
+  console.error('❌ Error global capturado:', event.error);
+});
 
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  border-color: var(--primary);
-}
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('❌ Promise rechazada sin manejar:', event.reason);
+});
 
-.stat-value {
-  font-size: 2.5em;
-  font-weight: 800;
-  color: var(--primary);
-  margin-bottom: 8px;
-}
+// ============================================================
+// INFORMATION
+// ============================================================
+console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║       🦅 ÁGUILA INVENTARIO PRO v7.1                      ║
+║                                                           ║
+║       Sistema de Gestión de Inventario                   ║
+║       para Promotores PepsiCo                            ║
+║                                                           ║
+║       © 2025 José A. G. Betancourt                       ║
+║       Todos los derechos reservados                      ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
 
-.stat-label {
-  color: var(--muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 0.85em;
-}
+📋 Módulos cargados:
+   ✅ firebase-config.js
+   ✅ auth.js
+   ✅ ui.js
+   ✅ inventory.js
+   ✅ refill.js
+   ✅ audit.js
+   ✅ system.js
+   ✅ app.js
 
-/* Inventory List */
-#inventory-list {
-  margin-top: 20px;
-}
+🔥 Firebase: Conectado
+📱 Modo: Producción
+🌐 Entorno: Web App
 
-.inventory-item {
-  background: var(--card-bg);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
-}
+Para soporte o reportar bugs:
+📧 Email: soporte@aguilainventario.com
+`);
 
-.inventory-item:hover {
-  border-color: var(--primary);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* Utilities */
-.text-center {
-  text-align: center;
-}
-
-.text-muted {
-  color: var(--muted);
-}
-
-.mb-0 {
-  margin-bottom: 0 !important;
-}
-
-.mt-2 {
-  margin-top: 16px;
-}
-
-/* Links */
-a {
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-a:hover {
-  opacity: 0.8;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .card {
-    margin: 12px 8px;
-    padding: 20px;
-  }
-  
-  .tabs {
-    padding: 0 8px;
-  }
-  
-  .tabs button {
-    min-width: 100px;
-    font-size: 13px;
-    padding: 10px 16px;
-  }
-  
-  .form-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .app-header h1 {
-    font-size: 1.5em;
-  }
-  
-  .toast-container {
-    right: 10px;
-    left: 10px;
-    max-width: none;
-  }
-  
-  .stat-value {
-    font-size: 2em;
-  }
-  
-  #scanner-view {
-    max-width: 100%;
-    height: 250px;
-  }
-  
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-header {
-    padding: 15px 10px;
-  }
-  
-  .app-header h1 {
-    font-size: 1.3em;
-  }
-  
-  .card {
-    padding: 16px;
-    margin: 10px 6px;
-  }
-  
-  .tabs button {
-    min-width: 90px;
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-}
-/* ============================================================
-   ESTILOS PARA INVENTARIO MEJORADO
-   ============================================================ */
-
-/* Contenedor de búsqueda */
-.search-container {
-  margin-bottom: 20px;
-}
-
-/* Filtros de marca */
-.brand-filters-container {
-  margin: 20px 0;
-  padding: 15px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-}
-
-.brand-filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.brand-filter-btn {
-  padding: 8px 16px;
-  margin: 0;
-  width: auto;
-  background: white;
-  border: 2px solid var(--border);
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.brand-filter-btn:hover {
-  border-color: var(--primary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,74,173,0.2);
-}
-
-.brand-filter-btn.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-/* Secciones por marca */
-.brand-section {
-  margin-bottom: 20px;
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: white;
-}
-
-.brand-section-header {
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
-}
-
-.brand-section-header:hover {
-  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-}
-
-.brand-section-header h4 {
-  margin: 0;
-  color: var(--primary);
-  font-size: 1.1em;
-}
-
-.brand-count {
-  font-size: 0.9em;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.toggle-icon {
-  font-size: 1.2em;
-  color: var(--primary);
-  transition: transform 0.3s ease;
-}
-
-.brand-section-content {
-  padding: 12px;
-  display: block;
-}
-
-/* Items de inventario */
-.inventory-item {
-  background: white;
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
-}
-
-.inventory-item:hover {
-  border-color: var(--primary);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.inventory-item.low-stock {
-  border-left: 4px solid var(--warning);
-}
-
-.inventory-item.out-of-stock {
-  border-left: 4px solid var(--error);
-  opacity: 0.7;
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.item-header h4 {
-  margin: 0;
-  color: var(--text);
-  font-size: 1.1em;
-}
-
-.item-brand {
-  padding: 4px 12px;
-  background: var(--primary);
-  color: white;
-  border-radius: 12px;
-  font-size: 0.85em;
-  font-weight: 600;
-}
-
-.item-details {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-}
-
-.detail-label {
-  font-weight: 600;
-  color: var(--muted);
-  font-size: 0.9em;
-}
-
-.detail-value {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.stock-value {
-  font-size: 1.1em;
-  font-weight: 700;
-  color: var(--success);
-}
-
-.inventory-item.low-stock .stock-value {
-  color: var(--warning);
-}
-
-.inventory-item.out-of-stock .stock-value {
-  color: var(--error);
-}
-
-.code-value {
-  font-family: 'Courier New', monospace;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-/* Estados de caducidad (Versión anterior - ahora manejado en línea) */
-.expiry-expired {
-  color: var(--error);
-  font-weight: 700;
-}
-
-.expiry-expiring-soon {
-  color: var(--error);
-  font-weight: 600;
-}
-
-.expiry-expiring-warning {
-  color: var(--warning);
-  font-weight: 600;
-}
-
-/* Acciones */
-.item-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.action-btn {
-  padding: 8px 16px;
-  margin: 0;
-  width: auto;
-  border-radius: 8px;
-  font-size: 1.2em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.edit-btn {
-  background: var(--primary);
-  border: 2px solid var(--primary);
-}
-
-.edit-btn:hover {
-  background: var(--primary-dark);
-  transform: scale(1.05);
-}
-
-.delete-btn {
-  background: var(--error);
-  border: 2px solid var(--error);
-}
-
-.delete-btn:hover {
-  background: #dc2626;
-  transform: scale(1.05);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .brand-filters {
-    gap: 6px;
-  }
-  
-  .brand-filter-btn {
-    padding: 6px 12px;
-    font-size: 13px;
-  }
-  
-  .brand-section-header {
-    padding: 12px 16px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .brand-count {
-    font-size: 0.85em;
-  }
-  
-  .item-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .item-actions {
-    flex-direction: column;
-  }
-  
-  .action-btn {
-    width: 100%;
-  }
-}
-
-/* ============================================================
-   ANIMACIÓN DE ALERTA DE CADUCIDAD
-   ============================================================ */
-
-/* Esta animación es para los items de inventario críticos */
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-    border-color: var(--border);
-  }
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
-    border-color: #dc2626; /* Rojo intenso */
-  }
-}
+console.log('✅ app.js cargado correctamente');

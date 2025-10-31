@@ -19,19 +19,15 @@ const firebaseConfig = {
 
 /**
  * Función que inicializa Firebase y expone los servicios globalmente.
- * Debe llamarse solo una vez después de que los SDKs estén cargados.
  */
 function initFirebase() {
   console.log('🔥 Iniciando Firebase...');
   
   try {
-    // CRÍTICO: Verificar que el objeto global 'firebase' de la versión compat esté cargado.
+    // Verificar si el objeto global 'firebase' de la versión compat está cargado.
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
       console.error('❌ Error: El objeto Firebase no está disponible. ¿Faltan los SDKs en index.html?');
-      if (typeof showToast !== 'undefined') {
-        showToast('Error de inicio: El SDK de Firebase no se cargó correctamente.', 'error');
-      }
-      return false;
+      return false; 
     }
     
     // 1. Inicializar la app
@@ -43,7 +39,7 @@ function initFirebase() {
       console.log('⚠️ Firebase ya estaba inicializado');
     }
     
-    // 2. Exponer servicios para el resto de los módulos (CRUCIAL para inventory.js)
+    // 2. Exponer servicios para el resto de los módulos
     window.firebaseApp = firebase.app();
     window.firebaseAuth = firebase.auth();
     window.firebaseDB = firebase.database();
@@ -53,24 +49,18 @@ function initFirebase() {
     return true;
 
   } catch (err) {
-    const errorMsg = '❌ Error crítico inicializando Firebase: ' + err.message;
-    console.error(errorMsg, err);
-    
-    if (typeof showToast !== 'undefined') {
-        showToast('Fallo crítico al iniciar Firebase. Revisa la configuración. ' + err.message, 'critical');
-    } else {
-        document.getElementById('connection-status-text').textContent = 'ERROR FATAL';
-    }
+    console.error('❌ Error crítico inicializando Firebase:', err);
     return false;
   }
 }
 
 // ============================================================
-// ⚠️ CORRECCIÓN CRÍTICA AÑADIDA: LLAMAR FUNCIÓN INMEDIATAMENTE
-// Esto garantiza que Firebase se inicialice antes de que el
-// navegador pase al siguiente script (ui.js, auth.js, etc.).
+// LLAMADA CRÍTICA: Inicializa Firebase en cuanto este script cargue.
+// Esto bloquea la ejecución de auth.js, etc., hasta que Firebase esté listo.
 // ============================================================
 initFirebase();
 
 // Exponer la función globalmente solo si es necesaria más tarde
 window.initFirebase = initFirebase;
+
+console.log('✅ firebase-config.js cargado correctamente');
