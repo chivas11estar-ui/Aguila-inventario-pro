@@ -19,7 +19,7 @@ const firebaseConfig = {
 
 /**
  * Función que inicializa Firebase y expone los servicios globalmente.
- * Debe llamarse solo una vez después de que los SDKs y el módulo UI estén cargados.
+ * Debe llamarse solo una vez después de que los SDKs estén cargados.
  */
 function initFirebase() {
   console.log('🔥 Iniciando Firebase...');
@@ -27,9 +27,7 @@ function initFirebase() {
   try {
     // CRÍTICO: Verificar que el objeto global 'firebase' de la versión compat esté cargado.
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
-      const errorMsg = '❌ Firebase SDK no cargado. Verifica los <script> en index.html.';
-      console.error(errorMsg);
-      // Usar showToast, que ahora asumimos está disponible (cargado antes)
+      console.error('❌ Error: El objeto Firebase no está disponible. ¿Faltan los SDKs en index.html?');
       if (typeof showToast !== 'undefined') {
         showToast('Error de inicio: El SDK de Firebase no se cargó correctamente.', 'error');
       }
@@ -67,7 +65,12 @@ function initFirebase() {
   }
 }
 
-// Exponer la función initFirebase para que sea llamada desde index.html o app.js
-window.initFirebase = initFirebase;
+// ============================================================
+// ⚠️ CORRECCIÓN CRÍTICA AÑADIDA: LLAMAR FUNCIÓN INMEDIATAMENTE
+// Esto garantiza que Firebase se inicialice antes de que el
+// navegador pase al siguiente script (ui.js, auth.js, etc.).
+// ============================================================
+initFirebase();
 
-console.log('✅ firebase-config.js cargado y función initFirebase expuesta.');
+// Exponer la función globalmente solo si es necesaria más tarde
+window.initFirebase = initFirebase;
