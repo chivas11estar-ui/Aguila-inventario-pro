@@ -3,7 +3,6 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-
 console.log('🚀 Iniciando Águila Inventario Pro v7.1...');
 
 // ============================================================
@@ -11,63 +10,58 @@ console.log('🚀 Iniciando Águila Inventario Pro v7.1...');
 // ============================================================
 function checkDependencies() {
   const dependencies = {
-    firebase: typeof firebase !== 'undefined' && firebase.apps.length > 0, // Verificar inicialización
+    firebase: typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0,
     showToast: typeof showToast === 'function',
-    openScanner: typeof openScanner === 'function',
-    // ❌ ELIMINADO: Quagga ya no se usa ni se verifica
+    openScanner: typeof openScanner === 'function'
   };
   
-  console.log('📦 Dependencias verificadas:', dependencies);
+  console.log('📦 Dependencias:', dependencies);
   
   const allLoaded = Object.values(dependencies).every(dep => dep);
   
   if (!allLoaded) {
-    console.warn('⚠️ Algunas dependencias no están cargadas:', dependencies);
+    console.warn('⚠️ Faltan dependencias:', dependencies);
   }
   
   return allLoaded;
 }
 
 // ============================================================
-// INICIALIZACIÓN DE LA APLICACIÓN
+// INICIALIZACIÓN
 // ============================================================
 function initializeApp() {
-  console.log('⚙️ Inicializando aplicación principal...');
+  console.log('⚙️ Inicializando app...');
   
-  // Verificar la inicialización de Firebase que ya hizo firebase-config.js
   if (!firebase.apps || firebase.apps.length === 0) {
-    console.error('❌ Firebase no está inicializado. Fallo crítico.');
+    console.error('❌ Firebase NO inicializado');
     if (typeof showToast !== 'undefined') {
-        showToast('Error: Firebase no está inicializado. Recarga la página.', 'error');
+      showToast('Error: Firebase no conectado', 'error');
     }
     return;
   }
   
-  console.log('✅ Firebase inicializado correctamente (verificado en app.js)');
+  console.log('✅ Firebase OK');
   checkDependencies();
-  
-  // El resto de la inicialización se maneja en auth.js
 }
 
 // ============================================================
-// ESPERAR A QUE TODO ESTÉ CARGADO (CORREGIDO)
+// ESPERAR CARGA COMPLETA
 // ============================================================
-window.addEventListener('load', () => {
-  console.log('🎨 Página completamente cargada');
-  
-  // CRÍTICO: Llamada directa, confiando en el atributo DEFER de index.html
-  initializeApp(); 
-});
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  initializeApp();
+}
 
 // ============================================================
-// MANEJO DE ERRORES GLOBALES
+// ERRORES GLOBALES
 // ============================================================
-window.addEventListener('error', (event) => {
-  console.error('❌ Error global capturado:', event.error);
+window.addEventListener('error', (e) => {
+  console.error('❌ Error:', e.error);
 });
 
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('❌ Promise rechazada sin manejar:', event.reason);
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('❌ Promise:', e.reason);
 });
 
-console.log('✅ app.js cargado correctamente');
+console.log('✅ app.js cargado');
