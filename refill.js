@@ -2,7 +2,7 @@
 // Águila Inventario Pro - Módulo: refill.js
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
-// VERSIÓN CORREGIDA - Búsqueda manual funcionando
+// VERSIÓN CORREGIDA - Búsqueda manual funcionando y SIN TEMPORIZADOR
 // ============================================================
 
 let currentRefillProduct = null;
@@ -249,7 +249,7 @@ async function updateTodayMovements() {
 }
 
 // ============================================================
-// BUSCAR PRODUCTO MANUALMENTE (NUEVO)
+// BUSCAR PRODUCTO MANUALMENTE
 // ============================================================
 async function buscarProductoManual() {
   const barcodeInput = document.getElementById('refill-barcode');
@@ -280,33 +280,6 @@ async function buscarProductoManual() {
 // ============================================================
 function setupRefillForm() {
   console.log('🔧 Configurando formulario de relleno...');
-  
-  // Botón de escaneo
-  const scanBtn = document.getElementById('refill-scan-btn');
-  if (scanBtn) {
-    scanBtn.onclick = () => {
-      console.log('📷 Abriendo escáner de relleno...');
-      
-      if (typeof openScanner === 'function') {
-        openScanner((code) => {
-          const barcodeInput = document.getElementById('refill-barcode');
-          if (barcodeInput) {
-            barcodeInput.value = code;
-            searchProductForRefill(code);
-          }
-        });
-      } else {
-        showToast('❌ El escáner no está disponible', 'error');
-      }
-    };
-  }
-  
-  // NUEVO: Botón de búsqueda manual
-  const searchBtn = document.getElementById('refill-search-btn');
-  if (searchBtn) {
-    searchBtn.onclick = buscarProductoManual;
-    console.log('✅ Botón de búsqueda manual configurado');
-  }
   
   // Input de código de barras
   const barcodeInput = document.getElementById('refill-barcode');
@@ -374,29 +347,23 @@ function setupRefillForm() {
 }
 
 // ============================================================
-// INICIALIZACIÓN
+// INICIALIZACIÓN (CORREGIDA - SIN TEMPORIZADOR INESTABLE)
 // ============================================================
 function initRefillModule() {
   console.log('🎯 Inicializando módulo de relleno...');
-  
-  // Verificar que Firebase esté cargado
-  if (typeof firebase === 'undefined') {
-    console.error('❌ Firebase no está cargado. Esperando...');
-    setTimeout(initRefillModule, 1000);
-    return;
-  }
   
   // Verificar autenticación
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, configurando relleno...');
       
-      setTimeout(() => {
+      // Mantenemos un pequeño delay ya que onAuthStateChanged se dispara antes de que el DOM esté completamente listo
+      setTimeout(() => { 
         setupRefillForm();
         updateTodayMovements();
       }, 500);
     } else {
-      console.log('⏳ Esperando autenticación...');
+      console.log('⏳ Esperando autenticación para módulo de relleno...');
     }
   });
 }
@@ -409,3 +376,6 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ refill.js cargado correctamente');
+
+// Exponer función para que pueda ser usada en ui.js al escanear
+window.searchProductForRefill = searchProductForRefill;

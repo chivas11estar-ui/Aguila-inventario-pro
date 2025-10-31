@@ -2,6 +2,7 @@
 // Águila Inventario Pro - Módulo: audit.js
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
+// VERSIÓN CORREGIDA - SIN TEMPORIZADOR INESTABLE
 // ============================================================
 
 let currentAuditWarehouse = null;
@@ -36,7 +37,8 @@ function saveBodega() {
   const display = document.getElementById('current-warehouse-display');
   
   if (!input || !input.value.trim()) {
-    alert('Ingresa el nombre de la bodega');
+    // Usamos showToast en lugar de alert
+    showToast('Ingresa el nombre de la bodega', 'warning');
     return;
   }
   
@@ -66,12 +68,12 @@ async function buscarProductoAudit() {
   const barcode = input.value.trim();
   
   if (!barcode || barcode.length < 8) {
-    alert('Ingresa un código válido');
+    showToast('Ingresa un código válido (mínimo 8 dígitos)', 'warning');
     return;
   }
   
   if (!currentAuditWarehouse) {
-    alert('Primero selecciona una bodega');
+    showToast('Primero selecciona una bodega', 'warning');
     return;
   }
   
@@ -80,7 +82,7 @@ async function buscarProductoAudit() {
   }
   
   if (!userDeterminanteAudit) {
-    alert('Error: No se encontró información de la tienda');
+    showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
   
@@ -124,7 +126,7 @@ async function buscarProductoAudit() {
         const otherProduct = Object.values(products)[0];
         const otherLocation = otherProduct.ubicacion || 'otra bodega';
         
-        const confirmar = confirm(
+        const confirmar = window.confirm(
           '⚠️ Este producto existe en: "' + otherLocation + '"\n\n' +
           '¿Quieres agregarlo a "' + currentAuditWarehouse + '"?\n\n' +
           'Producto: ' + otherProduct.nombre + '\n' +
@@ -170,35 +172,35 @@ async function buscarProductoAudit() {
       }
       
     } else {
-      alert('Producto no encontrado en el inventario');
+      showToast('Producto no encontrado en el inventario', 'error');
       currentAuditProduct = null;
       document.getElementById('audit-product-info').style.display = 'none';
     }
   } catch (error) {
     console.error('Error buscar producto:', error);
-    alert('Error al buscar producto: ' + error.message);
+    showToast('Error al buscar producto: ' + error.message, 'error');
   }
 }
 
 // ============================================================
-// REGISTRAR CONTEO (CORREGIDO - ACTUALIZA INVENTARIO)
+// REGISTRAR CONTEO
 // ============================================================
 async function registrarConteo() {
   const boxesInput = document.getElementById('audit-boxes');
   const boxes = parseInt(boxesInput.value);
   
   if (!currentAuditWarehouse) {
-    alert('Primero selecciona una bodega');
+    showToast('Primero selecciona una bodega', 'warning');
     return false;
   }
   
   if (!currentAuditProduct) {
-    alert('Primero escanea un producto');
+    showToast('Primero escanea un producto', 'warning');
     return false;
   }
   
   if (isNaN(boxes) || boxes < 0) {
-    alert('Ingresa una cantidad válida');
+    showToast('Ingresa una cantidad válida', 'error');
     return false;
   }
   
@@ -297,7 +299,7 @@ async function registrarConteo() {
     return true;
   } catch (error) {
     console.error('Error registrar:', error);
-    alert('Error al registrar: ' + error.message);
+    showToast('Error al registrar: ' + error.message, 'error');
     return false;
   }
 }
@@ -330,12 +332,12 @@ function actualizarResumenAuditoria() {
 // ============================================================
 async function terminarAuditoria() {
   if (!currentAuditWarehouse) {
-    alert('No hay auditoría activa');
+    showToast('No hay auditoría activa', 'warning');
     return;
   }
   
   if (currentAuditSession.length === 0) {
-    alert('No se han auditado productos en esta bodega');
+    showToast('No se han auditado productos en esta bodega', 'warning');
     return;
   }
   
@@ -361,7 +363,8 @@ async function terminarAuditoria() {
   
   mensaje += `\n¿Confirmar y terminar auditoría?`;
   
-  if (!confirm(mensaje)) {
+  // Usamos window.confirm ya que es una alerta crítica de fin de sesión
+  if (!window.confirm(mensaje)) {
     return;
   }
   
@@ -410,14 +413,14 @@ async function terminarAuditoria() {
     
     // Preguntar si iniciar nueva auditoría
     setTimeout(() => {
-      if (confirm('¿Deseas auditar otra bodega?')) {
+      if (window.confirm('¿Deseas auditar otra bodega?')) {
         document.getElementById('audit-warehouse').focus();
       }
     }, 500);
     
   } catch (error) {
     console.error('Error terminar auditoría:', error);
-    alert('Error al terminar auditoría: ' + error.message);
+    showToast('Error al terminar auditoría: ' + error.message, 'error');
   }
 }
 
@@ -479,7 +482,7 @@ async function mostrarEstadisticasProductos() {
       mensaje += `   • Marca: ${prod.marca}\n\n`;
     });
     
-    alert(mensaje);
+    window.alert(mensaje);
     
   } catch (error) {
     console.error('Error obtener estadísticas:', error);
@@ -571,16 +574,12 @@ async function cargarHistorialAuditorias() {
 }
 
 // ============================================================
-// INICIALIZACIÓN
+// INICIALIZACIÓN (CORREGIDA - SIN TEMPORIZADOR INESTABLE)
 // ============================================================
 function inicializarAudit() {
   console.log('Inicializando auditoría...');
   
-  if (typeof firebase === 'undefined') {
-    setTimeout(inicializarAudit, 1000);
-    return;
-  }
-  
+  // CRÍTICO: Eliminar la lógica inestable del setTimeout
   firebase.auth().onAuthStateChanged((user) => {
     if (!user) return;
     
@@ -610,19 +609,6 @@ function inicializarAudit() {
         if (e.key === 'Enter') {
           e.preventDefault();
           buscarProductoAudit();
-        }
-      };
-    }
-    
-    // Botón escanear
-    const btnScan = document.getElementById('audit-scan-btn');
-    if (btnScan) {
-      btnScan.onclick = () => {
-        if (typeof openScanner === 'function') {
-          openScanner((code) => {
-            document.getElementById('audit-barcode').value = code;
-            buscarProductoAudit();
-          });
         }
       };
     }
@@ -657,3 +643,6 @@ if (document.readyState === 'loading') {
 }
 
 console.log('audit.js cargado');
+
+// Exponer la función para ser usada por ui.js
+window.buscarProductoAudit = buscarProductoAudit;

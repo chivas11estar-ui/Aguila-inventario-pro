@@ -1,28 +1,20 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: style.css
+// Águila Inventario Pro - Módulo: app.js
 // Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
-//
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
 // ============================================================
 
 
-console.log('🚀 Iniciando Águila Inventario Pro v7.0...');
+console.log('🚀 Iniciando Águila Inventario Pro v7.1...');
 
 // ============================================================
 // VERIFICAR DEPENDENCIAS
 // ============================================================
 function checkDependencies() {
   const dependencies = {
-    firebase: typeof firebase !== 'undefined',
+    firebase: typeof firebase !== 'undefined' && firebase.apps.length > 0, // Verificar inicialización
     showToast: typeof showToast === 'function',
     openScanner: typeof openScanner === 'function',
-    Quagga: typeof Quagga !== 'undefined'
+    // ❌ ELIMINADO: Quagga ya no se usa ni se verifica
   };
   
   console.log('📦 Dependencias verificadas:', dependencies);
@@ -40,40 +32,31 @@ function checkDependencies() {
 // INICIALIZACIÓN DE LA APLICACIÓN
 // ============================================================
 function initializeApp() {
-  console.log('⚙️ Inicializando aplicación...');
+  console.log('⚙️ Inicializando aplicación principal...');
   
-  // Verificar que Firebase esté inicializado
-  if (typeof firebase === 'undefined') {
-    console.error('❌ Firebase no está cargado');
-    alert('Error: Firebase no está cargado. Recarga la página.');
-    return;
-  }
-  
+  // Verificar la inicialización de Firebase que ya hizo firebase-config.js
   if (!firebase.apps || firebase.apps.length === 0) {
-    console.error('❌ Firebase no está inicializado');
-    alert('Error: Firebase no está inicializado. Recarga la página.');
+    console.error('❌ Firebase no está inicializado. Fallo crítico.');
+    if (typeof showToast !== 'undefined') {
+        showToast('Error: Firebase no está inicializado. Recarga la página.', 'error');
+    }
     return;
   }
   
-  console.log('✅ Firebase inicializado correctamente');
-  console.log('📱 Apps de Firebase:', firebase.apps.length);
+  console.log('✅ Firebase inicializado correctamente (verificado en app.js)');
+  checkDependencies();
   
   // El resto de la inicialización se maneja en auth.js
-  // cuando el usuario se autentica
-  
-  checkDependencies();
 }
 
 // ============================================================
-// ESPERAR A QUE TODO ESTÉ CARGADO
+// ESPERAR A QUE TODO ESTÉ CARGADO (CORREGIDO)
 // ============================================================
 window.addEventListener('load', () => {
   console.log('🎨 Página completamente cargada');
   
-  // Pequeño delay para asegurar que todos los scripts defer se ejecutaron
-  setTimeout(() => {
-    initializeApp();
-  }, 100);
+  // CRÍTICO: Llamada directa, confiando en el atributo DEFER de index.html
+  initializeApp(); 
 });
 
 // ============================================================
@@ -81,47 +64,10 @@ window.addEventListener('load', () => {
 // ============================================================
 window.addEventListener('error', (event) => {
   console.error('❌ Error global capturado:', event.error);
-  
-  // No mostrar toast para cada error (puede ser molesto)
-  // Solo loggear en consola
 });
 
 window.addEventListener('unhandledrejection', (event) => {
   console.error('❌ Promise rechazada sin manejar:', event.reason);
 });
-
-// ============================================================
-// INFORMATION
-// ============================================================
-console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║       🦅 ÁGUILA INVENTARIO PRO v7.0                      ║
-║                                                           ║
-║       Sistema de Gestión de Inventario                   ║
-║       para Promotores PepsiCo                            ║
-║                                                           ║
-║       © 2025 José A. G. Betancourt                       ║
-║       Todos los derechos reservados                      ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-
-📋 Módulos cargados:
-   ✅ firebase-config.js
-   ✅ auth.js
-   ✅ ui.js
-   ✅ inventory.js
-   ✅ refill.js
-   ✅ audit.js
-   ✅ system.js
-   ✅ app.js
-
-🔥 Firebase: Conectado
-📱 Modo: Producción
-🌐 Entorno: Web App
-
-Para soporte o reportar bugs:
-📧 Email: soporte@aguilainventario.com
-`);
 
 console.log('✅ app.js cargado correctamente');

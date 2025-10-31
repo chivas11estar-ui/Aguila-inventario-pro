@@ -548,7 +548,7 @@
   <!-- 5. Librería Externa (Scanner) -->
   <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
   
-  <!-- 6. Módulos de la aplicación - USAMOS DEFER PARA EJECUTAR DESPUÉS DEL DOM -->
+  <!-- 6. Módulos de la aplicación - CRÍTICO: USAMOS DEFER AQUÍ -->
   <script src="ui.js"></script>
   <script src="auth.js"></script>
   <script src="scanner.js"></script>
@@ -570,3 +570,4 @@
   </script>
 </body>
 </html>
+

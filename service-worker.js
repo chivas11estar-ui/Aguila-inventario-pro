@@ -1,17 +1,9 @@
 // ============================================================
-// águila Inventario Pro - M贸dulo: style.css
-// Copyright 漏 2025 José A. G. Betancourt
-// Todos los derechos reservados
-//
-// Este archivo forma parte del sistema águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación 
-// sin autorización expresa del autor.
+// 脕guila Inventario Pro - Service Worker
+// Copyright 漏 2025 Jos茅 A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-inventario-v7";
+const CACHE_NAME = "aguila-inventario-v7.3-final"; // VERSI脫N FINAL Y AGRESIVA
 const urlsToCache = [
   "/",
   "/index.html",
@@ -24,12 +16,16 @@ const urlsToCache = [
   "/system.js",
   "/scanner.js",
   "/firebase-config.js",
+  "/manifest.json",
   "/icon-192x192.png",
-  "/icon-512x512.png"
+  "/icon-512x512.png" 
 ];
 
 // Instalaci贸n
 self.addEventListener("install", (event) => {
+  console.log("Service Worker v7.3 Instalando...");
+  // CR脥TICO: Forzar que el SW nuevo tome control inmediatamente
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("馃摝 Archivos cacheados correctamente");
@@ -40,33 +36,45 @@ self.addEventListener("install", (event) => {
 
 // Activaci贸n
 self.addEventListener("activate", (event) => {
+  console.log("Service Worker v7.3 Activando...");
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((name) => {
           if (name !== CACHE_NAME) {
-            console.log("馃Ч Eliminando cache viejo:", name);
+            console.log("馃Ч Eliminando cach茅 viejo:", name);
             return caches.delete(name);
           }
         })
       )
-    )
+    ).then(() => {
+      // CR脥TICO: Reclamar clientes inmediatamente
+      self.clients.claim();
+    })
   );
 });
 
-// Fetch
+// Estrategia Cache-First para los archivos de la app
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return (
-        response ||
-        fetch(event.request).catch(() =>
-          new Response("鈿狅笍 Sin conexi贸n y recurso no disponible en cache", {
+      // Devolver recurso de cach茅 si existe
+      if (response) {
+        return response;
+      }
+      
+      // Si no est谩 en cach茅, ir a la red
+      return fetch(event.request).catch(() => {
+        // Fallback si no hay conexi贸n y el recurso no est谩 en cach茅
+        if (event.request.mode === 'navigate') {
+          // Intentar devolver index.html para navegaci贸n offline
+          return caches.match('/index.html');
+        }
+        return new Response("鈿狅笍 Sin conexi贸n y recurso no disponible", {
             status: 503,
             statusText: "Offline"
-          })
-        )
-      );
+        });
+      });
     })
   );
 });
