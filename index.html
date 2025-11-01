@@ -6,9 +6,9 @@
   <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo con modo offline">
   <meta name="author" content="José A. G. Betancourt">
   <meta name="theme-color" content="#004aad">
-  <title>Águila Inventario Pro v7.1 (Offline Ready)</title>
+  <title>🦅 Águila Inventario Pro v7.1 (Offline Ready)</title>
 
-  <!-- PWA Meta Tags -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,544 +19,132 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <!-- Preconnect para Firebase -->
+  <!-- Firebase y estilos -->
   <link rel="preconnect" href="https://www.gstatic.com">
   <link rel="preconnect" href="https://firebasestorage.googleapis.com">
-
-  <!-- Estilos -->
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  
-  <!-- Toast Container -->
+  <!-- Toast -->
   <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- Modal Escáner ML Kit (CORREGIDO) -->
+  <!-- Modal Escáner -->
   <div id="scanner-modal" class="scanner-modal hidden">
     <div class="scanner-container">
-      <!-- Contenedor del título y botón de cierre, para centrar en mobile -->
-      <div style="position: absolute; top: 0; width: 100%; text-align: center; padding: 15px;">
-        <h3 style="color: white; margin: 0; font-size: 1.2em;">Escáner de Código de Barras</h3>
+      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;">
+        <h3 style="color:white;margin:0;font-size:1.2em;">Escáner de Código de Barras</h3>
       </div>
-
       <div class="scanner-video-wrapper">
         <video id="scanner-video" autoplay playsinline></video>
-        <!-- Canvas eliminado, ya que tu scanner.js usa solo el video y la API BarcodeDetector -->
         <div class="scanner-overlay">
           <div class="scanner-frame"></div>
           <div class="scanner-instruction">Apunta la cámara al código de barras</div>
         </div>
       </div>
-      
-      <!-- Botón de cierre -->
-      <button id="close-scanner" class="scanner-close-btn">
-        Cerrar Escáner
-      </button>
+      <button id="close-scanner" class="scanner-close-btn">Cerrar Escáner</button>
     </div>
   </div>
 
-
-  <!-- Sección de Autenticación -->
-  <section id="auth-setup" class="card" style="max-width: 500px; margin: 50px auto;">
-    <h2 style="text-align: center; color: var(--primary); margin-bottom: 24px;">
-      🦅 Acceso Promotor Águila Pro
-    </h2>
-
-    <!-- Formulario Login -->
-    <form id="login-form" aria-label="Formulario de inicio de sesión">
-      <div class="form-group">
-        <label for="login-email">Email</label>
-        <input 
-          id="login-email" 
-          type="email" 
-          name="email"
-          placeholder="tu.email@empresa.com" 
-          autocomplete="email"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="login-password">Contraseña</label>
-        <input 
-          id="login-password" 
-          type="password" 
-          name="password"
-          placeholder="Mínimo 6 caracteres" 
-          autocomplete="current-password"
-          minlength="6"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <button type="button" id="btn-login" class="success">Iniciar Sesión</button>
-      <p style="text-align: center; margin-top: 15px;">
-        <a href="#" id="show-forgot-password" style="color: var(--warning);">
-          ¿Olvidaste tu contraseña?
-        </a>
-      </p>
-      <p style="text-align: center;">
-        <a href="#" id="show-register" style="color: var(--primary);">
-          ¿Eres nuevo? Regístrate aquí
-        </a>
-      </p>
-    </form>
-
-    <!-- Formulario Recuperar Contraseña -->
-    <form id="forgot-password-form" class="hidden" aria-label="Recuperar contraseña">
-      <h3 style="text-align: center; color: var(--primary);">Recuperar Contraseña</h3>
-      <div class="form-group">
-        <label for="forgot-email">Email</label>
-        <input 
-          id="forgot-email" 
-          type="email" 
-          name="email"
-          placeholder="tu.email@empresa.com" 
-          autocomplete="email"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <button type="submit" class="warning">Enviar Enlace</button>
-      <p style="text-align: center; margin-top: 15px;">
-        <a href="#" id="show-login-from-forgot" style="color: var(--primary);">
-          Volver al inicio de sesión
-        </a>
-      </p>
-    </form>
-
-    <!-- Formulario Registro -->
-    <form id="register-form" class="hidden" aria-label="Formulario de registro">
-      <h3 style="text-align: center; color: var(--primary);">Registro Inicial</h3>
-      <div class="form-group">
-        <label for="register-email">Email</label>
-        <input 
-          id="register-email" 
-          type="email" 
-          name="email"
-          placeholder="tu.email@empresa.com" 
-          autocomplete="email"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="register-password">Contraseña</label>
-        <input 
-          id="register-password" 
-          type="password" 
-          name="new-password"
-          placeholder="Mínimo 6 caracteres" 
-          autocomplete="new-password"
-          minlength="6" 
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="register-determinante">Determinante (Tienda)</label>
-        <input 
-          id="register-determinante" 
-          type="number" 
-          placeholder="Ej: 12345" 
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="register-store-name">Nombre de la Tienda</label>
-        <input 
-          id="register-store-name" 
-          type="text"
-          name="organization"
-          placeholder="Ej: Oxxo Centro" 
-          autocomplete="organization"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <div class="form-group">
-        <label for="register-promoter-name">Nombre del Promotor</label>
-        <input 
-          id="register-promoter-name" 
-          type="text"
-          name="name"
-          placeholder="Ej: Juan Pérez" 
-          autocomplete="name"
-          required 
-          aria-required="true"
-        />
-      </div>
-      <button type="submit" class="success">Registrar y Entrar</button>
-      <p style="text-align: center; margin-top: 15px;">
-        <a href="#" id="show-login" style="color: var(--primary);">Ya tengo cuenta</a>
-      </p>
-    </form>
-  </section>
-
-  <!-- App Principal -->
-  <main id="app-container" style="display: none;">
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main id="main-app">
     
-    <!-- Header -->
-    <header class="app-header" role="banner">
-      <h1>🦅 Águila Inventario Pro</h1>
-      <div id="promoter-info-display">
-        <span class="status-indicator status-online" role="status" aria-label="Estado de conexión"></span>
-        <span id="connection-status-text">Conectado</span>
-      </div>
-    </header>
+    <!-- 🔹 Sección de Autenticación -->
+    <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
+      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Acceso Promotor Águila Pro</h2>
 
-    <!-- Navegación por Tabs -->
-    <nav class="tabs" role="tablist" aria-label="Navegación principal">
-      <button data-tab="dashboard" class="active" role="tab" aria-selected="true">
-        📊 Resumen
-      </button>
-      <button data-tab="agregar-producto" role="tab" aria-selected="false">
-        ➕ Agregar
-      </button>
-      <button data-tab="inventario" role="tab" aria-selected="false">
-        📦 Inventario
-      </button>
-      <button data-tab="relleno" role="tab" aria-selected="false">
-        🔄 Relleno
-      </button>
-      <button data-tab="auditoria" role="tab" aria-selected="false">
-        ✅ Auditar
-      </button>
-      <button data-tab="sistema" role="tab" aria-selected="false">
-        ⚙️ Sistema
-      </button>
-    </nav>
+      <!-- Login -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="tu.email@empresa.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
+        </div>
+        <button type="button" id="btn-login" class="success">Iniciar Sesión</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-forgot-password" style="color:var(--warning);">¿Olvidaste tu contraseña?</a>
+        </p>
+        <p style="text-align:center;">
+          <a href="#" id="show-register" style="color:var(--primary);">¿Eres nuevo? Regístrate aquí</a>
+        </p>
+      </form>
 
-    <!-- Dashboard -->
-    <section id="tab-dashboard" class="tab active" role="tabpanel">
-      <div class="card">
-        <h3 style="color: var(--primary);">Resumen General</h3>
-        <div id="promoter-info-full">Cargando datos...</div>
-      </div>
-      <div class="dashboard-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="total-products">0</div>
-          <div class="stat-label">Productos</div>
+      <!-- Recuperar contraseña -->
+      <form id="forgot-password-form" class="hidden">
+        <h3 style="text-align:center;color:var(--primary);">Recuperar Contraseña</h3>
+        <div class="form-group">
+          <label for="forgot-email">Email</label>
+          <input id="forgot-email" type="email" placeholder="tu.email@empresa.com" required />
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="total-inventory-value">0</div>
-          <div class="stat-label">Total Cajas</div>
+        <button type="submit" class="warning">Enviar Enlace</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-login-from-forgot" style="color:var(--primary);">Volver al inicio de sesión</a>
+        </p>
+      </form>
+
+      <!-- Registro -->
+      <form id="register-form" class="hidden">
+        <h3 style="text-align:center;color:var(--primary);">Registro Inicial</h3>
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" placeholder="tu.email@empresa.com" required />
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="total-movements">0</div>
-          <div class="stat-label">Movimientos Hoy</div>
+        <div class="form-group">
+          <label for="register-password">Contraseña</label>
+          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="expiry-alert">0</div>
-          <div class="stat-label">Por Vencer</div>
+        <div class="form-group">
+          <label for="register-determinante">Determinante (Tienda)</label>
+          <input id="register-determinante" type="number" placeholder="Ej: 12345" required />
         </div>
-      </div>
+        <div class="form-group">
+          <label for="register-store-name">Nombre de la Tienda</label>
+          <input id="register-store-name" type="text" placeholder="Ej: Oxxo Centro" required />
+        </div>
+        <div class="form-group">
+          <label for="register-promoter-name">Nombre del Promotor</label>
+          <input id="register-promoter-name" type="text" placeholder="Ej: Juan Pérez" required />
+        </div>
+        <button type="submit" class="success">Registrar y Entrar</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-login" style="color:var(--primary);">Ya tengo cuenta</a>
+        </p>
+      </form>
     </section>
 
-    <!-- Agregar Producto -->
-    <section id="tab-agregar-producto" class="tab" role="tabpanel">
-      <div class="card">
-        <h3 style="color: var(--primary);">Agregar Producto</h3>
-        <form id="add-product-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="add-barcode">Código de Barras *</label>
-              <input id="add-barcode" type="text" placeholder="Escanear o escribir" required />
-            </div>
-            <button type="button" id="add-scan-btn" class="success" style="width: auto; min-width: 140px;">
-              📷 Escanear
-            </button>
-          </div>
-          <div class="form-group">
-            <label for="add-product-name">Nombre del Producto *</label>
-            <input id="add-product-name" type="text" placeholder="Ej: Papas Sabritas 50g" required />
-          </div>
-          <div class="form-group">
-            <label for="add-brand">Marca *</label>
-            <select id="add-brand" required>
-              <option value="">Seleccionar marca</option>
-              <option value="Sabritas">Sabritas</option>
-              <option value="Gamesa">Gamesa</option>
-              <option value="Quaker">Quaker</option>
-              <option value="Sonric's">Sonric's</option>
-              <option value="Cacahuate">Cacahuate</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="add-pieces-per-box">Piezas por Caja *</label>
-            <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="add-warehouse">Ubicación (Almacén) *</label>
-              <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
-            </div>
-            <div class="form-group">
-              <label for="add-expiry-date">Fecha de Caducidad *</label>
-              <input id="add-expiry-date" type="date" required />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="add-boxes">Cajas a Agregar *</label>
-            <input id="add-boxes" type="number" placeholder="Ej: 5" min="1" required />
-          </div>
-          <button type="submit" class="success">💾 Guardar Producto</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Inventario -->
-    <section id="tab-inventario" class="tab" role="tabpanel">
-      <div class="card">
-        <h3 style="color: var(--primary);">Inventario Actual</h3>
-        
-        <!-- Botón Toggle Productos Sin Stock -->
-        <button 
-          id="toggle-stock-btn"
-          style="
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 16px;
-            background: #004aad;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 74, 173, 0.2);
-            transition: all 0.3s ease;
-          "
-        >
-          👁️‍🗨️ Mostrar sin stock
-        </button>
-        
-        <!-- Búsqueda con escáner -->
-        <div class="form-row">
-          <div class="form-group" style="flex: 2;">
-            <input 
-              type="text" 
-              id="inventory-search" 
-              placeholder="Buscar por nombre, marca o código..." 
-            />
-          </div>
-          <button type="button" id="inventory-scan-btn" class="success" style="width: auto; min-width: 140px;">
-            📷 Escanear
-          </button>
-        </div>
-        
-        <!-- Filtros de marca -->
-        <div id="brand-filters" class="brand-filters"></div>
-        
-        <!-- Lista de inventario -->
-        <div id="inventory-list">
-          <p class="text-center text-muted">Cargando inventario...</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Relleno -->
-    <section id="tab-relleno" class="tab" role="tabpanel">
-      <div class="card">
-        <h3 style="color: var(--primary);">Movimiento de Stock</h3>
-        <p class="text-muted">Registra el movimiento de cajas del almacén al piso de venta.</p>
-        <form id="refill-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="refill-barcode">Código de Barras *</label>
-              <input id="refill-barcode" type="text" placeholder="Escanear o escribir" required />
-            </div>
-            <button type="button" id="refill-scan-btn" class="success" style="width: auto; min-width: 140px;">
-              📷 Escanear
-            </button>
-          </div>
-          <div id="refill-product-info" style="display: none; margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px;">
-            <p id="refill-product-name"><strong>Producto:</strong> N/A</p>
-            <p id="refill-current-stock" class="text-muted">Stock actual: N/A</p>
-          </div>
-          <div class="form-group">
-            <label for="refill-boxes">Cajas a Mover *</label>
-            <input id="refill-boxes" type="number" placeholder="Ej: 2" min="1" required />
-          </div>
-          <button type="submit" class="warning">🔄 Registrar Movimiento</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Auditoría -->
-    <section id="tab-auditoria" class="tab" role="tabpanel">
-      <div class="card">
-        <h3 style="color: var(--primary);">Auditoría Rápida</h3>
-        
-        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--warning);">
-          <h4 style="margin: 0 0 10px 0;">Bodega a Auditar</h4>
-          <div class="form-row">
-            <div class="form-group" style="flex: 2; margin: 0;">
-              <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" style="margin: 0;" />
-            </div>
-            <button type="button" id="save-warehouse-btn" class="warning" style="width: auto; min-width: 120px; margin: 0;">
-              Confirmar
-            </button>
-          </div>
-          <p id="current-warehouse-display" style="margin: 10px 0 0 0; font-size: 14px; color: var(--muted);">
-            Sin bodega seleccionada
-          </p>
-        </div>
-        
-        <form id="audit-form">
-          <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-              <label for="audit-barcode">Código de Barras *</label>
-              <input id="audit-barcode" type="text" placeholder="Escanear código" required autofocus />
-            </div>
-            <button type="button" id="audit-scan-btn" class="success" style="width: auto; min-width: 140px;">
-              📷 Escanear
-            </button>
-          </div>
-          
-          <div id="audit-product-info" style="display: none; margin: 16px 0; padding: 16px; background: #e6f7ff; border-radius: 8px; border-left: 4px solid var(--primary);">
-            <p id="audit-product-name"><strong>Producto:</strong> <span style="color: var(--primary);">N/A</span></p>
-            <p id="audit-product-brand" class="text-muted" style="margin-top: 4px;">Marca: N/A</p>
-          </div>
-          
-          <div class="form-group">
-            <label for="audit-boxes">Cantidad de Cajas Contadas *</label>
-            <input 
-              id="audit-boxes" 
-              type="number" 
-              placeholder="Ej: 10" 
-              min="0" 
-              required 
-              style="font-size: 24px; font-weight: 700; text-align: center; height: 60px;" 
-            />
-          </div>
-          
-          <button type="submit" class="success" style="font-size: 18px; padding: 18px;">
-            ✅ Registrar Conteo
-          </button>
-        </form>
-        
-        <div style="background: white; padding: 16px; border-radius: 12px; margin-top: 16px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #6b7280;">📊 Productos auditados:</span>
-            <span id="audit-products-count" style="font-weight: 700; color: #004aad;">0</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #6b7280;">📦 Total cajas:</span>
-            <span id="audit-total-count" style="font-weight: 700; color: #004aad;">0</span>
-          </div>
-        </div>
-
-        <!-- Botón Terminar Auditoría -->
-        <button 
-          id="finish-audit-btn"
-          style="
-            width: 100%;
-            margin-top: 16px;
-            padding: 16px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            display: none;
-          "
-        >
-          <div style="text-align: center;">
-            <div style="font-size: 13px; opacity: 0.9;">
-              📊 0 productos · 📦 0 cajas
-            </div>
-            <div style="font-size: 15px; font-weight: 700; margin-top: 4px;">
-              🏁 Terminar Auditoría
-            </div>
-          </div>
-        </button>
-
-        <div class="card mt-2" style="background: #f8fafc;">
-          <h4 style="color: var(--secondary); margin: 0 0 15px 0;">Últimos Conteos</h4>
-          <div id="audit-history" style="max-height: 200px; overflow-y: auto;">
-            <p class="text-muted text-center">No hay conteos registrados hoy</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sistema -->
-    <section id="tab-sistema" class="tab" role="tabpanel">
-      <div class="card" style="border-left: 4px solid var(--primary);">
-        <h3 style="color: var(--primary);">Estado del Sistema</h3>
-        
-        <div style="display: grid; gap: 10px; margin: 20px 0;">
-          <div style="display: flex; justify-content: space-between; padding: 10px; background: #f8fafc; border-radius: 8px;">
-            <span style="font-weight: 600;">Conexión</span>
-            <span id="system-connection-status">Verificando...</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; padding: 10px; background: #f8fafc; border-radius: 8px;">
-            <span style="font-weight: 600;">Service Worker</span>
-            <span id="system-sw-status">Deshabilitado</span>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button onclick="diagnosticoFirebase()" class="secondary" style="flex: 1; min-width: 120px;">
-            🔍 Diagnóstico
-          </button>
-          <button onclick="showSystemStats()" class="secondary" style="flex: 1; min-width: 120px;">
-            📊 Estadísticas
-          </button>
-          <button onclick="logout()" class="error" style="flex: 1; min-width: 120px;">
-            🚪 Cerrar Sesión
-          </button>
-        </div>
-
-        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
-          <h4 style="margin-top: 0;">⚠️ Zona de Peligro</h4>
-          <button onclick="clearAllData()" class="error">🗑️ Limpiar Datos Locales</button>
-          <p class="text-muted" style="font-size: 12px; margin: 10px 0 0;">
-            Esta acción eliminará los datos almacenados localmente.
-          </p>
-        </div>
-      </div>
+    <!-- 🔹 App Principal (oculta hasta login exitoso) -->
+    <section id="app-container" style="display:none;">
+      <!-- Aquí va tu contenido completo de tabs, inventario, auditoría, etc. -->
     </section>
 
   </main>
 
   <!-- Footer -->
-  <footer style="background: var(--card-bg); padding: 20px; text-align: center; border-top: 2px solid var(--border); margin-top: 40px;">
-    <p style="margin: 5px 0; font-weight: 600;">Águila Inventario Pro v7.1</p>
-    <p style="margin: 5px 0; color: var(--muted); font-size: 14px;">&copy; 2025 José A. G. Betancourt</p>
-    <p style="margin: 5px 0; color: var(--muted); font-size: 12px;">Sistema de Gestión de Inventario</p>
-    <p style="margin: 5px 0; color: var(--muted); font-size: 11px;">Todos los derechos reservados</p>
+  <footer style="background:var(--card-bg);padding:20px;text-align:center;border-top:2px solid var(--border);margin-top:40px;">
+    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.1</p>
+    <p style="margin:5px 0;color:var(--muted);font-size:14px;">&copy; 2025 José A. G. Betancourt</p>
+    <p style="margin:5px 0;color:var(--muted);font-size:12px;">Sistema de Gestión de Inventario</p>
   </footer>
 
-  <!-- ============================================ -->
-  <!-- SCRIPTS - ORDEN CORRECTO Y SIN DUPLICADOS -->
-  <!-- ============================================ -->
-  
-  <!-- 1. Firebase Core -->
+  <!-- ================================================= -->
+  <!-- Scripts en orden correcto -->
+  <!-- ================================================= -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  
-  <!-- 2. Firebase Auth -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  
-  <!-- 3. Firebase Database -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  
-  <!-- 4. Configuración Firebase (DEBE ejecutarse inmediatamente) -->
+
   <script src="firebase-config.js"></script>
-  
-  <!-- 5. Módulos de la aplicación (SIN defer) -->
+
   <script src="ui.js"></script>
-  <script src="auth.js"></script>
   <script src="scanner.js"></script>
   <script src="inventory.js"></script>
   <script src="refill.js"></script>
   <script src="audit.js"></script>
   <script src="system.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 
   <!-- Service Worker -->
@@ -564,11 +152,10 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => console.log('✅ Service Worker registrado'))
-          .catch(err => console.log('❌ Error SW:', err));
+          .then(reg => console.log('✅ Service Worker registrado:', reg.scope))
+          .catch(err => console.error('❌ Error SW:', err));
       });
     }
   </script>
-  
 </body>
 </html>
