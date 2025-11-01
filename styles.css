@@ -1,336 +1,398 @@
-// ============================================================
-// Águila Inventario Pro - Módulo: style.css
-// Copyright © 2025 José A. G. Betancourt
-// ... (Encabezado) ...
-// ============================================================
+/* ============================================================
+   Águila Inventario Pro - Módulo: style.css
+   Versión 7.1 | Copyright © 2025 José A. G. Betancourt
+   Sistema de Inventario Profesional con Modo Offline
+   ============================================================ */
 
-/* ============================================ */ /* Águila Inventario Pro - Estilos v7.1 */ /* Copyright © 2025 José A. G. Betancourt */ /* ============================================ */
+/* ============================================
+   Variables globales
+   ============================================ */
 :root {
---primary: #004aad;
---primary-dark: #003580;
---primary-light: #e6f0ff;
---secondary: #6b7280;
---success: #10b981;
---warning: #f59e0b;
---error: #ef4444;
---bg: #f8fafc;
---card-bg: #ffffff;
---text: #1f2937;
---muted: #6b7280;
---border: #e5e7eb;
+  --primary: #004aad;
+  --primary-dark: #003580;
+  --primary-light: #e6f0ff;
+  --secondary: #6b7280;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
 }
-{
-margin: 0;
-padding: 0;
-box-sizing: border-box;
+
+/* ============================================
+   Reset general
+   ============================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
 body {
-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-background: var(--bg);
-color: var(--text);
-line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
 }
-/* SPLASH SCREEN */
+
+/* ============================================
+   SPLASH SCREEN
+   ============================================ */
 .splash-screen {
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100vh;
-background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-display: flex;
-align-items: center;
-justify-content: center;
-z-index: 9999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
+
 .splash-content {
-text-align: center;
-color: white;
+  text-align: center;
+  color: white;
 }
+
 .splash-logo {
-font-size: 80px;
-margin-bottom: 20px;
-animation: bounce 1s infinite;
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: bounce 1s infinite;
 }
+
 .splash-title {
-font-size: 24px;
-margin-bottom: 30px;
+  font-size: 24px;
+  margin-bottom: 30px;
 }
+
 .splash-loader {
-width: 50px;
-height: 50px;
-border: 4px solid rgba(255,255,255,0.3);
-border-top-color: white;
-border-radius: 50%;
-margin: 0 auto 20px;
-animation: spin 1s linear infinite;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin 1s linear infinite;
 }
+
 .splash-text {
-font-size: 14px;
-opacity: 0.9;
+  font-size: 14px;
+  opacity: 0.9;
 }
+
 @keyframes spin {
-to { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
+
 @keyframes bounce {
-0%, 100% { transform: translateY(0); }
-50% { transform: translateY(-20px); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
-/* LOGIN SCREEN */
+
+/* ============================================
+   LOGIN SCREEN
+   ============================================ */
 .login-screen {
-min-height: 100vh;
-display: flex;
-align-items: center;
-justify-content: center;
-background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  padding: 20px;
 }
+
 .login-container {
-background: white;
-padding: 40px;
-border-radius: 20px;
-box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-max-width: 400px;
-width: 100%;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  max-width: 400px;
+  width: 100%;
 }
+
 .login-logo {
-font-size: 60px;
-text-align: center;
-margin-bottom: 20px;
+  font-size: 60px;
+  text-align: center;
+  margin-bottom: 20px;
 }
+
 .login-title {
-text-align: center;
-color: var(--primary);
-margin-bottom: 10px;
-font-size: 24px;
+  text-align: center;
+  color: var(--primary);
+  margin-bottom: 10px;
+  font-size: 24px;
 }
+
 .login-subtitle {
-text-align: center;
-color: var(--muted);
-margin-bottom: 30px;
-font-size: 14px;
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 30px;
+  font-size: 14px;
 }
+
 .input-group {
-margin-bottom: 20px;
+  margin-bottom: 20px;
 }
+
 .input-group label {
-display: block;
-margin-bottom: 8px;
-font-weight: 600;
-color: var(--text);
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text);
 }
+
 .input-group input {
-width: 100%;
-padding: 12px;
-border: 2px solid var(--border);
-border-radius: 8px;
-font-size: 14px;
-transition: all 0.3s;
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
 }
+
 .input-group input:focus {
-outline: none;
-border-color: var(--primary);
+  outline: none;
+  border-color: var(--primary);
 }
+
 .btn-primary {
-width: 100%;
-padding: 14px;
-background: var(--primary);
-color: white;
-border: none;
-border-radius: 8px;
-font-size: 16px;
-font-weight: 600;
-cursor: pointer;
-transition: all 0.3s;
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
 }
+
 .btn-primary:hover {
-background: var(--primary-dark);
-transform: translateY(-2px);
-box-shadow: 0 4px 12px rgba(0,74,173,0.3);
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,74,173,0.3);
 }
+
 .login-footer {
-text-align: center;
-margin-top: 30px;
-color: var(--muted);
-font-size: 12px;
+  text-align: center;
+  margin-top: 30px;
+  color: var(--muted);
+  font-size: 12px;
 }
-/* APP HEADER */
+
+/* ============================================
+   APP HEADER
+   ============================================ */
 .app-header {
-background: white;
-padding: 16px 20px;
-box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-display: flex;
-justify-content: space-between;
-align-items: center;
-position: sticky;
-top: 0;
-z-index: 100;
+  background: white;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.header-left {
-display: flex;
-align-items: center;
-gap: 15px;
-}
+
 .app-title {
-font-size: 18px;
-color: var(--primary);
-font-weight: 700;
+  font-size: 18px;
+  color: var(--primary);
+  font-weight: 700;
 }
-.header-right {
-display: flex;
-align-items: center;
-gap: 15px;
-}
+
 .user-name {
-font-size: 14px;
-color: var(--muted);
+  font-size: 14px;
+  color: var(--muted);
 }
+
 .btn-icon {
-background: none;
-border: none;
-font-size: 24px;
-cursor: pointer;
-padding: 8px;
-border-radius: 8px;
-transition: all 0.3s;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s;
 }
+
 .btn-icon:hover {
-background: var(--bg);
+  background: var(--bg);
 }
-/* SIDEBAR */
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
 .sidebar {
-position: fixed;
-left: -280px;
-top: 0;
-width: 280px;
-height: 100vh;
-background: white;
-box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-z-index: 200;
-transition: left 0.3s;
-padding-top: 70px;
+  position: fixed;
+  left: -280px;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  background: white;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  z-index: 200;
+  transition: left 0.3s;
+  padding-top: 70px;
 }
+
 .sidebar.active {
-left: 0;
+  left: 0;
 }
+
 .nav-item {
-display: flex;
-align-items: center;
-gap: 12px;
-padding: 16px 20px;
-color: var(--text);
-text-decoration: none;
-transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.3s;
 }
+
 .nav-item:hover {
-background: var(--bg);
+  background: var(--bg);
 }
+
 .nav-item.active {
-background: var(--primary-light);
-color: var(--primary);
-border-left: 4px solid var(--primary);
-font-weight: 600;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-left: 4px solid var(--primary);
+  font-weight: 600;
 }
+
 .nav-icon {
-font-size: 24px;
+  font-size: 24px;
 }
-/* MAIN CONTENT */
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
 .main-content {
-padding: 20px;
-max-width: 1200px;
-margin: 0 auto;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
-/* SCANNER MODAL */
+
+/* ============================================
+   SCANNER MODAL
+   ============================================ */
 .modal {
-display: none;
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100vh;
-background: rgba(0,0,0,0.9);
-z-index: 1000;
-align-items: center;
-justify-content: center;
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0,0,0,0.9);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
 }
+
 .modal.active {
-display: flex;
+  display: flex;
 }
+
 .scanner-container {
-background: white;
-border-radius: 20px;
-padding: 20px;
-max-width: 500px;
-width: 90%;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
 }
+
 .modal-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
+
 .btn-close {
-background: none;
-border: none;
-font-size: 32px;
-cursor: pointer;
-color: var(--muted);
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: var(--muted);
 }
+
 .scanner-body {
-position: relative;
-width: 100%;
-height: 300px;
-background: black;
-border-radius: 12px;
-overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: black;
+  border-radius: 12px;
+  overflow: hidden;
 }
+
 #scanner-video {
-width: 100%;
-height: 100%;
-object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
+
 .scanner-overlay {
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-display: flex;
-align-items: center;
-justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .scanner-frame {
-width: 250px;
-height: 150px;
-border: 3px solid var(--success);
-border-radius: 12px;
-box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+  width: 250px;
+  height: 150px;
+  border: 3px solid var(--success);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
 }
+
 .scanner-status {
-text-align: center;
-margin-top: 15px;
-color: var(--muted);
-font-size: 14px;
+  text-align: center;
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 14px;
 }
-/* TOAST */
+
+/* ============================================
+   TOASTS
+   ============================================ */
 .toast-container {
-position: fixed;
-top: 20px;
-right: 20px;
-z-index: 9999;
-display: flex;
-flex-direction: column;
-gap: 10px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
 .hidden {
-display: none !important;
+  display: none !important;
 }
-/* RESPONSIVE */
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
-.app-title {
-font-size: 16px;
-}
-.main-content {
-padding: 15px;
-}
+  .app-title {
+    font-size: 16px;
+  }
+
+  .main-content {
+    padding: 15px;
+  }
 }
