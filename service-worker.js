@@ -3,7 +3,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-inventario-v7.3-final"; // VERSIÓN FINAL Y AGRESIVA
+const CACHE_NAME = "aguila-inventario-v7.4final"; // VERSIÓN FINAL Y AGRESIVA
 const urlsToCache = [
   "/",
   "/index.html",
