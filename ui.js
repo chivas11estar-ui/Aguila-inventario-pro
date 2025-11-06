@@ -1,10 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: ui.js
 // Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
-//
-// ESTE ARCHIVO YA NO CONTIENE LÓGICA DE ESCANEO (openScanner/closeScanner)
-// PARA EVITAR CONFLICTOS CON scanner.js (ML KIT).
 // ============================================================
 
 // ============================================================
@@ -39,13 +35,11 @@ window.showToast = function(message, type = 'info') {
   
   container.appendChild(toast);
   
-  // Auto-cerrar después de 3.5 segundos
   setTimeout(() => {
     toast.style.cssText += 'opacity:0;transform:translateX(100%);transition:all 0.3s ease-out;';
     setTimeout(() => toast.remove(), 300);
   }, 3500);
   
-  // Cerrar al hacer clic
   toast.addEventListener('click', () => {
     toast.style.cssText += 'opacity:0;transform:translateX(100%);transition:all 0.3s ease-out;';
     setTimeout(() => toast.remove(), 300);
@@ -66,72 +60,79 @@ function getToastColor(type) {
 // MANEJO DE TABS
 // ============================================================
 function setupTabs() {
-  const tabButtons = document.querySelectorAll('.tabs button[data-tab]');
-  const tabPanels = document.querySelectorAll('.tab');
+  const navItems = document.querySelectorAll('[data-tab]');
   
-  tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const targetTab = button.getAttribute('data-tab');
+  navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tabName = item.getAttribute('data-tab');
       
-      // Remover clase active de todos los botones y paneles
-      tabButtons.forEach(btn => {
-        btn.classList.remove('active');
-        btn.setAttribute('aria-selected', 'false');
+      // Remover active de todos los tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
       });
-      tabPanels.forEach(panel => panel.classList.remove('active'));
       
-      // Agregar clase active al botón y panel seleccionado
-      button.classList.add('active');
-      button.setAttribute('aria-selected', 'true');
+      // Remover active de todos los nav items
+      document.querySelectorAll('[data-tab]').forEach(nav => {
+        nav.classList.remove('active');
+      });
       
-      const targetPanel = document.getElementById('tab-' + targetTab);
-      if (targetPanel) {
-        targetPanel.classList.add('active');
+      // Agregar active al tab y nav seleccionado
+      const tabElement = document.getElementById('tab-' + tabName);
+      if (tabElement) {
+        tabElement.classList.add('active');
       }
       
-      console.log('📑 Tab activado:', targetTab);
+      item.classList.add('active');
+      
+      // Cerrar sidebar en mobile
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) {
+        sidebar.classList.remove('active');
+      }
+      
+      console.log('📑 Tab activado:', tabName);
     });
   });
 }
 
 // ============================================================
-// BOTONES DE ESCANEO (Limpio para ML Kit)
+// BOTÓN ESCÁNER AGREGAR
 // ============================================================
-function setupScanButtons() {
-  // Función helper para manejar el escaneo en diferentes inputs
-  const handleScanClick = (inputId) => {
-    // openScanner es una función GLOBAL definida en scanner.js
-    if (typeof window.openScanner === 'function') {
-      window.openScanner((code) => {
-        const input = document.getElementById(inputId);
-        if (input) {
-          input.value = code;
-          // Si es auditoría o relleno, forzar la búsqueda
-          if (inputId.includes('audit')) {
-             if (typeof window.buscarProductoAudit === 'function') window.buscarProductoAudit();
-          } else if (inputId.includes('refill')) {
-             // El código se maneja en refill.js (searchProductForRefill)
-             if (typeof window.searchProductForRefill === 'function') window.searchProductForRefill(code);
+function setupScanButton() {
+  const btnScanAdd = document.getElementById('btn-scan-add');
+  if (btnScanAdd) {
+    btnScanAdd.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('🎬 Abriendo escáner para agregar...');
+      
+      if (typeof window.openScanner === 'function') {
+        window.openScanner((code) => {
+          const input = document.getElementById('add-barcode');
+          if (input) {
+            input.value = code;
+            showToast('✅ Código detectado: ' + code, 'success');
           }
-        }
-      });
-    } else {
-      showToast('❌ El escáner (ML Kit) no está disponible', 'error');
-    }
-  };
-  
-  // Asignar eventos a todos los botones de escaneo
-  document.getElementById('add-scan-btn')?.addEventListener('click', () => handleScanClick('add-barcode'));
-  document.getElementById('inventory-scan-btn')?.addEventListener('click', () => handleScanClick('inventory-search'));
-  document.getElementById('refill-scan-btn')?.addEventListener('click', () => handleScanClick('refill-barcode'));
-  document.getElementById('audit-scan-btn')?.addEventListener('click', () => handleScanClick('audit-barcode'));
+        });
+      } else {
+        showToast('❌ El escáner no está disponible', 'error');
+      }
+    });
+  }
+}
 
-  // Asegurar que el botón de cerrar escáner llama a la función global
-  document.getElementById('close-scanner')?.addEventListener('click', () => {
-    if (typeof window.closeScanner === 'function') {
-      window.closeScanner();
-    }
-  });
+// ============================================================
+// BOTÓN CERRAR ESCÁNER
+// ============================================================
+function setupCloseScanner() {
+  const closeBtn = document.getElementById('close-scanner');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      if (typeof window.closeScanner === 'function') {
+        window.closeScanner();
+      }
+    });
+  }
 }
 
 // ============================================================
@@ -152,15 +153,14 @@ function updateConnectionStatus(isOnline) {
   }
 }
 
-// Monitorear conexión
 window.addEventListener('online', () => {
   updateConnectionStatus(true);
-  showToast('Conexión restaurada', 'success');
+  showToast('✅ Conexión restaurada', 'success');
 });
 
 window.addEventListener('offline', () => {
   updateConnectionStatus(false);
-  showToast('Sin conexión a internet', 'warning');
+  showToast('📡 Sin conexión a internet', 'warning');
 });
 
 // ============================================================
@@ -170,32 +170,17 @@ function initUI() {
   console.log('🎨 Inicializando UI...');
   
   setupTabs();
-  setupScanButtons();
+  setupScanButton();
+  setupCloseScanner();
   updateConnectionStatus(navigator.onLine);
   
   console.log('✅ UI inicializado correctamente');
 }
 
-// Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initUI);
 } else {
   initUI();
 }
-
-// Botón de escaneo para Agregar Producto
-document.getElementById('btn-scan-add')?.addEventListener('click', () => {
-  if (typeof window.openScanner === 'function') {
-    window.openScanner((code) => {
-      const input = document.getElementById('add-barcode');
-      if (input) {
-        input.value = code;
-        showToast('✅ Código detectado: ' + code, 'success');
-      }
-    });
-  } else {
-    showToast('❌ El escáner no está disponible', 'error');
-  }
-});
 
 console.log('✅ ui.js cargado correctamente');

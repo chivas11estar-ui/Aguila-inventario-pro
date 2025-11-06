@@ -139,59 +139,94 @@ async function loadInventory() {
   });
 }
 
-// Renderizar lista
+// ============================================================
+// Función mejorada para renderizar inventario POR MARCA
+// ============================================================
 function renderInventoryList() {
   const listElement = document.getElementById('inventory-list');
   if (!listElement) return;
   
-  if (filteredInventory.length === 0) {
-    listElement.innerHTML = '<p style="color:var(--muted);">No hay productos que coincidan con los filtros aplicados.</p>';
+  // FILTRAR: Solo productos con stock > 0
+  const productosConStock = filteredInventory.filter(p => p.cajas > 0);
+  
+  if (productosConStock.length === 0) {
+    listElement.innerHTML = '<p style="color:var(--muted);">✅ Sin productos con stock disponible</p>';
     return;
   }
   
-  filteredInventory.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  
-  const html = filteredInventory.map(product => {
-    const isLowStock = product.cajas <= 1 && product.cajas > 0;
-    const isOutofStock = product.cajas === 0;
-    const cardClass = isOutofStock ? 'out-of-stock' : (isLowStock ? 'low-stock' : '');
-    
-    const expiryDate = new Date(product.fechaCaducidad);
-    const timeToExpiry = expiryDate.getTime() - new Date().getTime();
-    const daysToExpiry = Math.ceil(timeToExpiry / (1000 * 60 * 60 * 24));
-    const alertThreshold = BRAND_EXPIRY_CONFIG[product.marca] || BRAND_EXPIRY_CONFIG['default'];
-    
-    let expiryTag = '';
-    if (daysToExpiry <= 0) {
-      expiryTag = '<span style="color:#ef4444;font-weight:700;">VENCIDO</span>';
-    } else if (daysToExpiry <= alertThreshold) {
-      expiryTag = `<span style="color:#f59e0b;font-weight:700;">VENCE EN ${daysToExpiry} DÍAS</span>`;
+  // AGRUPAR por marca
+  const porMarca = {};
+  productosConStock.forEach(product => {
+    const marca = product.marca || 'Otra';
+    if (!porMarca[marca]) {
+      porMarca[marca] = [];
     }
+    porMarca[marca].push(product);
+  });
+  
+  // ORDENAR marcas
+  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'].filter(m => porMarca[m]);
+  
+  // RENDERIZAR por marca
+  let html = '';
+  
+  marcasOrdenadas.forEach(marca => {
+    const productos = porMarca[marca].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    html += `
+      <div style="margin-bottom:24px;">
+        <div style="background:var(--primary);color:white;padding:12px 16px;border-radius:8px;margin-bottom:12px;font-weight:700;">
+          🏷️ ${marca} (${productos.length} productos)
+        </div>
+        <div style="display:grid;gap:12px;">
+    `;
+    
+    productos.forEach(product => {
+      const expiryDate = new Date(product.fechaCaducidad);
+      const timeToExpiry = expiryDate.getTime() - new Date().getTime();
+      const daysToExpiry = Math.ceil(timeToExpiry / (1000 * 60 * 60 * 24));
+      const alertThreshold = BRAND_EXPIRY_CONFIG[product.marca] || BRAND_EXPIRY_CONFIG['default'];
+      
+      let expiryTag = '';
+      if (daysToExpiry <= 0) {
+        expiryTag = '<span style="color:#ef4444;font-weight:700;font-size:12px;">🔴 VENCIDO</span>';
+      } else if (daysToExpiry <= alertThreshold) {
+        expiryTag = `<span style="color:#f59e0b;font-weight:700;font-size:12px;">🟡 VENCE EN ${daysToExpiry} DÍAS</span>`;
+      } else {
+        expiryTag = `<span style="color:#10b981;font-weight:700;font-size:12px;">✅ ${daysToExpiry} días</span>`;
+      }
 
-    return `
-      <div class="card" style="background:var(--bg);${cardClass ? 'border-left: 4px solid ' + (isOutofStock ? '#ef4444' : '#f59e0b') + ';' : ''}" data-product-id="${product.id}" data-cajas="${product.cajas}">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <h4 style="margin:0 0 8px 0;">${product.nombre}</h4>
-            <p style="margin:0;font-size:12px;color:var(--muted);">
-              📍 Código: ${product.codigoBarras || 'N/A'}<br>
-              🏷️ Marca: ${product.marca}<br>
-              📦 ${product.piezasPorCaja} piezas/caja<br>
-              📍 ${product.ubicacion}
-            </p>
+      html += `
+        <div class="card" style="background:white;border-left:4px solid var(--primary);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="flex:1;">
+              <h4 style="margin:0 0 8px 0;color:var(--primary);">${product.nombre}</h4>
+              <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+                <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
+                <div>📦 ${product.piezasPorCaja} piezas/caja</div>
+                <div>🏢 ${product.ubicacion}</div>
+                <div>📅 ${expiryTag}</div>
+              </div>
+            </div>
+            <div style="text-align:right;min-width:80px;">
+              <div style="font-size:32px;font-weight:700;color:var(--success);">${product.cajas}</div>
+              <div style="font-size:12px;color:var(--muted);">cajas</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                ${(product.cajas * product.piezasPorCaja)} piezas
+              </div>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:24px;font-weight:700;color:var(--primary);">${product.cajas}</div>
-            <div style="font-size:12px;color:var(--muted);">cajas</div>
-            ${expiryTag ? '<div style="margin-top:8px;">' + expiryTag + '</div>' : ''}
-          </div>
+        </div>
+      `;
+    });
+    
+    html += `
         </div>
       </div>
     `;
-  }).join('');
+  });
   
   listElement.innerHTML = html;
-  attachInventoryEventListeners();
 }
 
 // Aplicar filtros
