@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#004aad">
   <title>🦅 Águila Inventario Pro v7.1 (Offline Ready)</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,15 +17,12 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <!-- Estilos -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <!-- Toast -->
   <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- Modal Escáner -->
   <div id="scanner-modal" class="scanner-modal hidden">
     <div class="scanner-container">
       <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;">
@@ -43,14 +39,11 @@
     </div>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL -->
   <main id="main-app">
     
-    <!-- 🔹 Sección de Autenticación -->
     <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
       <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Acceso Promotor Águila Pro</h2>
 
-      <!-- Login -->
       <form id="login-form">
         <div class="form-group">
           <label for="login-email">Email</label>
@@ -69,7 +62,6 @@
         </p>
       </form>
 
-      <!-- Recuperar contraseña -->
       <form id="forgot-password-form" class="hidden">
         <h3 style="text-align:center;color:var(--primary);">Recuperar Contraseña</h3>
         <div class="form-group">
@@ -82,7 +74,6 @@
         </p>
       </form>
 
-      <!-- Registro -->
       <form id="register-form" class="hidden">
         <h3 style="text-align:center;color:var(--primary);">Registro Inicial</h3>
         <div class="form-group">
@@ -112,10 +103,8 @@
       </form>
     </section>
 
-    <!-- 🔹 App Principal (oculta hasta login exitoso) -->
     <section id="app-container" style="display:none;">
       
-      <!-- Header -->
       <div class="app-header">
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="btn-icon" id="btn-menu">☰</button>
@@ -127,12 +116,15 @@
         </div>
       </div>
 
-      <!-- Sidebar -->
       <aside class="sidebar" id="sidebar">
         <nav>
           <a href="#" class="nav-item active" data-tab="inventory">
             <span class="nav-icon">📦</span>
             <span>Inventario</span>
+          </a>
+          <a href="#" class="nav-item" data-tab="add">
+            <span class="nav-icon">➕</span>
+            <span>Agregar</span>
           </a>
           <a href="#" class="nav-item" data-tab="refill">
             <span class="nav-icon">🔄</span>
@@ -153,80 +145,75 @@
         </nav>
       </aside>
 
-      <!-- Main Content -->
       <div class="main-content">
         
         <!-- TAB: Inventario -->
         <div id="tab-inventory" class="tab-content active">
           <div class="card">
             <h2>📦 Gestión de Inventario</h2>
-            <div style="margin:20px 0;">
-              <button class="success" id="btn-scanner">📸 Escanear Código</button>
-              <button class="primary" id="btn-add-product">➕ Agregar Producto</button>
-            </div>
             <div id="inventory-list" style="margin-top:20px;">
-              <p style="color:var(--muted);">No hay productos registrados</p>
+              <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
           </div>
         </div>
 
-<!-- TAB: Agregar Producto -->
-<div id="tab-add" class="tab-content hidden">
-  <div class="card">
-    <h2>➕ Agregar Producto</h2>
-    
-    <form id="add-product-form" style="margin-top:20px;">
-      
-      <div class="form-group">
-        <label for="add-barcode">Código de Barras</label>
-        <div style="display:flex;gap:8px;">
-          <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
-          <button type="button" id="btn-scan-add" class="success" style="width:auto;padding:12px 16px;">📷 Escanear</button>
+        <!-- TAB: Agregar Producto -->
+        <div id="tab-add" class="tab-content hidden">
+          <div class="card">
+            <h2>➕ Agregar Producto</h2>
+            
+            <form id="add-product-form" style="margin-top:20px;">
+              
+              <div class="form-group">
+                <label for="add-barcode">Código de Barras</label>
+                <div style="display:flex;gap:8px;">
+                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
+                  <button type="button" id="btn-scan-add" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="add-product-name">Nombre del Producto</label>
+                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-brand">Marca</label>
+                <select id="add-brand" required>
+                  <option value="">-- Selecciona una marca --</option>
+                  <option value="Sabritas">Sabritas</option>
+                  <option value="Gamesa">Gamesa</option>
+                  <option value="Quaker">Quaker</option>
+                  <option value="Sonric's">Sonric's</option>
+                  <option value="Otra">Otra</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="add-pieces-per-box">Piezas por Caja</label>
+                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-warehouse">Ubicación/Almacén</label>
+                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-expiry-date">Fecha de Caducidad</label>
+                <input id="add-expiry-date" type="date" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-boxes">Cantidad de Cajas</label>
+                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
+              </div>
+
+              <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
+            </form>
+          </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="add-product-name">Nombre del Producto</label>
-        <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
-      </div>
-
-      <div class="form-group">
-        <label for="add-brand">Marca</label>
-        <select id="add-brand" required>
-          <option value="">-- Selecciona una marca --</option>
-          <option value="Sabritas">Sabritas</option>
-          <option value="Gamesa">Gamesa</option>
-          <option value="Quaker">Quaker</option>
-          <option value="Sonric's">Sonric's</option>
-          <option value="Cacahuate">Cacahuate</option>
-          <option value="Otra">Otra</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="add-pieces-per-box">Piezas por Caja</label>
-        <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
-      </div>
-
-      <div class="form-group">
-        <label for="add-warehouse">Ubicación/Almacén</label>
-        <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
-      </div>
-
-      <div class="form-group">
-        <label for="add-expiry-date">Fecha de Caducidad</label>
-        <input id="add-expiry-date" type="date" required />
-      </div>
-
-      <div class="form-group">
-        <label for="add-boxes">Cantidad de Cajas</label>
-        <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
-      </div>
-
-      <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
-    </form>
-  </div>
-</div>
         <!-- TAB: Reabastecimiento -->
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
@@ -276,16 +263,12 @@
 
   </main>
 
-  <!-- Footer -->
   <footer style="background:var(--card-bg);padding:20px;text-align:center;border-top:2px solid var(--border);margin-top:40px;">
     <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.1</p>
     <p style="margin:5px 0;color:var(--muted);font-size:14px;">&copy; 2025 José A. G. Betancourt</p>
     <p style="margin:5px 0;color:var(--muted);font-size:12px;">Sistema de Gestión de Inventario</p>
   </footer>
 
-  <!-- ================================================= -->
-  <!-- Scripts en orden correcto -->
-  <!-- ================================================= -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -300,12 +283,11 @@
   <script src="auth.js"></script>
   <script src="app.js"></script>
 
-  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('✅ Service Worker registrado:', reg.scope))
+          .then(reg => console.log('✅ Service Worker registrado'))
           .catch(err => console.error('❌ Error SW:', err));
       });
     }
