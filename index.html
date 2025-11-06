@@ -170,6 +170,63 @@
           </div>
         </div>
 
+<!-- TAB: Agregar Producto -->
+<div id="tab-add" class="tab-content hidden">
+  <div class="card">
+    <h2>➕ Agregar Producto</h2>
+    
+    <form id="add-product-form" style="margin-top:20px;">
+      
+      <div class="form-group">
+        <label for="add-barcode">Código de Barras</label>
+        <div style="display:flex;gap:8px;">
+          <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
+          <button type="button" id="btn-scan-add" class="success" style="width:auto;padding:12px 16px;">📷 Escanear</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="add-product-name">Nombre del Producto</label>
+        <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+      </div>
+
+      <div class="form-group">
+        <label for="add-brand">Marca</label>
+        <select id="add-brand" required>
+          <option value="">-- Selecciona una marca --</option>
+          <option value="Sabritas">Sabritas</option>
+          <option value="Gamesa">Gamesa</option>
+          <option value="Quaker">Quaker</option>
+          <option value="Sonric's">Sonric's</option>
+          <option value="Cacahuate">Cacahuate</option>
+          <option value="Otra">Otra</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="add-pieces-per-box">Piezas por Caja</label>
+        <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
+      </div>
+
+      <div class="form-group">
+        <label for="add-warehouse">Ubicación/Almacén</label>
+        <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+      </div>
+
+      <div class="form-group">
+        <label for="add-expiry-date">Fecha de Caducidad</label>
+        <input id="add-expiry-date" type="date" required />
+      </div>
+
+      <div class="form-group">
+        <label for="add-boxes">Cantidad de Cajas</label>
+        <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
+      </div>
+
+      <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
+    </form>
+  </div>
+</div>
         <!-- TAB: Reabastecimiento -->
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">

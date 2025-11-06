@@ -3,12 +3,8 @@
 // Copyright © 2025 José A. G. Betancourt
 // Todos los derechos reservados
 //
-// Este archivo forma parte del sistema Águila Inventario Pro,
-// desarrollado para promotores de PepsiCo con funcionalidades
-// de gestión, auditoría y sincronización de inventario.
-//
-// Queda prohibida la reproducción, distribución o modificación
-// sin autorización expresa del autor.
+// ESTE ARCHIVO YA NO CONTIENE LÓGICA DE ESCANEO (openScanner/closeScanner)
+// PARA EVITAR CONFLICTOS CON scanner.js (ML KIT).
 // ============================================================
 
 // ============================================================
@@ -99,113 +95,44 @@ function setupTabs() {
 }
 
 // ============================================================
-// ESCÁNER DE CÓDIGO DE BARRAS
-// ============================================================
-let scannerActive = false;
-
-function openScanner(callback) {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showToast('Tu dispositivo no soporta el escáner de cámara', 'error');
-    return;
-  }
-  
-  const modal = document.getElementById('scanner-modal');
-  const statusEl = document.getElementById('scanner-status');
-  
-  modal.classList.remove('hidden');
-  statusEl.textContent = 'Iniciando cámara...';
-  scannerActive = true;
-  
-  console.log('📷 Iniciando escáner...');
-  
-  Quagga.init({
-    inputStream: {
-      name: "Live",
-      type: "LiveStream",
-      target: document.querySelector('#scanner-view'),
-      constraints: {
-        width: 640,
-        height: 480,
-        facingMode: "environment"
-      }
-    },
-    decoder: {
-      readers: [
-        "ean_reader",
-        "ean_8_reader",
-        "code_128_reader",
-        "code_39_reader",
-        "upc_reader",
-        "upc_e_reader"
-      ]
-    }
-  }, function(err) {
-    if (err) {
-      console.error('❌ Error al iniciar escáner:', err);
-      showToast('Error al iniciar cámara: ' + err.message, 'error');
-      closeScanner();
-      return;
-    }
-    console.log('✅ Escáner iniciado correctamente');
-    statusEl.textContent = 'Enfoca el código de barras';
-    Quagga.start();
-  });
-  
-  Quagga.onDetected(function(result) {
-    if (scannerActive && result.codeResult && result.codeResult.code) {
-      const code = result.codeResult.code;
-      console.log('✅ Código detectado:', code);
-      showToast('Código detectado: ' + code, 'success');
-      
-      if (callback && typeof callback === 'function') {
-        callback(code);
-      }
-      
-      closeScanner();
-    }
-  });
-}
-
-function closeScanner() {
-  console.log('🔒 Cerrando escáner...');
-  scannerActive = false;
-  
-  if (typeof Quagga !== 'undefined') {
-    Quagga.stop();
-  }
-  
-  const modal = document.getElementById('scanner-modal');
-  modal.classList.add('hidden');
-}
-
-// Event listener para botón de cerrar escáner
-document.getElementById('close-scanner')?.addEventListener('click', closeScanner);
-
-// ============================================================
-// BOTONES DE ESCANEO
+// BOTONES DE ESCANEO (Limpio para ML Kit)
 // ============================================================
 function setupScanButtons() {
-  // Botón de escaneo en "Agregar Producto"
-  const addScanBtn = document.getElementById('add-scan-btn');
-  if (addScanBtn) {
-    addScanBtn.addEventListener('click', () => {
-      openScanner((code) => {
-        document.getElementById('add-barcode').value = code;
+  // Función helper para manejar el escaneo en diferentes inputs
+  const handleScanClick = (inputId) => {
+    // openScanner es una función GLOBAL definida en scanner.js
+    if (typeof window.openScanner === 'function') {
+      window.openScanner((code) => {
+        const input = document.getElementById(inputId);
+        if (input) {
+          input.value = code;
+          // Si es auditoría o relleno, forzar la búsqueda
+          if (inputId.includes('audit')) {
+             if (typeof window.buscarProductoAudit === 'function') window.buscarProductoAudit();
+          } else if (inputId.includes('refill')) {
+             // El código se maneja en refill.js (searchProductForRefill)
+             if (typeof window.searchProductForRefill === 'function') window.searchProductForRefill(code);
+          }
+        }
       });
-    });
-  }
+    } else {
+      showToast('❌ El escáner (ML Kit) no está disponible', 'error');
+    }
+  };
   
-  // LOS OTROS BOTONES SE QUITARON PARA EVITAR CONFLICTOS
-  // (Se manejan en sus respectivos archivos, ej: audit.js, refill.js)
-}
+  // Asignar eventos a todos los botones de escaneo
+  document.getElementById('add-scan-btn')?.addEventListener('click', () => handleScanClick('add-barcode'));
+  document.getElementById('inventory-scan-btn')?.addEventListener('click', () => handleScanClick('inventory-search'));
+  document.getElementById('refill-scan-btn')?.addEventListener('click', () => handleScanClick('refill-barcode'));
+  document.getElementById('audit-scan-btn')?.addEventListener('click', () => handleScanClick('audit-barcode'));
 
-// ============================================================
-// (FUNCIONES REMOVIDAS)
-// ============================================================
-// Se eliminaron las funciones 'searchProductByBarcode',
-// 'displayRefillProductInfo' y 'displayAuditProductInfo'
-// porque ya existen en los archivos 'audit.js' y 'refill.js',
-// y mantenerlas aquí causaba el conflicto.
+  // Asegurar que el botón de cerrar escáner llama a la función global
+  document.getElementById('close-scanner')?.addEventListener('click', () => {
+    if (typeof window.closeScanner === 'function') {
+      window.closeScanner();
+    }
+  });
+}
 
 // ============================================================
 // ESTADO DE CONEXIÓN
@@ -257,4 +184,3 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ ui.js cargado correctamente');
-

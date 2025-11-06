@@ -221,4 +221,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 
-console.log('✅ scanner.js (ML Kit) cargado correctamente');
+console.log('✅ scanner.js (ML Kit) cargado correctamente'); 

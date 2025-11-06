@@ -1,4 +1,4 @@
-# 🦅 Águila Inventario Pro v7.1
+# 🦅 Águila Inventario Pro v7.0
 
 > Sistema profesional de gestión de inventario para promotores de PepsiCo con sincronización en tiempo real y modo offline.
 
@@ -531,6 +531,5 @@ Si necesitas ayuda:
 **Hecho con ❤️ por José A. G. Betancourt**
 
 [⬆ Volver arriba](#-águila-inventario-pro-v70)
-
 
 </div>
