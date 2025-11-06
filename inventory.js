@@ -60,7 +60,7 @@ async function getUserDeterminante() {
     }
 
     try {
-        const userRef = firebase.database().ref('promotores/' + user.uid);
+        const userRef = firebase.database().ref('usuarios/' + user.uid);
         const snapshot = await userRef.once('value');
         const userData = snapshot.val();
         

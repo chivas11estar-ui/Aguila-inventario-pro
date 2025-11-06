@@ -1,11 +1,10 @@
 /* ============================================================
-   Águila Inventario Pro - auth.js (Adaptado a nuevo HTML)
-   Copyright © 2025 José A. G. Betancourt
+   Águila Inventario Pro - auth.js
+   CORREGIDO PARA USAR LA COLECCIÓN "usuarios/" 
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
 
-// FALLBACK para showToast
 if (typeof window.showToast !== 'function') {
   window.showToast = function(message, type = 'info') {
     console.log('[TOAST]', type.toUpperCase(), message);
@@ -22,9 +21,6 @@ if (typeof window.showToast !== 'function') {
 
 let currentUser = null;
 
-// ============================================================
-// MOSTRAR/OCULTAR PANTALLAS
-// ============================================================
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
@@ -35,9 +31,6 @@ function showApp() {
   document.getElementById('app-container').style.display = 'block';
 }
 
-// ============================================================
-// MANEJO DE LOGIN
-// ============================================================
 async function handleLogin() {
   const email = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
@@ -58,9 +51,6 @@ async function handleLogin() {
   }
 }
 
-// ============================================================
-// MANEJO DE REGISTRO
-// ============================================================
 async function handleRegister() {
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
@@ -82,11 +72,11 @@ async function handleRegister() {
     console.log('📝 Registrando usuario:', email);
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
     
-    // Guardar datos en Database
-    await firebase.database().ref('promotores/' + userCredential.user.uid).set({
+    // ✅ GUARDAR EN usuarios/ (NO en promotores/)
+    await firebase.database().ref('usuarios/' + userCredential.user.uid).set({
       email: email,
       nombrePromotor: promoterName,
-      tienda: storeName,
+      nombreTienda: storeName,
       determinante: determinante,
       fechaRegistro: new Date().toISOString()
     });
@@ -94,7 +84,6 @@ async function handleRegister() {
     console.log('✅ Registro exitoso');
     showToast('✅ Registro exitoso, bienvenido a Águila Pro', 'success');
     
-    // Limpiar formulario y volver a login
     setTimeout(() => {
       document.getElementById('register-form').reset();
       showLoginForm();
@@ -106,9 +95,6 @@ async function handleRegister() {
   }
 }
 
-// ============================================================
-// RECUPERAR CONTRASEÑA
-// ============================================================
 async function handleForgotPassword() {
   const email = document.getElementById('forgot-email')?.value.trim();
   
@@ -133,9 +119,6 @@ async function handleForgotPassword() {
   }
 }
 
-// ============================================================
-// ALTERNANCIA ENTRE FORMULARIOS
-// ============================================================
 function showLoginForm() {
   document.getElementById('login-form').classList.remove('hidden');
   document.getElementById('register-form').classList.add('hidden');
@@ -154,11 +137,9 @@ function showForgotForm() {
   document.getElementById('forgot-password-form').classList.remove('hidden');
 }
 
-// ============================================================
-// CARGAR DATOS DEL USUARIO
-// ============================================================
 function loadUserData(userId) {
-  firebase.database().ref('promotores/' + userId).once('value')
+  // ✅ BUSCAR EN usuarios/ (NO en promotores/)
+  firebase.database().ref('usuarios/' + userId).once('value')
     .then((snapshot) => {
       const userData = snapshot.val();
       if (userData) {
@@ -179,9 +160,6 @@ function loadUserData(userId) {
     });
 }
 
-// ============================================================
-// LOGOUT
-// ============================================================
 async function logout() {
   try {
     await firebase.auth().signOut();
@@ -196,9 +174,6 @@ async function logout() {
   }
 }
 
-// ============================================================
-// MENSAJES DE ERROR
-// ============================================================
 function getErrorMessage(errorCode) {
   const errors = {
     'auth/invalid-email': '❌ Email inválido',
@@ -214,9 +189,6 @@ function getErrorMessage(errorCode) {
   return errors[errorCode] || '❌ Error de autenticación: ' + errorCode;
 }
 
-// ============================================================
-// ESTADO DE AUTENTICACIÓN
-// ============================================================
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
@@ -229,28 +201,21 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
-// ============================================================
-// EVENTOS DEL DOM
-// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
   
-  // Login
   document.getElementById('btn-login')?.addEventListener('click', handleLogin);
   
-  // Registro
   document.getElementById('register-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     await handleRegister();
   });
   
-  // Recuperar contraseña
   document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     await handleForgotPassword();
   });
   
-  // Toggle formularios
   document.getElementById('show-register')?.addEventListener('click', (e) => {
     e.preventDefault();
     showRegisterForm();
@@ -271,12 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoginForm();
   });
   
-  // Logout
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   document.getElementById('btn-logout-settings')?.addEventListener('click', logout);
 });
 
-// Exponer funciones globalmente
 window.logout = logout;
 window.showLoginScreen = showLoginScreen;
 window.showApp = showApp;
