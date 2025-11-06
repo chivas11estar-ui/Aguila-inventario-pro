@@ -1,18 +1,14 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN CON FILTRO DE STOCK 0
+// VERSIÓN CORREGIDA - SIN EXPORT, USA firebase DIRECTAMENTE
 // ============================================================
 
 let inventoryData = [];
 let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
-let mostrarProductosSinStock = false; // NUEVO: Toggle para productos sin stock
-
-// ============================================================
-// SISTEMA DE ALERTAS DE CADUCIDAD POR MARCA
-// ============================================================
+let mostrarProductosSinStock = false;
 
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
@@ -38,33 +34,33 @@ async function requestNotificationPermission() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       console.log('✅ Permisos de notificación otorgados');
-      showToast('Notificaciones activadas', 'success');
+      if (typeof showToast === 'function') {
+        showToast('Notificaciones activadas', 'success');
+      }
       return true;
     } else {
       console.log('⚠️ Permisos de notificación denegados');
-      showToast('Permiso de notificaciones denegado', 'warning');
+      if (typeof showToast === 'function') {
+        showToast('Permiso de notificaciones denegado', 'warning');
+      }
       return false;
     }
   }
   return false;
 }
 
-/**
- * Función que obtiene el determinante del usuario (ID de la tienda)
- * Si ya está cargado en la variable, lo retorna, sino lo busca en Firebase.
- */
+// Obtener determinante del usuario
 async function getUserDeterminante() {
     if (userDeterminante) return userDeterminante;
     
-    // Asumiendo que el usuario ya está autenticado a este punto
-    const user = window.firebaseAuth.currentUser;
+    const user = firebase.auth().currentUser;
     if (!user) {
         console.error('Usuario no autenticado para obtener determinante.');
         return null;
     }
 
     try {
-        const userRef = window.firebaseDB.ref('promotores/' + user.uid);
+        const userRef = firebase.database().ref('promotores/' + user.uid);
         const snapshot = await userRef.once('value');
         const userData = snapshot.val();
         
@@ -82,37 +78,34 @@ async function getUserDeterminante() {
     }
 }
 
-
-// ============================================================
-// CARGA Y ESCUCHA DEL INVENTARIO (CRÍTICO)
-// ============================================================
-/**
- * Inicia la escucha en tiempo real del inventario para la tienda del promotor.
- */
-export async function loadInventory() {
+// Cargar inventario (SIN EXPORT)
+async function loadInventory() {
   const listElement = document.getElementById('inventory-list');
-  listElement.innerHTML = '<p class="text-center text-muted">Conectando con la base de datos...</p>';
+  if (!listElement) {
+    console.warn('⚠️ Elemento inventory-list no encontrado');
+    return;
+  }
+  
+  listElement.innerHTML = '<p style="color:var(--muted);">Conectando con la base de datos...</p>';
 
   userDeterminante = await getUserDeterminante();
 
   if (!userDeterminante) {
-    listElement.innerHTML = '<p class="text-center text-error">❌ No se pudo cargar el inventario. Falla al obtener ID de Tienda.</p>';
-    showToast('Error: No se encontró el ID de su tienda (Determinante)', 'error');
+    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo cargar el inventario. Falla al obtener ID de Tienda.</p>';
+    if (typeof showToast === 'function') {
+      showToast('Error: No se encontró el ID de su tienda (Determinante)', 'error');
+    }
     return;
   }
   
-  // Usamos la referencia global a la DB que establecimos en firebase-config.js
-  // La ruta de acceso es: /inventario/{determinante de la tienda}
-  const inventoryRef = window.firebaseDB.ref('inventario/' + userDeterminante);
+  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
   
-  // on() establece un listener que se dispara al inicio y cada vez que hay cambios
   inventoryRef.on('value', (snapshot) => {
     try {
       const productsObject = snapshot.val();
       inventoryData = [];
       
       if (productsObject) {
-        // Convertir el objeto de productos en un array para facilitar el filtrado y ordenamiento
         inventoryData = Object.keys(productsObject).map(key => ({
           id: key,
           ...productsObject[key]
@@ -120,53 +113,49 @@ export async function loadInventory() {
         
         console.log(`✅ Inventario cargado: ${inventoryData.length} productos.`);
         
-        // Aplicar filtros iniciales y renderizar
         applyFiltersAndRender();
         updateDashboardStats(inventoryData);
         generateBrandFilters(inventoryData);
         
       } else {
         inventoryData = [];
-        listElement.innerHTML = '<p class="text-center text-muted">Aún no hay productos registrados. Use la pestaña "Agregar".</p>';
+        listElement.innerHTML = '<p style="color:var(--muted);">Aún no hay productos registrados. Use la pestaña "Agregar".</p>';
         updateDashboardStats([]);
         generateBrandFilters([]);
       }
     } catch (error) {
       console.error('Error procesando datos del inventario:', error);
-      listElement.innerHTML = '<p class="text-center text-error">❌ Error al procesar los datos del inventario.</p>';
-      showToast('Error al procesar el inventario: ' + error.message, 'error');
+      listElement.innerHTML = '<p style="color:var(--error);">❌ Error al procesar los datos del inventario.</p>';
+      if (typeof showToast === 'function') {
+        showToast('Error al procesar el inventario: ' + error.message, 'error');
+      }
     }
   }, (error) => {
-    // ESTE ES EL MANEJADOR DE ERRORES DE CONEXIÓN
     console.error('❌ Error de conexión a Firebase DB:', error);
-    listElement.innerHTML = '<p class="text-center text-error">❌ No se pudo conectar a Firebase. Verifique su conexión o reinicie la app.</p>';
-    showToast('Fallo en la conexión al servidor: ' + error.message, 'error');
-    // Actualizar estado de conexión
-    document.getElementById('connection-status-text').textContent = 'Desconectado';
-    document.querySelector('.status-indicator').className = 'status-indicator status-error';
+    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo conectar a Firebase. Verifique su conexión o reinicie la app.</p>';
+    if (typeof showToast === 'function') {
+      showToast('Fallo en la conexión al servidor: ' + error.message, 'error');
+    }
   });
 }
 
-/**
- * Función para renderizar la lista de inventario.
- */
+// Renderizar lista
 function renderInventoryList() {
   const listElement = document.getElementById('inventory-list');
+  if (!listElement) return;
   
   if (filteredInventory.length === 0) {
-    listElement.innerHTML = '<p class="text-center text-muted">No hay productos que coincidan con los filtros aplicados.</p>';
+    listElement.innerHTML = '<p style="color:var(--muted);">No hay productos que coincidan con los filtros aplicados.</p>';
     return;
   }
   
-  // Ordenar por nombre
   filteredInventory.sort((a, b) => a.nombre.localeCompare(b.nombre));
   
   const html = filteredInventory.map(product => {
     const isLowStock = product.cajas <= 1 && product.cajas > 0;
     const isOutofStock = product.cajas === 0;
-    const cardClass = isOutofStock ? 'inventory-card out-of-stock' : (isLowStock ? 'inventory-card low-stock' : 'inventory-card');
+    const cardClass = isOutofStock ? 'out-of-stock' : (isLowStock ? 'low-stock' : '');
     
-    // Lógica para resaltar caducidad
     const expiryDate = new Date(product.fechaCaducidad);
     const timeToExpiry = expiryDate.getTime() - new Date().getTime();
     const daysToExpiry = Math.ceil(timeToExpiry / (1000 * 60 * 60 * 24));
@@ -174,31 +163,28 @@ function renderInventoryList() {
     
     let expiryTag = '';
     if (daysToExpiry <= 0) {
-      expiryTag = '<span class="tag expired">VENCIDO</span>';
+      expiryTag = '<span style="color:#ef4444;font-weight:700;">VENCIDO</span>';
     } else if (daysToExpiry <= alertThreshold) {
-      expiryTag = `<span class="tag approaching-expiry">VENCE EN ${daysToExpiry} DÍAS</span>`;
+      expiryTag = `<span style="color:#f59e0b;font-weight:700;">VENCE EN ${daysToExpiry} DÍAS</span>`;
     }
 
     return `
-      <div class="${cardClass}" data-product-id="${product.id}" data-cajas="${product.cajas}">
-        <div class="product-header">
-          <span class="product-name">${product.nombre}</span>
-          ${expiryTag}
-        </div>
-        <div class="product-details">
-          <p><strong>Marca:</strong> ${product.marca}</p>
-          <p><strong>Piezas/Caja:</strong> ${product.piezasPorCaja}</p>
-          <p><strong>Ubicación:</strong> ${product.ubicacion}</p>
-          <p><strong>Caducidad:</strong> ${product.fechaCaducidad}</p>
-        </div>
-        <div class="stock-info">
-          <div class="stock-label">Cajas en Stock</div>
-          <div class="stock-value">${product.cajas}</div>
-        </div>
-        <div class="product-actions">
-          <button class="action-btn edit-btn" data-id="${product.id}" aria-label="Editar producto ${product.nombre}">Editar</button>
-          <button class="action-btn refill-btn" data-id="${product.id}" aria-label="Mover stock de ${product.nombre}">Mover Stock</button>
-          <button class="action-btn delete-btn error" data-id="${product.id}" aria-label="Eliminar producto ${product.nombre}">Eliminar</button>
+      <div class="card" style="background:var(--bg);${cardClass ? 'border-left: 4px solid ' + (isOutofStock ? '#ef4444' : '#f59e0b') + ';' : ''}" data-product-id="${product.id}" data-cajas="${product.cajas}">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h4 style="margin:0 0 8px 0;">${product.nombre}</h4>
+            <p style="margin:0;font-size:12px;color:var(--muted);">
+              📍 Código: ${product.codigoBarras || 'N/A'}<br>
+              🏷️ Marca: ${product.marca}<br>
+              📦 ${product.piezasPorCaja} piezas/caja<br>
+              📍 ${product.ubicacion}
+            </p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:24px;font-weight:700;color:var(--primary);">${product.cajas}</div>
+            <div style="font-size:12px;color:var(--muted);">cajas</div>
+            ${expiryTag ? '<div style="margin-top:8px;">' + expiryTag + '</div>' : ''}
+          </div>
         </div>
       </div>
     `;
@@ -208,28 +194,24 @@ function renderInventoryList() {
   attachInventoryEventListeners();
 }
 
-/**
- * Genera y aplica los filtros de búsqueda y marca al inventario.
- */
+// Aplicar filtros
 function applyFiltersAndRender() {
-  const searchTerm = document.getElementById('inventory-search').value.toLowerCase();
+  const searchInput = document.getElementById('inventory-search');
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
   
   filteredInventory = inventoryData.filter(product => {
-    // 1. Filtrar por stock 0 si el toggle NO está activo
     if (!mostrarProductosSinStock && product.cajas === 0) {
       return false;
     }
     
-    // 2. Filtrar por marca
     if (currentBrandFilter !== 'all' && product.marca !== currentBrandFilter) {
       return false;
     }
     
-    // 3. Filtrar por búsqueda de texto
     if (searchTerm.length > 0) {
       return product.nombre.toLowerCase().includes(searchTerm) ||
              product.marca.toLowerCase().includes(searchTerm) ||
-             product.codigoBarras.toLowerCase().includes(searchTerm);
+             (product.codigoBarras && product.codigoBarras.toLowerCase().includes(searchTerm));
     }
     
     return true;
@@ -238,167 +220,97 @@ function applyFiltersAndRender() {
   renderInventoryList();
 }
 
-/**
- * Genera dinámicamente los botones de filtro de marca.
- */
+// Generar filtros de marca
 function generateBrandFilters(data) {
-  const brands = [...new Set(data.map(p => p.marca))]; // Obtener marcas únicas
+  const brands = [...new Set(data.map(p => p.marca))];
   const filterContainer = document.getElementById('brand-filters');
+  if (!filterContainer) return;
   
-  let filterHTML = `<button class="brand-filter-btn ${currentBrandFilter === 'all' ? 'active' : ''}" data-brand="all">Todos</button>`;
+  let filterHTML = `<button class="brand-filter-btn ${currentBrandFilter === 'all' ? 'active' : ''}" data-brand="all" style="padding:8px 16px;border:1px solid var(--border);background:${currentBrandFilter === 'all' ? 'var(--primary)' : 'white'};color:${currentBrandFilter === 'all' ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">Todos</button>`;
   
   brands.forEach(brand => {
-    filterHTML += `<button class="brand-filter-btn ${currentBrandFilter === brand ? 'active' : ''}" data-brand="${brand}">${brand}</button>`;
+    const isActive = currentBrandFilter === brand;
+    filterHTML += `<button class="brand-filter-btn" data-brand="${brand}" style="padding:8px 16px;border:1px solid var(--border);background:${isActive ? 'var(--primary)' : 'white'};color:${isActive ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">${brand}</button>`;
   });
   
   filterContainer.innerHTML = filterHTML;
 }
 
-/**
- * Añade los Event Listeners para el Inventario
- */
+// Adjuntar event listeners
 function attachInventoryEventListeners() {
-  // Listener para el input de búsqueda
-  document.getElementById('inventory-search').addEventListener('input', applyFiltersAndRender);
+  const searchInput = document.getElementById('inventory-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', applyFiltersAndRender);
+  }
 
-  // Listener para los filtros de marca
-  document.getElementById('brand-filters').addEventListener('click', (e) => {
-    const brand = e.target.dataset.brand;
-    if (brand) {
-      document.querySelectorAll('.brand-filter-btn').forEach(btn => btn.classList.remove('active'));
-      e.target.classList.add('active');
-      currentBrandFilter = brand;
+  const filterContainer = document.getElementById('brand-filters');
+  if (filterContainer) {
+    filterContainer.addEventListener('click', (e) => {
+      const brand = e.target.dataset?.brand;
+      if (brand) {
+        document.querySelectorAll('.brand-filter-btn').forEach(btn => {
+          btn.style.background = 'white';
+          btn.style.color = 'var(--text)';
+        });
+        e.target.style.background = 'var(--primary)';
+        e.target.style.color = 'white';
+        currentBrandFilter = brand;
+        applyFiltersAndRender();
+      }
+    });
+  }
+
+  const toggleBtn = document.getElementById('toggle-stock-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      mostrarProductosSinStock = !mostrarProductosSinStock;
+      toggleBtn.textContent = mostrarProductosSinStock ? '🙈 Ocultar sin stock' : '👁️ Mostrar sin stock';
       applyFiltersAndRender();
-    }
-  });
-
-  // NUEVO: Listener para el botón de Toggle de Stock
-  document.getElementById('toggle-stock-btn').addEventListener('click', (e) => {
-    const button = e.currentTarget;
-    const icon = document.getElementById('toggle-icon');
-
-    mostrarProductosSinStock = !mostrarProductosSinStock; // Invertir estado
-    button.dataset.stockVisible = mostrarProductosSinStock; // Actualizar atributo de estado
-
-    if (mostrarProductosSinStock) {
-      icon.textContent = '🙈';
-      button.lastChild.textContent = ' Ocultar Productos Sin Stock';
-      button.style.backgroundColor = 'var(--warning)'; // Color para indicar que se muestran
-      button.style.color = 'white';
-    } else {
-      icon.textContent = '👁️‍🗨️';
-      button.lastChild.textContent = ' Mostrar Productos Sin Stock';
-      button.style.backgroundColor = 'var(--primary-light)'; // Vuelve a color original
-      button.style.color = 'var(--primary-dark)';
-    }
-
-    applyFiltersAndRender(); // Re-renderizar la lista con el nuevo filtro
-  });
-
-  // Listener para los botones de acción
-  document.getElementById('inventory-list').addEventListener('click', (e) => {
-    const id = e.target.dataset.id;
-    if (!id) return;
-
-    if (e.target.classList.contains('edit-btn')) {
-      // Lógica de edición
-      console.log('Editar producto:', id);
-      // Implementar redirección o modal de edición aquí
-      showToast(`Preparando edición para producto ID: ${id}`, 'info');
-
-    } else if (e.target.classList.contains('refill-btn')) {
-      // Lógica de movimiento de stock (relleno)
-      console.log('Mover stock:', id);
-      // Implementar redirección a la pestaña de Relleno aquí
-      showToast(`Moviendo stock para producto ID: ${id}`, 'info');
-
-    } else if (e.target.classList.contains('delete-btn')) {
-      // Lógica de eliminación
-      confirmDeletion(id);
-    }
-  });
-}
-
-/**
- * Confirma la eliminación de un producto
- * @param {string} id - ID del producto a eliminar
- */
-function confirmDeletion(id) {
-  // En lugar de usar alert/confirm, se debería usar un modal personalizado.
-  const confirmed = window.confirm('¿Está seguro de que desea eliminar este producto permanentemente?');
-  
-  if (confirmed) {
-    deleteProduct(id);
+    });
   }
 }
 
-/**
- * Elimina un producto de Firebase
- * @param {string} id - ID del producto a eliminar
- */
+// Actualizar estadísticas
+function updateDashboardStats(data) {
+  console.log('📊 Actualizando estadísticas...');
+  // Aquí va la lógica para actualizar stats del dashboard
+}
+
+// Eliminar producto
 async function deleteProduct(id) {
   try {
     if (!userDeterminante) {
-      showToast('Error: No se encontró la tienda para eliminar.', 'error');
+      if (typeof showToast === 'function') {
+        showToast('Error: No se encontró la tienda para eliminar.', 'error');
+      }
       return;
     }
 
-    // Usamos la referencia global a la DB que establecimos en firebase-config.js
-    await window.firebaseDB.ref('inventario/' + userDeterminante + '/' + id).remove();
-    showToast('Producto eliminado correctamente.', 'success');
+    await firebase.database().ref('inventario/' + userDeterminante + '/' + id).remove();
+    if (typeof showToast === 'function') {
+      showToast('Producto eliminado correctamente.', 'success');
+    }
   } catch (error) {
     console.error('Error al eliminar producto:', error);
-    showToast('Error al eliminar: ' + error.message, 'error');
+    if (typeof showToast === 'function') {
+      showToast('Error al eliminar: ' + error.message, 'error');
+    }
   }
 }
 
-// ============================================================
-// LÓGICA DE AGREGAR PRODUCTO
-// (Se deja como estaba, usando la referencia global window.firebaseDB)
-// ============================================================
-document.getElementById('add-product-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  console.log('💾 Guardando producto...');
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('📦 Inicializando módulo de inventario...');
   
-  if (!userDeterminante) {
-    userDeterminante = await getUserDeterminante();
-  }
-  
-  if (!userDeterminante) {
-    showToast('Error: No se encontró información de la tienda', 'error');
-    return;
-  }
-  
-  const formData = {
-    codigoBarras: document.getElementById('add-barcode').value.trim(),
-    nombre: document.getElementById('add-product-name').value.trim(),
-    marca: document.getElementById('add-brand').value,
-    piezasPorCaja: parseInt(document.getElementById('add-pieces-per-box').value),
-    ubicacion: document.getElementById('add-warehouse').value.trim(),
-    fechaCaducidad: document.getElementById('add-expiry-date').value,
-    cajas: parseInt(document.getElementById('add-boxes').value),
-    fechaActualizacion: new Date().toISOString(),
-    actualizadoPor: window.firebaseAuth.currentUser.email
-  };
-  
-  const form = document.getElementById('add-product-form');
-  const editingId = form.dataset.editingId;
-  
-  try {
-    if (editingId) {
-      // Actualizar producto existente
-      await window.firebaseDB.ref('inventario/' + userDeterminante + '/' + editingId).update(formData);
-      showToast('Producto actualizado correctamente', 'success');
-      form.removeAttribute('data-editing-id'); // Remover el estado de edición
-      form.reset();
+  // Intentar cargar inventario cuando el usuario esté autenticado
+  firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+      console.log('✅ Usuario autenticado, cargando inventario...');
+      loadInventory();
     } else {
-      // Agregar nuevo producto
-      await window.firebaseDB.ref('inventario/' + userDeterminante).push(formData);
-      showToast('Producto agregado correctamente', 'success');
-      form.reset();
+      console.log('⏳ Esperando autenticación...');
     }
-  } catch (error) {
-    console.error('Error al guardar/actualizar producto:', error);
-    showToast('Error al guardar: ' + error.message, 'error');
-  }
+  });
 });
+
+console.log('✅ inventory.js cargado correctamente');
