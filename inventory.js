@@ -1,7 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN CORREGIDA - SIN EXPORT, USA firebase DIRECTAMENTE
+// VERSIÓN CON AGREGAR PRODUCTOS FUNCIONAL
 // ============================================================
 
 let inventoryData = [];
@@ -78,7 +78,7 @@ async function getUserDeterminante() {
     }
 }
 
-// Cargar inventario (SIN EXPORT)
+// Cargar inventario
 async function loadInventory() {
   const listElement = document.getElementById('inventory-list');
   if (!listElement) {
@@ -308,7 +308,6 @@ function attachInventoryEventListeners() {
 // Actualizar estadísticas
 function updateDashboardStats(data) {
   console.log('📊 Actualizando estadísticas...');
-  // Aquí va la lógica para actualizar stats del dashboard
 }
 
 // Eliminar producto
@@ -333,11 +332,89 @@ async function deleteProduct(id) {
   }
 }
 
-// Inicialización
+// ============================================================
+// ✅ AGREGAR PRODUCTO - NUEVA FUNCIÓN
+// ============================================================
+async function handleAddProduct(event) {
+  event.preventDefault();
+  console.log('💾 Guardando producto...');
+  
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Error: No se encontró información de la tienda', 'error');
+    }
+    return;
+  }
+  
+  try {
+    const formData = {
+      codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
+      nombre: document.getElementById('add-product-name')?.value.trim() || '',
+      marca: document.getElementById('add-brand')?.value || '',
+      piezasPorCaja: parseInt(document.getElementById('add-pieces-per-box')?.value || 0),
+      ubicacion: document.getElementById('add-warehouse')?.value.trim() || '',
+      fechaCaducidad: document.getElementById('add-expiry-date')?.value || '',
+      cajas: parseInt(document.getElementById('add-boxes')?.value || 0),
+      fechaActualizacion: new Date().toISOString(),
+      actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
+    };
+    
+    // Validar datos obligatorios
+    if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
+      if (typeof showToast === 'function') {
+        showToast('❌ Completa todos los campos correctamente', 'error');
+      }
+      return;
+    }
+    
+    // Guardar en Firebase
+    await firebase.database().ref('inventario/' + userDeterminante).push(formData);
+    
+    if (typeof showToast === 'function') {
+      showToast('✅ Producto guardado correctamente', 'success');
+    }
+    
+    // Limpiar formulario
+    document.getElementById('add-product-form').reset();
+    
+    // Volver a tab de inventario
+    const inventoryTab = document.getElementById('tab-inventory');
+    const addTab = document.getElementById('tab-add');
+    if (inventoryTab && addTab) {
+      inventoryTab.classList.add('active');
+      addTab.classList.remove('active');
+      
+      const navItems = document.querySelectorAll('[data-tab]');
+      navItems.forEach(nav => nav.classList.remove('active'));
+      document.querySelector('[data-tab="inventory"]')?.classList.add('active');
+    }
+    
+  } catch (error) {
+    console.error('Error al guardar producto:', error);
+    if (typeof showToast === 'function') {
+      showToast('❌ Error al guardar: ' + error.message, 'error');
+    }
+  }
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📦 Inicializando módulo de inventario...');
   
-  // Intentar cargar inventario cuando el usuario esté autenticado
+  // Configurar formulario de agregar producto
+  const addProductForm = document.getElementById('add-product-form');
+  if (addProductForm) {
+    addProductForm.addEventListener('submit', handleAddProduct);
+    console.log('✅ Formulario de agregar producto configurado');
+  }
+  
+  // Cargar inventario cuando el usuario esté autenticado
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, cargando inventario...');
