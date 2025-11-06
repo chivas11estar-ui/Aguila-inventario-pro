@@ -1,5 +1,5 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: ui.js
+// Águila Inventario Pro - Módulo: ui.js (FINAL)
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
@@ -67,17 +67,14 @@ function setupTabs() {
       e.preventDefault();
       const tabName = item.getAttribute('data-tab');
       
-      // Remover active de todos los tabs
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
       });
       
-      // Remover active de todos los nav items
       document.querySelectorAll('[data-tab]').forEach(nav => {
         nav.classList.remove('active');
       });
       
-      // Agregar active al tab y nav seleccionado
       const tabElement = document.getElementById('tab-' + tabName);
       if (tabElement) {
         tabElement.classList.add('active');
@@ -85,7 +82,6 @@ function setupTabs() {
       
       item.classList.add('active');
       
-      // Cerrar sidebar en mobile
       const sidebar = document.getElementById('sidebar');
       if (sidebar) {
         sidebar.classList.remove('active');
@@ -97,9 +93,14 @@ function setupTabs() {
 }
 
 // ============================================================
-// BOTÓN ESCÁNER AGREGAR
+// INICIALIZACIÓN
 // ============================================================
-function setupScanButton() {
+function initUI() {
+  console.log('🎨 Inicializando UI...');
+  
+  setupTabs();
+  
+  // ✅ BOTÓN ESCÁNER AGREGAR - CORREGIDO
   const btnScanAdd = document.getElementById('btn-scan-add');
   if (btnScanAdd) {
     btnScanAdd.addEventListener('click', (e) => {
@@ -107,7 +108,9 @@ function setupScanButton() {
       console.log('🎬 Abriendo escáner para agregar...');
       
       if (typeof window.openScanner === 'function') {
+        console.log('✅ openScanner disponible, abriendo...');
         window.openScanner((code) => {
+          console.log('📦 Código escaneado:', code);
           const input = document.getElementById('add-barcode');
           if (input) {
             input.value = code;
@@ -115,68 +118,43 @@ function setupScanButton() {
           }
         });
       } else {
+        console.error('❌ openScanner NO está disponible');
         showToast('❌ El escáner no está disponible', 'error');
       }
     });
+  } else {
+    console.warn('⚠️ Botón btn-scan-add no encontrado');
   }
-}
-
-// ============================================================
-// BOTÓN CERRAR ESCÁNER
-// ============================================================
-function setupCloseScanner() {
+  
+  // ✅ BOTÓN CERRAR ESCÁNER
   const closeBtn = document.getElementById('close-scanner');
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('🔴 Cerrando escáner...');
       if (typeof window.closeScanner === 'function') {
         window.closeScanner();
       }
     });
   }
-}
-
-// ============================================================
-// ESTADO DE CONEXIÓN
-// ============================================================
-function updateConnectionStatus(isOnline) {
-  const indicator = document.querySelector('.status-indicator');
-  const statusText = document.getElementById('connection-status-text');
-  
-  if (indicator && statusText) {
-    if (isOnline) {
-      indicator.className = 'status-indicator status-online';
-      statusText.textContent = 'Conectado';
-    } else {
-      indicator.className = 'status-indicator status-error';
-      statusText.textContent = 'Sin conexión';
-    }
-  }
-}
-
-window.addEventListener('online', () => {
-  updateConnectionStatus(true);
-  showToast('✅ Conexión restaurada', 'success');
-});
-
-window.addEventListener('offline', () => {
-  updateConnectionStatus(false);
-  showToast('📡 Sin conexión a internet', 'warning');
-});
-
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
-function initUI() {
-  console.log('🎨 Inicializando UI...');
-  
-  setupTabs();
-  setupScanButton();
-  setupCloseScanner();
-  updateConnectionStatus(navigator.onLine);
   
   console.log('✅ UI inicializado correctamente');
 }
 
+// ============================================================
+// MONITOREAR CONEXIÓN
+// ============================================================
+window.addEventListener('online', () => {
+  showToast('✅ Conexión restaurada', 'success');
+});
+
+window.addEventListener('offline', () => {
+  showToast('📡 Sin conexión a internet', 'warning');
+});
+
+// ============================================================
+// INICIAR CUANDO DOM ESTÉ LISTO
+// ============================================================
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initUI);
 } else {
