@@ -183,4 +183,19 @@ if (document.readyState === 'loading') {
   initUI();
 }
 
+// Botón de escaneo para Agregar Producto
+document.getElementById('btn-scan-add')?.addEventListener('click', () => {
+  if (typeof window.openScanner === 'function') {
+    window.openScanner((code) => {
+      const input = document.getElementById('add-barcode');
+      if (input) {
+        input.value = code;
+        showToast('✅ Código detectado: ' + code, 'success');
+      }
+    });
+  } else {
+    showToast('❌ El escáner no está disponible', 'error');
+  }
+});
+
 console.log('✅ ui.js cargado correctamente');
