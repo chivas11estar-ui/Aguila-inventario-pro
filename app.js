@@ -3,7 +3,6 @@
    Lógica principal de la aplicación
    ============================================================ */
 
-let currentUser = null;
 let isOnline = navigator.onLine;
 
 // Detectar estado de conexión
@@ -26,20 +25,6 @@ function updateOfflineStatus() {
     btn.textContent = isOnline ? '📡' : '🔌';
     btn.title = isOnline ? 'En línea' : 'Sin conexión (Modo Offline)';
   }
-}
-
-// Mostrar Toast
-function showToast(message, type = 'info') {
-  const container = document.querySelector('.toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease-out forwards';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
 }
 
 // Cambiar de tab
@@ -72,20 +57,6 @@ function switchTab(tabName) {
   }
 }
 
-// Mostrar app
-function showApp() {
-  document.getElementById('auth-setup').style.display = 'none';
-  document.getElementById('app-container').style.display = 'block';
-  updateOfflineStatus();
-}
-
-// Mostrar login
-function showLogin() {
-  document.getElementById('auth-setup').style.display = 'block';
-  document.getElementById('app-container').style.display = 'none';
-  currentUser = null;
-}
-
 // Event Listeners del Menú
 document.getElementById('btn-menu')?.addEventListener('click', () => {
   document.getElementById('sidebar')?.classList.toggle('active');
@@ -100,34 +71,23 @@ document.querySelectorAll('[data-tab]').forEach(item => {
   });
 });
 
-// Logout
-document.getElementById('btn-logout')?.addEventListener('click', () => {
-  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-    showLogin();
-    showToast('Sesión cerrada correctamente', 'success');
-  }
-});
-
-// Scanner button
+// Scanner button - Usa openScanner que está definido en scanner.js
 document.getElementById('btn-scanner')?.addEventListener('click', () => {
-  const modal = document.getElementById('scanner-modal');
-  if (modal) {
-    modal.classList.add('active');
-    // Inicializar cámara
-    if (typeof startScanner === 'function') {
-      startScanner();
-    }
+  if (typeof openScanner === 'function') {
+    openScanner((barcode) => {
+      console.log('📦 Código escaneado:', barcode);
+      showToast(`✅ Código detectado: ${barcode}`, 'success');
+      // Aquí puedes hacer más cosas con el código
+    });
+  } else {
+    showToast('❌ El escáner no está disponible', 'error');
   }
 });
 
 // Close scanner
 document.getElementById('close-scanner')?.addEventListener('click', () => {
-  const modal = document.getElementById('scanner-modal');
-  if (modal) {
-    modal.classList.remove('active');
-    if (typeof stopScanner === 'function') {
-      stopScanner();
-    }
+  if (typeof closeScanner === 'function') {
+    closeScanner();
   }
 });
 
@@ -141,27 +101,10 @@ document.getElementById('btn-change-password')?.addEventListener('click', () => 
   showToast('Función de cambiar contraseña en desarrollo', 'info');
 });
 
-// Logout desde settings
-document.getElementById('btn-logout-settings')?.addEventListener('click', () => {
-  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-    showLogin();
-    showToast('Sesión cerrada correctamente', 'success');
-  }
-});
-
 // Inicializar app
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ App Águila Pro v7.1 iniciada');
-  
-  // Por defecto mostrar login
-  showLogin();
-  
-  // Simulación de usuario logueado (comentar después de agregar auth real)
-  // setTimeout(() => {
-  //   currentUser = { email: 'test@empresa.com', name: 'Promotor Test' };
-  //   showApp();
-  //   document.getElementById('user-info').textContent = `👤 ${currentUser.email}`;
-  // }, 500);
+  updateOfflineStatus();
 });
 
 // Keyboard shortcuts
@@ -175,11 +118,12 @@ document.addEventListener('keydown', (e) => {
   // Esc para cerrar scanner
   if (e.key === 'Escape') {
     const modal = document.getElementById('scanner-modal');
-    if (modal && modal.classList.contains('active')) {
-      modal.classList.remove('active');
-      if (typeof stopScanner === 'function') {
-        stopScanner();
+    if (modal && !modal.classList.contains('hidden')) {
+      if (typeof closeScanner === 'function') {
+        closeScanner();
       }
     }
   }
 });
+
+console.log('✅ app.js cargado correctamente');
