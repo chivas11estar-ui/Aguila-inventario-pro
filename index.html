@@ -41,9 +41,11 @@
 
   <main id="main-app">
     
+    <!-- SECCIÓN AUTH -->
     <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
       <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Acceso Promotor Águila Pro</h2>
 
+      <!-- LOGIN FORM -->
       <form id="login-form">
         <div class="form-group">
           <label for="login-email">Email</label>
@@ -53,7 +55,7 @@
           <label for="login-password">Contraseña</label>
           <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
         </div>
-        <button type="button" id="btn-login" class="success">Iniciar Sesión</button>
+        <button type="button" id="btn-login" class="success" style="width:100%;">Iniciar Sesión</button>
         <p style="text-align:center;margin-top:15px;">
           <a href="#" id="show-forgot-password" style="color:var(--warning);">¿Olvidaste tu contraseña?</a>
         </p>
@@ -62,18 +64,20 @@
         </p>
       </form>
 
+      <!-- FORGOT PASSWORD FORM -->
       <form id="forgot-password-form" class="hidden">
         <h3 style="text-align:center;color:var(--primary);">Recuperar Contraseña</h3>
         <div class="form-group">
           <label for="forgot-email">Email</label>
           <input id="forgot-email" type="email" placeholder="tu.email@empresa.com" required />
         </div>
-        <button type="submit" class="warning">Enviar Enlace</button>
+        <button type="submit" class="warning" style="width:100%;">Enviar Enlace</button>
         <p style="text-align:center;margin-top:15px;">
           <a href="#" id="show-login-from-forgot" style="color:var(--primary);">Volver al inicio de sesión</a>
         </p>
       </form>
 
+      <!-- REGISTER FORM -->
       <form id="register-form" class="hidden">
         <h3 style="text-align:center;color:var(--primary);">Registro Inicial</h3>
         <div class="form-group">
@@ -96,15 +100,17 @@
           <label for="register-promoter-name">Nombre del Promotor</label>
           <input id="register-promoter-name" type="text" placeholder="Ej: Juan Pérez" required />
         </div>
-        <button type="submit" class="success">Registrar y Entrar</button>
+        <button type="submit" class="success" style="width:100%;">Registrar y Entrar</button>
         <p style="text-align:center;margin-top:15px;">
           <a href="#" id="show-login" style="color:var(--primary);">Ya tengo cuenta</a>
         </p>
       </form>
     </section>
 
+    <!-- APP CONTAINER -->
     <section id="app-container" style="display:none;">
       
+      <!-- HEADER -->
       <div class="app-header">
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="btn-icon" id="btn-menu">☰</button>
@@ -116,6 +122,7 @@
         </div>
       </div>
 
+      <!-- SIDEBAR -->
       <aside class="sidebar" id="sidebar">
         <nav>
           <a href="#" class="nav-item active" data-tab="inventory">
@@ -128,7 +135,7 @@
           </a>
           <a href="#" class="nav-item" data-tab="refill">
             <span class="nav-icon">🔄</span>
-            <span>Reabastecimiento</span>
+            <span>Relleno</span>
           </a>
           <a href="#" class="nav-item" data-tab="audit">
             <span class="nav-icon">✓</span>
@@ -145,6 +152,7 @@
         </nav>
       </aside>
 
+      <!-- MAIN CONTENT -->
       <div class="main-content">
         
         <!-- TAB: Inventario -->
@@ -158,7 +166,7 @@
         </div>
 
         <!-- TAB: Agregar Producto -->
-        <div id="tab-add" class="tab-content hidden">
+        <div id="tab-add" class="tab-content">
           <div class="card">
             <h2>➕ Agregar Producto</h2>
             
@@ -214,44 +222,120 @@
           </div>
         </div>
 
-        <!-- TAB: Reabastecimiento -->
-        <div id="tab-refill" class="tab-content hidden">
+        <!-- TAB: Relleno -->
+        <div id="tab-refill" class="tab-content">
           <div class="card">
             <h2>🔄 Reabastecimiento</h2>
-            <div id="refill-list" style="margin-top:20px;">
-              <p style="color:var(--muted);">Cargando datos...</p>
+            
+            <form id="refill-form" style="margin-top:20px;">
+              <div class="form-group">
+                <label for="refill-barcode">Código de Barras</label>
+                <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
+              </div>
+
+              <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;">
+                <p id="refill-product-name"></p>
+                <p id="refill-current-stock" style="color:var(--muted);"></p>
+              </div>
+
+              <div class="form-group">
+                <label for="refill-boxes">Cantidad de Cajas a Mover</label>
+                <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
+              </div>
+
+              <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
+            </form>
+
+            <div style="margin-top:30px;">
+              <h3>📊 Movimientos Hoy</h3>
+              <p style="font-size:24px;font-weight:700;color:var(--primary);">
+                <span id="total-movements">0</span> cajas
+              </p>
             </div>
           </div>
         </div>
 
         <!-- TAB: Auditoría -->
-        <div id="tab-audit" class="tab-content hidden">
+        <div id="tab-audit" class="tab-content">
           <div class="card">
             <h2>✓ Auditoría</h2>
-            <div id="audit-list" style="margin-top:20px;">
+            
+            <form id="audit-form" style="margin-top:20px;">
+              <div class="form-group">
+                <label for="audit-warehouse">Bodega a Auditar</label>
+                <div style="display:flex;gap:8px;">
+                  <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
+                  <button type="button" id="save-warehouse-btn" class="success" style="width:auto;padding:12px 16px;">✓</button>
+                </div>
+              </div>
+
+              <div id="current-warehouse-display" style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
+                Ninguna bodega seleccionada
+              </div>
+
+              <div class="form-group">
+                <label for="audit-barcode">Código de Barras</label>
+                <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
+              </div>
+
+              <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;">
+                <p id="audit-product-name"></p>
+                <p id="audit-product-brand" style="color:var(--muted);"></p>
+              </div>
+
+              <div class="form-group">
+                <label for="audit-boxes">Cantidad Contada (Cajas)</label>
+                <input id="audit-boxes" type="number" placeholder="Cantidad física" min="0" />
+              </div>
+
+              <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
+            </form>
+
+            <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;display:none;">
+              🏁 Terminar Auditoría
+            </button>
+
+            <div style="margin-top:30px;">
+              <h3>📋 Resumen de Hoy</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                  <div style="font-size:28px;font-weight:700;color:var(--primary);" id="audit-total-count">0</div>
+                  <div style="color:var(--muted);font-size:12px;">cajas auditadas</div>
+                </div>
+                <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                  <div style="font-size:28px;font-weight:700;color:var(--success);" id="audit-products-count">0</div>
+                  <div style="color:var(--muted);font-size:12px;">productos</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="audit-history" style="margin-top:20px;">
               <p style="color:var(--muted);">Historial de movimientos vacío</p>
             </div>
           </div>
         </div>
 
         <!-- TAB: Reportes -->
-        <div id="tab-reports" class="tab-content hidden">
+        <div id="tab-reports" class="tab-content">
           <div class="card">
             <h2>📊 Reportes</h2>
-            <div style="margin:20px 0;">
+            <div style="margin:20px 0;display:flex;gap:10px;flex-wrap:wrap;">
               <button class="primary">📥 Exportar Inventario</button>
               <button class="warning">📋 Resumen Diario</button>
+              <button class="primary">📊 Estadísticas</button>
             </div>
           </div>
         </div>
 
         <!-- TAB: Configuración -->
-        <div id="tab-settings" class="tab-content hidden">
+        <div id="tab-settings" class="tab-content">
           <div class="card">
             <h2>⚙️ Configuración</h2>
             <div style="margin:20px 0;">
-              <p id="user-info" style="font-weight:600;margin:10px 0;"></p>
+              <p id="user-info" style="font-weight:600;margin:10px 0;">Usuario</p>
               <button class="warning" id="btn-change-password">🔐 Cambiar Contraseña</button>
+              <button class="primary" id="btn-diagnostico">🔍 Diagnóstico</button>
+              <button class="warning" id="btn-stats">📊 Estadísticas</button>
               <button class="error" id="btn-logout-settings">🚪 Cerrar Sesión</button>
             </div>
           </div>
@@ -269,10 +353,12 @@
     <p style="margin:5px 0;color:var(--muted);font-size:12px;">Sistema de Gestión de Inventario</p>
   </footer>
 
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
+  <!-- Application Scripts (en orden) -->
   <script src="firebase-config.js"></script>
   <script src="ui.js"></script>
   <script src="scanner.js"></script>
@@ -283,6 +369,7 @@
   <script src="auth.js"></script>
   <script src="app.js"></script>
 
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
