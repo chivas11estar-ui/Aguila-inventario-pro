@@ -3,7 +3,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-inventario-v7-4-final";
+const CACHE_NAME = "aguila-inventario-v7-5-final";
 const urlsToCache = [
   "/",
   "/index.html",
@@ -24,7 +24,7 @@ const urlsToCache = [
 
 // Instalación
 self.addEventListener("install", (event) => {
-  console.log("✅ Service Worker v7.4 Instalando...");
+  console.log("✅ Service Worker v7.5 Instalando...");
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -38,7 +38,7 @@ self.addEventListener("install", (event) => {
 
 // Activación
 self.addEventListener("activate", (event) => {
-  console.log("✅ Service Worker v7.4 Activando...");
+  console.log("✅ Service Worker v7.5 Activando...");
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
