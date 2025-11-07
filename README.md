@@ -1,10 +1,10 @@
-# 🦅 Águila Inventario Pro v7.1
+# 🦅 Águila Inventario Pro v7.0
 
 > Sistema profesional de gestión de inventario para promotores de PepsiCo con sincronización en tiempo real y modo offline.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/aguilainvantario/deploys)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-7.1-blue.svg)](https://github.com/chivas11estar-ui/Aguila-inventario-pro)
+[![Version](https://img.shields.io/badge/version-7.0-blue.svg)](https://github.com/chivas11estar-ui/Aguila-inventario-pro)
 
 ---
 
@@ -531,6 +531,5 @@ Si necesitas ayuda:
 **Hecho con ❤️ por José A. G. Betancourt**
 
 [⬆ Volver arriba](#-águila-inventario-pro-v70)
-
 
 </div>

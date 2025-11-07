@@ -3,7 +3,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-inventario-v7.4final"; // VERSIÓN FINAL Y AGRESIVA
+const CACHE_NAME = "aguila-inventario-v7-4-final";
 const urlsToCache = [
   "/",
   "/index.html",
@@ -16,6 +16,7 @@ const urlsToCache = [
   "/system.js",
   "/scanner.js",
   "/firebase-config.js",
+  "/refill.js",
   "/manifest.json",
   "/icon-192x192.png",
   "/icon-512x512.png" 
@@ -23,20 +24,21 @@ const urlsToCache = [
 
 // Instalación
 self.addEventListener("install", (event) => {
-  console.log("Service Worker v7.3 Instalando...");
-  // CRÍTICO: Forzar que el SW nuevo tome control inmediatamente
+  console.log("✅ Service Worker v7.4 Instalando...");
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("📦 Archivos cacheados correctamente");
-      return cache.addAll(urlsToCache);
+      return cache.addAll(urlsToCache).catch(err => {
+        console.warn("⚠️ Algunos archivos no pudieron cachearse:", err);
+      });
     })
   );
 });
 
 // Activación
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker v7.3 Activando...");
+  console.log("✅ Service Worker v7.4 Activando...");
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
@@ -48,33 +50,31 @@ self.addEventListener("activate", (event) => {
         })
       )
     ).then(() => {
-      // CRÍTICO: Reclamar clientes inmediatamente
       self.clients.claim();
+      console.log("✅ Service Worker activo y controlando clientes");
     })
   );
 });
 
-// Estrategia Cache-First para los archivos de la app
+// Estrategia Cache-First
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Devolver recurso de caché si existe
       if (response) {
         return response;
       }
       
-      // Si no está en caché, ir a la red
       return fetch(event.request).catch(() => {
-        // Fallback si no hay conexión y el recurso no está en caché
         if (event.request.mode === 'navigate') {
-          // Intentar devolver index.html para navegación offline
           return caches.match('/index.html');
         }
         return new Response("⚠️ Sin conexión y recurso no disponible", {
-            status: 503,
-            statusText: "Offline"
+          status: 503,
+          statusText: "Offline"
         });
       });
     })
   );
 });
+
+console.log("✅ service-worker.js cargado correctamente");
