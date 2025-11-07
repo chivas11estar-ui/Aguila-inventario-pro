@@ -152,8 +152,8 @@
         </nav>
       </aside>
 
-      <!-- MAIN CONTENT -->
-      <div class="main-content">
+      <!-- MAIN CONTENT (CON ESTILOS MOBILE) -->
+      <div class="main-content" style="display: block;">
         
         <!-- TAB: Inventario -->
         <div id="tab-inventory" class="tab-content active">
@@ -368,6 +368,59 @@
   <script src="system.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
+
+  <!-- SCRIPT PARA FIJAR NAVEGACIÓN EN MOBILE -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🎯 Configurando navegación...');
+      
+      // Obtener todos los nav-items
+      const navItems = document.querySelectorAll('[data-tab]');
+      const tabContents = document.querySelectorAll('.tab-content');
+      const sidebar = document.getElementById('sidebar');
+      
+      navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const tabName = this.getAttribute('data-tab');
+          console.log('📑 Activando tab:', tabName);
+          
+          // Remover clase active de todas las pestañas y nav items
+          tabContents.forEach(tab => tab.classList.remove('active'));
+          navItems.forEach(nav => nav.classList.remove('active'));
+          
+          // Agregar clase active al elemento clickeado
+          this.classList.add('active');
+          const activeTab = document.getElementById('tab-' + tabName);
+          if (activeTab) {
+            activeTab.classList.add('active');
+            console.log('✅ Pestaña ' + tabName + ' activada');
+          }
+          
+          // Cerrar sidebar en mobile
+          if (sidebar && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            console.log('🔒 Sidebar cerrado');
+          }
+        });
+      });
+      
+      // Botón menú (abrir/cerrar sidebar)
+      const btnMenu = document.getElementById('btn-menu');
+      if (btnMenu) {
+        btnMenu.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (sidebar) {
+            sidebar.classList.toggle('active');
+            console.log('🔄 Sidebar toggled');
+          }
+        });
+      }
+      
+      console.log('✅ Navegación configurada correctamente');
+    });
+  </script>
 
   <!-- Service Worker -->
   <script>
