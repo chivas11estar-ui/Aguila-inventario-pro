@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo con modo offline">
+  <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
   <meta name="author" content="José A. G. Betancourt">
   <meta name="theme-color" content="#004aad">
-  <title>🦅 Águila Inventario Pro v7.1 (Offline Ready)</title>
+  <title>🦅 Águila Inventario Pro</title>
 
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
@@ -17,16 +17,19 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
+  <!-- TUS ESTILOS -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
+  <!-- TOAST CONTAINER -->
   <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- ESCÁNER MODAL -->
   <div id="scanner-modal" class="scanner-modal hidden">
     <div class="scanner-container">
-      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;">
-        <h3 style="color:white;margin:0;font-size:1.2em;">Escáner de Código de Barras</h3>
+      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;background:var(--primary);">
+        <h3 style="color:white;margin:0;font-size:1.1em;">📷 Escáner de Código de Barras</h3>
       </div>
       <div class="scanner-video-wrapper">
         <video id="scanner-video" autoplay playsinline></video>
@@ -41,9 +44,9 @@
 
   <main id="main-app">
     
-    <!-- SECCIÓN AUTH -->
+    <!-- PANTALLA AUTH -->
     <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
-      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Acceso Promotor Águila Pro</h2>
+      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Águila Inventario Pro</h2>
 
       <!-- LOGIN FORM -->
       <form id="login-form">
@@ -107,14 +110,13 @@
       </form>
     </section>
 
-    <!-- APP CONTAINER -->
+    <!-- APLICACIÓN -->
     <section id="app-container" style="display:none;">
       
-      <!-- HEADER -->
+      <!-- HEADER APP -->
       <div class="app-header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <button class="btn-icon" id="btn-menu">☰</button>
-          <div class="app-title">🦅 Águila Pro</div>
+          <div class="app-title">🦅 Águila Inventario Pro</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="btn-icon" id="btn-offline-status">📡</button>
@@ -122,56 +124,48 @@
         </div>
       </div>
 
-      <!-- SIDEBAR -->
-      <aside class="sidebar" id="sidebar">
-        <nav>
-          <a href="#" class="nav-item active" data-tab="inventory">
-            <span class="nav-icon">📦</span>
-            <span>Inventario</span>
-          </a>
-          <a href="#" class="nav-item" data-tab="add">
-            <span class="nav-icon">➕</span>
-            <span>Agregar</span>
-          </a>
-          <a href="#" class="nav-item" data-tab="refill">
-            <span class="nav-icon">🔄</span>
-            <span>Relleno</span>
-          </a>
-          <a href="#" class="nav-item" data-tab="audit">
-            <span class="nav-icon">✓</span>
-            <span>Auditoría</span>
-          </a>
-          <a href="#" class="nav-item" data-tab="reports">
-            <span class="nav-icon">📊</span>
-            <span>Reportes</span>
-          </a>
-          <a href="#" class="nav-item" data-tab="settings">
-            <span class="nav-icon">⚙️</span>
-            <span>Configuración</span>
-          </a>
-        </nav>
-      </aside>
+      <!-- BOTTOM NAVIGATION -->
+      <nav class="bottom-nav">
+        <a href="#" class="nav-btn active" data-tab="inventory">
+          <span class="nav-icon">📦</span>
+          <span>Inventario</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="add">
+          <span class="nav-icon">➕</span>
+          <span>Agregar</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="refill">
+          <span class="nav-icon">🔄</span>
+          <span>Relleno</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="audit">
+          <span class="nav-icon">✓</span>
+          <span>Auditoría</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="system">
+          <span class="nav-icon">⚙️</span>
+          <span>Sistema</span>
+        </a>
+      </nav>
 
-      <!-- MAIN CONTENT (CON ESTILOS MOBILE) -->
-      <div class="main-content" style="display: block;">
+      <!-- CONTENIDO PRINCIPAL -->
+      <div class="main-content">
         
-        <!-- TAB: Inventario -->
+        <!-- TAB: INVENTARIO -->
         <div id="tab-inventory" class="tab-content active">
           <div class="card">
-            <h2>📦 Gestión de Inventario</h2>
+            <h2>📦 Inventario por Marca</h2>
             <div id="inventory-list" style="margin-top:20px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
           </div>
         </div>
 
-        <!-- TAB: Agregar Producto -->
-        <div id="tab-add" class="tab-content">
+        <!-- TAB: AGREGAR PRODUCTO -->
+        <div id="tab-add" class="tab-content hidden">
           <div class="card">
             <h2>➕ Agregar Producto</h2>
-            
             <form id="add-product-form" style="margin-top:20px;">
-              
               <div class="form-group">
                 <label for="add-barcode">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
@@ -222,18 +216,17 @@
           </div>
         </div>
 
-        <!-- TAB: Relleno -->
-        <div id="tab-refill" class="tab-content">
+        <!-- TAB: RELLENO -->
+        <div id="tab-refill" class="tab-content hidden">
           <div class="card">
             <h2>🔄 Reabastecimiento</h2>
-            
             <form id="refill-form" style="margin-top:20px;">
               <div class="form-group">
                 <label for="refill-barcode">Código de Barras</label>
                 <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
               </div>
 
-              <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;">
+              <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
                 <p id="refill-product-name"></p>
                 <p id="refill-current-stock" style="color:var(--muted);"></p>
               </div>
@@ -248,18 +241,17 @@
 
             <div style="margin-top:30px;">
               <h3>📊 Movimientos Hoy</h3>
-              <p style="font-size:24px;font-weight:700;color:var(--primary);">
+              <p style="font-size:24px;font-weight:700;color:var(--success);">
                 <span id="total-movements">0</span> cajas
               </p>
             </div>
           </div>
         </div>
 
-        <!-- TAB: Auditoría -->
-        <div id="tab-audit" class="tab-content">
+        <!-- TAB: AUDITORÍA -->
+        <div id="tab-audit" class="tab-content hidden">
           <div class="card">
             <h2>✓ Auditoría</h2>
-            
             <form id="audit-form" style="margin-top:20px;">
               <div class="form-group">
                 <label for="audit-warehouse">Bodega a Auditar</label>
@@ -278,7 +270,7 @@
                 <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
               </div>
 
-              <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;">
+              <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
                 <p id="audit-product-name"></p>
                 <p id="audit-product-brand" style="color:var(--muted);"></p>
               </div>
@@ -295,49 +287,33 @@
               🏁 Terminar Auditoría
             </button>
 
-            <div style="margin-top:30px;">
-              <h3>📋 Resumen de Hoy</h3>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
-                  <div style="font-size:28px;font-weight:700;color:var(--primary);" id="audit-total-count">0</div>
-                  <div style="color:var(--muted);font-size:12px;">cajas auditadas</div>
-                </div>
-                <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
-                  <div style="font-size:28px;font-weight:700;color:var(--success);" id="audit-products-count">0</div>
-                  <div style="color:var(--muted);font-size:12px;">productos</div>
-                </div>
+            <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                <div style="font-size:24px;font-weight:700;color:var(--primary);" id="audit-total-count">0</div>
+                <div style="color:var(--muted);font-size:12px;">cajas auditadas</div>
+              </div>
+              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                <div style="font-size:24px;font-weight:700;color:var(--success);" id="audit-products-count">0</div>
+                <div style="color:var(--muted);font-size:12px;">productos</div>
               </div>
             </div>
 
             <div id="audit-history" style="margin-top:20px;">
-              <p style="color:var(--muted);">Historial de movimientos vacío</p>
+              <p style="color:var(--muted);">Historial vacío</p>
             </div>
           </div>
         </div>
 
-        <!-- TAB: Reportes -->
-        <div id="tab-reports" class="tab-content">
+        <!-- TAB: SISTEMA -->
+        <div id="tab-system" class="tab-content hidden">
           <div class="card">
-            <h2>📊 Reportes</h2>
-            <div style="margin:20px 0;display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="primary">📥 Exportar Inventario</button>
-              <button class="warning">📋 Resumen Diario</button>
-              <button class="primary">📊 Estadísticas</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: Configuración -->
-        <div id="tab-settings" class="tab-content">
-          <div class="card">
-            <h2>⚙️ Configuración</h2>
-            <div style="margin:20px 0;">
-              <p id="user-info" style="font-weight:600;margin:10px 0;">Usuario</p>
-              <button class="warning" id="btn-change-password">🔐 Cambiar Contraseña</button>
-              <button class="primary" id="btn-diagnostico">🔍 Diagnóstico</button>
-              <button class="warning" id="btn-stats">📊 Estadísticas</button>
-              <button class="error" id="btn-logout-settings">🚪 Cerrar Sesión</button>
-            </div>
+            <h2>⚙️ Sistema</h2>
+            <p id="user-info" style="font-weight:600;margin:10px 0;">Usuario</p>
+            
+            <button class="primary" id="btn-diagnostico">🔍 Diagnóstico</button>
+            <button class="primary" id="btn-stats">📊 Estadísticas</button>
+            <button class="warning" id="btn-clear-data">🗑️ Limpiar Datos</button>
+            <button class="error" id="btn-logout-settings">🚪 Cerrar Sesión</button>
           </div>
         </div>
 
@@ -350,15 +326,14 @@
   <footer style="background:var(--card-bg);padding:20px;text-align:center;border-top:2px solid var(--border);margin-top:40px;">
     <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.1</p>
     <p style="margin:5px 0;color:var(--muted);font-size:14px;">&copy; 2025 José A. G. Betancourt</p>
-    <p style="margin:5px 0;color:var(--muted);font-size:12px;">Sistema de Gestión de Inventario</p>
   </footer>
 
-  <!-- Firebase SDKs -->
+  <!-- FIREBASE SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <!-- Application Scripts (en orden) -->
+  <!-- TUS ARCHIVOS JS (EN ORDEN) -->
   <script src="firebase-config.js"></script>
   <script src="ui.js"></script>
   <script src="scanner.js"></script>
@@ -369,68 +344,48 @@
   <script src="auth.js"></script>
   <script src="app.js"></script>
 
-  <!-- SCRIPT PARA FIJAR NAVEGACIÓN EN MOBILE -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('🎯 Configurando navegación...');
-      
-      // Obtener todos los nav-items
-      const navItems = document.querySelectorAll('[data-tab]');
-      const tabContents = document.querySelectorAll('.tab-content');
-      const sidebar = document.getElementById('sidebar');
-      
-      navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          const tabName = this.getAttribute('data-tab');
-          console.log('📑 Activando tab:', tabName);
-          
-          // Remover clase active de todas las pestañas y nav items
-          tabContents.forEach(tab => tab.classList.remove('active'));
-          navItems.forEach(nav => nav.classList.remove('active'));
-          
-          // Agregar clase active al elemento clickeado
-          this.classList.add('active');
-          const activeTab = document.getElementById('tab-' + tabName);
-          if (activeTab) {
-            activeTab.classList.add('active');
-            console.log('✅ Pestaña ' + tabName + ' activada');
-          }
-          
-          // Cerrar sidebar en mobile
-          if (sidebar && sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            console.log('🔒 Sidebar cerrado');
-          }
-        });
-      });
-      
-      // Botón menú (abrir/cerrar sidebar)
-      const btnMenu = document.getElementById('btn-menu');
-      if (btnMenu) {
-        btnMenu.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (sidebar) {
-            sidebar.classList.toggle('active');
-            console.log('🔄 Sidebar toggled');
-          }
-        });
-      }
-      
-      console.log('✅ Navegación configurada correctamente');
-    });
-  </script>
-
-  <!-- Service Worker -->
+  <!-- SERVICE WORKER -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
           .then(reg => console.log('✅ Service Worker registrado'))
-          .catch(err => console.error('❌ Error SW:', err));
+          .catch(err => console.error('⚠️ SW no disponible:', err));
       });
     }
+  </script>
+
+  <!-- SISTEMA DE NAVEGACIÓN MOBILE -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🎯 Sistema de navegación iniciando...');
+
+      const navButtons = document.querySelectorAll('.nav-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      navButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const tabName = this.getAttribute('data-tab');
+          console.log('📑 Navegando a:', tabName);
+
+          // Remover active de todos
+          navButtons.forEach(b => b.classList.remove('active'));
+          tabContents.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(t => t.classList.add('hidden'));
+
+          // Activar seleccionado
+          this.classList.add('active');
+          const tab = document.getElementById('tab-' + tabName);
+          if (tab) {
+            tab.classList.remove('hidden');
+            tab.classList.add('active');
+          }
+        });
+      });
+
+      console.log('✅ Navegación lista');
+    });
   </script>
 </body>
 </html>
