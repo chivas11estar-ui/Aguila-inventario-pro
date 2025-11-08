@@ -1,7 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN CON AGRUPACIÓN POR BODEGA
+// VERSIÓN CON EDITAR PRODUCTOS FUNCIONAL
 // ============================================================
 
 let inventoryData = [];
@@ -9,6 +9,7 @@ let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
 let mostrarProductosSinStock = false;
+let currentEditingProduct = null; // Para guardar el producto en edición
 
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
@@ -18,36 +19,6 @@ const BRAND_EXPIRY_CONFIG = {
   'Cacahuate': 30,
   'default': 60
 };
-
-async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    console.log('❌ Este navegador no soporta notificaciones');
-    return false;
-  }
-  
-  if (Notification.permission === 'granted') {
-    console.log('✅ Permisos de notificación ya otorgados');
-    return true;
-  }
-  
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      console.log('✅ Permisos de notificación otorgados');
-      if (typeof showToast === 'function') {
-        showToast('Notificaciones activadas', 'success');
-      }
-      return true;
-    } else {
-      console.log('⚠️ Permisos de notificación denegados');
-      if (typeof showToast === 'function') {
-        showToast('Permiso de notificaciones denegado', 'warning');
-      }
-      return false;
-    }
-  }
-  return false;
-}
 
 // Obtener determinante del usuario
 async function getUserDeterminante() {
@@ -153,7 +124,7 @@ function renderInventoryList() {
     return;
   }
   
-  // 1️⃣ AGRUPAR POR CÓDIGO DE BARRAS (productos en múltiples bodegas)
+  // 1️⃣ AGRUPAR POR CÓDIGO DE BARRAS
   const productosAgrupados = {};
   
   productosConStock.forEach(prod => {
@@ -171,7 +142,6 @@ function renderInventoryList() {
       };
     }
     
-    // Agregar bodega
     productosAgrupados[codigo].bodegas.push({
       ubicacion: prod.ubicacion,
       cajas: prod.cajas,
@@ -179,7 +149,6 @@ function renderInventoryList() {
       id: prod.id
     });
     
-    // Sumar totales
     productosAgrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
     productosAgrupados[codigo].totalPiezas = 
       productosAgrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
@@ -199,7 +168,7 @@ function renderInventoryList() {
   // 3️⃣ ORDENAR MARCAS
   const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'].filter(m => porMarca[m]);
   
-  // 4️⃣ RENDERIZAR CON AGRUPACIÓN
+  // 4️⃣ RENDERIZAR
   let html = '';
   
   marcasOrdenadas.forEach(marca => {
@@ -277,6 +246,7 @@ function renderInventoryList() {
                     <li style="padding:8px;margin:5px 0;background:#f8fafc;border-left:3px solid #2563eb;border-radius:4px;">
                       <strong>${b.ubicacion}:</strong> ${b.cajas} cajas
                       ${bodegaDays !== null ? `<br><small style="color:#64748b;font-size:0.85em;">Cad: ${b.fechaCaducidad} (${bodegaDays} días)</small>` : ''}
+                      <br><button onclick="editarProducto('${b.id}')" style="margin-top:6px;padding:4px 8px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;">✏️ Editar</button>
                     </li>
                   `;
                 }).join('')}
@@ -291,12 +261,9 @@ function renderInventoryList() {
             </div>
           `}
           
-          <div style="margin-top:12px;display:flex;gap:8px;">
-            <button onclick="editarProducto('${product.bodegas[0].id}')" style="flex:1;padding:8px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
-              ✏️ Editar
-            </button>
-            <button onclick="eliminarProducto('${product.bodegas[0].id}')" style="flex:1;padding:8px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
-              🗑️ Eliminar
+          <div style="margin-top:12px;">
+            <button onclick="editarProducto('${product.bodegas[0].id}')" style="width:100%;padding:10px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
+              ✏️ Editar Producto
             </button>
           </div>
         </div>
@@ -354,94 +321,160 @@ function generateBrandFilters(data) {
   filterContainer.innerHTML = filterHTML;
 }
 
-// Adjuntar event listeners
-function attachInventoryEventListeners() {
-  const searchInput = document.getElementById('inventory-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', applyFiltersAndRender);
-  }
-
-  const filterContainer = document.getElementById('brand-filters');
-  if (filterContainer) {
-    filterContainer.addEventListener('click', (e) => {
-      const brand = e.target.dataset?.brand;
-      if (brand) {
-        document.querySelectorAll('.brand-filter-btn').forEach(btn => {
-          btn.style.background = 'white';
-          btn.style.color = 'var(--text)';
-        });
-        e.target.style.background = 'var(--primary)';
-        e.target.style.color = 'white';
-        currentBrandFilter = brand;
-        applyFiltersAndRender();
-      }
-    });
-  }
-
-  const toggleBtn = document.getElementById('toggle-stock-btn');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      mostrarProductosSinStock = !mostrarProductosSinStock;
-      toggleBtn.textContent = mostrarProductosSinStock ? '🙈 Ocultar sin stock' : '👁️ Mostrar sin stock';
-      applyFiltersAndRender();
-    });
-  }
-}
-
 // Actualizar estadísticas
 function updateDashboardStats(data) {
   console.log('📊 Actualizando estadísticas...');
 }
 
-// Eliminar producto
-async function deleteProduct(id) {
-  try {
-    if (!userDeterminante) {
-      if (typeof showToast === 'function') {
-        showToast('Error: No se encontró la tienda para eliminar.', 'error');
-      }
-      return;
-    }
-
-    await firebase.database().ref('inventario/' + userDeterminante + '/' + id).remove();
-    if (typeof showToast === 'function') {
-      showToast('Producto eliminado correctamente.', 'success');
-    }
-  } catch (error) {
-    console.error('Error al eliminar producto:', error);
-    if (typeof showToast === 'function') {
-      showToast('Error al eliminar: ' + error.message, 'error');
-    }
-  }
-}
-
-// Funciones placeholder para botones
-function editarProducto(id) {
-  console.log('Editar producto:', id);
-  if (typeof showToast === 'function') {
-    showToast('Función de edición en desarrollo', 'info');
-  }
-}
-
-function eliminarProducto(id) {
-  if (window.confirm('¿Estás seguro de eliminar este producto?')) {
-    deleteProduct(id);
-  }
-}
-
-// AGREGAR PRODUCTO
-async function handleAddProduct(event) {
-  event.preventDefault();
-  console.log('💾 Guardando producto...');
+// ============================================================
+// EDITAR PRODUCTO - FUNCIÓN COMPLETA
+// ============================================================
+async function editarProducto(productId) {
+  console.log('✏️ Editando producto:', productId);
   
   if (!userDeterminante) {
     userDeterminante = await getUserDeterminante();
   }
   
   if (!userDeterminante) {
-    if (typeof showToast === 'function') {
-      showToast('❌ Error: No se encontró información de la tienda', 'error');
+    showToast('❌ Error: No se encontró información de la tienda', 'error');
+    return;
+  }
+  
+  try {
+    // Buscar el producto en el array local
+    const product = inventoryData.find(p => p.id === productId);
+    
+    if (!product) {
+      showToast('❌ Producto no encontrado', 'error');
+      return;
     }
+    
+    currentEditingProduct = product;
+    
+    // Cambiar a la pestaña "Agregar" (la usaremos como editor)
+    const addTab = document.getElementById('tab-add');
+    const inventoryTab = document.getElementById('tab-inventory');
+    
+    if (addTab && inventoryTab) {
+      // Ocultar inventario
+      inventoryTab.classList.remove('active');
+      inventoryTab.classList.add('hidden');
+      
+      // Mostrar agregar
+      addTab.classList.remove('hidden');
+      addTab.classList.add('active');
+      
+      // Actualizar navegación
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector('[data-tab="add"]')?.classList.add('active');
+    }
+    
+    // Cambiar título del formulario
+    const formTitle = document.querySelector('#tab-add h2');
+    if (formTitle) {
+      formTitle.textContent = '✏️ Editar Producto';
+    }
+    
+    // Rellenar el formulario con los datos del producto
+    document.getElementById('add-barcode').value = product.codigoBarras || '';
+    document.getElementById('add-product-name').value = product.nombre || '';
+    document.getElementById('add-brand').value = product.marca || '';
+    document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
+    document.getElementById('add-warehouse').value = product.ubicacion || '';
+    document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
+    document.getElementById('add-boxes').value = product.cajas || '';
+    
+    // Cambiar el texto del botón submit
+    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = '💾 Actualizar Producto';
+      submitBtn.style.background = '#f59e0b'; // Color warning para indicar edición
+    }
+    
+    // Agregar botón cancelar si no existe
+    let cancelBtn = document.getElementById('cancel-edit-btn');
+    if (!cancelBtn) {
+      cancelBtn = document.createElement('button');
+      cancelBtn.id = 'cancel-edit-btn';
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = '❌ Cancelar';
+      cancelBtn.style.width = '100%';
+      cancelBtn.style.marginTop = '10px';
+      cancelBtn.className = 'error';
+      cancelBtn.onclick = cancelarEdicion;
+      submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+    }
+    
+    showToast('✏️ Editando: ' + product.nombre, 'info');
+    
+    // Scroll al top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+  } catch (error) {
+    console.error('❌ Error al editar producto:', error);
+    showToast('❌ Error al cargar el producto: ' + error.message, 'error');
+  }
+}
+
+// ============================================================
+// CANCELAR EDICIÓN
+// ============================================================
+function cancelarEdicion() {
+  currentEditingProduct = null;
+  
+  // Limpiar formulario
+  document.getElementById('add-product-form').reset();
+  
+  // Restaurar título
+  const formTitle = document.querySelector('#tab-add h2');
+  if (formTitle) {
+    formTitle.textContent = '➕ Agregar Producto';
+  }
+  
+  // Restaurar botón submit
+  const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.textContent = '✅ Guardar Producto';
+    submitBtn.style.background = '';
+  }
+  
+  // Eliminar botón cancelar
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if (cancelBtn) {
+    cancelBtn.remove();
+  }
+  
+  // Volver a inventario
+  const addTab = document.getElementById('tab-add');
+  const inventoryTab = document.getElementById('tab-inventory');
+  
+  if (addTab && inventoryTab) {
+    addTab.classList.remove('active');
+    addTab.classList.add('hidden');
+    
+    inventoryTab.classList.remove('hidden');
+    inventoryTab.classList.add('active');
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-tab="inventory"]')?.classList.add('active');
+  }
+  
+  showToast('✅ Edición cancelada', 'info');
+}
+
+// ============================================================
+// AGREGAR O ACTUALIZAR PRODUCTO
+// ============================================================
+async function handleAddProduct(event) {
+  event.preventDefault();
+  
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) {
+    showToast('❌ Error: No se encontró información de la tienda', 'error');
     return;
   }
   
@@ -458,26 +491,62 @@ async function handleAddProduct(event) {
       actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
     };
     
+    // Validar datos obligatorios
     if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
-      if (typeof showToast === 'function') {
-        showToast('❌ Completa todos los campos correctamente', 'error');
-      }
+      showToast('❌ Completa todos los campos correctamente', 'error');
       return;
     }
     
-    await firebase.database().ref('inventario/' + userDeterminante).push(formData);
-    
-    if (typeof showToast === 'function') {
+    // Si estamos editando
+    if (currentEditingProduct) {
+      console.log('💾 Actualizando producto:', currentEditingProduct.id);
+      
+      await firebase.database()
+        .ref('inventario/' + userDeterminante + '/' + currentEditingProduct.id)
+        .update(formData);
+      
+      showToast('✅ Producto actualizado correctamente', 'success');
+      currentEditingProduct = null;
+      
+    } else {
+      // Si estamos agregando uno nuevo
+      console.log('💾 Guardando nuevo producto...');
+      
+      await firebase.database()
+        .ref('inventario/' + userDeterminante)
+        .push(formData);
+      
       showToast('✅ Producto guardado correctamente', 'success');
     }
     
+    // Limpiar formulario
     document.getElementById('add-product-form').reset();
     
+    // Restaurar interfaz
+    const formTitle = document.querySelector('#tab-add h2');
+    if (formTitle) {
+      formTitle.textContent = '➕ Agregar Producto';
+    }
+    
+    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = '✅ Guardar Producto';
+      submitBtn.style.background = '';
+    }
+    
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    if (cancelBtn) {
+      cancelBtn.remove();
+    }
+    
+    // Volver a tab de inventario
     const inventoryTab = document.getElementById('tab-inventory');
     const addTab = document.getElementById('tab-add');
     if (inventoryTab && addTab) {
       inventoryTab.classList.add('active');
+      inventoryTab.classList.remove('hidden');
       addTab.classList.remove('active');
+      addTab.classList.add('hidden');
       
       const navItems = document.querySelectorAll('[data-tab]');
       navItems.forEach(nav => nav.classList.remove('active'));
@@ -485,21 +554,21 @@ async function handleAddProduct(event) {
     }
     
   } catch (error) {
-    console.error('Error al guardar producto:', error);
-    if (typeof showToast === 'function') {
-      showToast('❌ Error al guardar: ' + error.message, 'error');
-    }
+    console.error('Error al guardar/actualizar producto:', error);
+    showToast('❌ Error: ' + error.message, 'error');
   }
 }
 
+// ============================================================
 // INICIALIZACIÓN
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📦 Inicializando módulo de inventario...');
   
   const addProductForm = document.getElementById('add-product-form');
   if (addProductForm) {
     addProductForm.addEventListener('submit', handleAddProduct);
-    console.log('✅ Formulario de agregar producto configurado');
+    console.log('✅ Formulario de agregar/editar producto configurado');
   }
   
   firebase.auth().onAuthStateChanged((user) => {
@@ -514,6 +583,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Exponer funciones globalmente
 window.editarProducto = editarProducto;
-window.eliminarProducto = eliminarProducto;
+window.cancelarEdicion = cancelarEdicion;
 
-console.log('✅ inventory.js cargado correctamente');
+console.log('✅ inventory.js con EDITAR cargado correctamente');
