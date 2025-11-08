@@ -17,12 +17,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <!-- TUS ESTILOS -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="custom-styles.css">
 </head>
 
 <body>
-  <!-- TOAST CONTAINER -->
   <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
   <!-- ESCÁNER MODAL -->
@@ -125,24 +124,24 @@
       </div>
 
       <!-- BOTTOM NAVIGATION -->
-      <nav class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--border);display:flex;justify-content:space-around;z-index:99;padding:0;margin:0;">
-        <a href="#" class="nav-btn active" data-tab="inventory" style="flex:1;background:none;border:none;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:600;transition:color 0.2s;text-decoration:none;">
+      <nav class="bottom-nav">
+        <a href="#" class="nav-btn active" data-tab="inventory">
           <span style="font-size:20px;">📦</span>
           <span>Inventario</span>
         </a>
-        <a href="#" class="nav-btn" data-tab="add" style="flex:1;background:none;border:none;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:600;transition:color 0.2s;text-decoration:none;">
+        <a href="#" class="nav-btn" data-tab="add">
           <span style="font-size:20px;">➕</span>
           <span>Agregar</span>
         </a>
-        <a href="#" class="nav-btn" data-tab="refill" style="flex:1;background:none;border:none;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:600;transition:color 0.2s;text-decoration:none;">
+        <a href="#" class="nav-btn" data-tab="refill">
           <span style="font-size:20px;">🔄</span>
           <span>Relleno</span>
         </a>
-        <a href="#" class="nav-btn" data-tab="audit" style="flex:1;background:none;border:none;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:600;transition:color 0.2s;text-decoration:none;">
+        <a href="#" class="nav-btn" data-tab="audit">
           <span style="font-size:20px;">✓</span>
           <span>Auditoría</span>
         </a>
-        <a href="#" class="nav-btn" data-tab="system" style="flex:1;background:none;border:none;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:600;transition:color 0.2s;text-decoration:none;">
+        <a href="#" class="nav-btn" data-tab="system">
           <span style="font-size:20px;">⚙️</span>
           <span>Sistema</span>
         </a>
@@ -216,7 +215,7 @@
           </div>
         </div>
 
-        <!-- TAB: RELLENO -->
+        <!-- TAB: RELLENO (✅ CON CAMPOS AUTOFILL) -->
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
             <h2>🔄 Reabastecimiento</h2>
@@ -227,6 +226,22 @@
                   <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
                   <button type="button" id="btn-scan-refill" class="success" style="width:auto;padding:12px 16px;">📷</button>
                 </div>
+              </div>
+
+              <!-- ✅ CAMPOS AUTOFILL AGREGADOS -->
+              <div class="form-group">
+                <label for="refill-nombre">Nombre del Producto</label>
+                <input id="refill-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-marca">Marca</label>
+                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-piezas">Piezas por Caja</label>
+                <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
               </div>
 
               <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
@@ -251,7 +266,7 @@
           </div>
         </div>
 
-        <!-- TAB: AUDITORÍA -->
+        <!-- TAB: AUDITORÍA (✅ CON CAMPOS AUTOFILL) -->
         <div id="tab-audit" class="tab-content hidden">
           <div class="card">
             <h2>✓ Auditoría</h2>
@@ -274,6 +289,25 @@
                   <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
                   <button type="button" id="btn-scan-audit" class="success" style="width:auto;padding:12px 16px;">📷</button>
                 </div>
+              </div>
+
+              <!-- ✅ ELEMENTO PARA MOSTRAR STOCK -->
+              <div id="audit-stock-info" style="display:none;"></div>
+
+              <!-- ✅ CAMPOS AUTOFILL AGREGADOS -->
+              <div class="form-group">
+                <label for="audit-nombre">Nombre del Producto</label>
+                <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="audit-marca">Marca</label>
+                <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="audit-piezas">Piezas por Caja</label>
+                <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
               </div>
 
               <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
@@ -330,7 +364,7 @@
   </main>
 
   <footer style="background:var(--card-bg);padding:20px;text-align:center;border-top:2px solid var(--border);margin-top:40px;">
-    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.1</p>
+    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.2</p>
     <p style="margin:5px 0;color:var(--muted);font-size:14px;">&copy; 2025 José A. G. Betancourt</p>
   </footer>
 
@@ -351,6 +385,7 @@
   <script src="system-events.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
+  <script src="inventory-enhanced.js"></script>
 
   <!-- SERVICE WORKER -->
   <script>
@@ -377,12 +412,10 @@
           const tabName = this.getAttribute('data-tab');
           console.log('📑 Navegando a:', tabName);
 
-          // Remover active de todos
           navButtons.forEach(b => b.classList.remove('active'));
           tabContents.forEach(t => t.classList.remove('active'));
           tabContents.forEach(t => t.classList.add('hidden'));
 
-          // Activar seleccionado
           this.classList.add('active');
           const tab = document.getElementById('tab-' + tabName);
           if (tab) {

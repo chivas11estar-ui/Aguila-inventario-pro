@@ -1,15 +1,14 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: refill.js
+// VERSIÓN CON AUTOFILL AUTOMÁTICO
 // Copyright © 2025 José A. G. Betancourt
-// Todos los derechos reservados
-// VERSIÓN CORREGIDA - Búsqueda manual funcionando y SIN TEMPORIZADOR
 // ============================================================
 
 let currentRefillProduct = null;
 let userDeterminanteRefill = null;
 
 // ============================================================
-// OBTENER DETERMINANTE DEL USUARIO (Versión Refill)
+// OBTENER DETERMINANTE DEL USUARIO
 // ============================================================
 async function getUserDeterminanteRefill() {
   const userId = firebase.auth().currentUser?.uid;
@@ -35,7 +34,7 @@ async function getUserDeterminanteRefill() {
 }
 
 // ============================================================
-// BUSCAR PRODUCTO PARA RELLENO
+// BUSCAR PRODUCTO PARA RELLENO CON AUTOFILL
 // ============================================================
 async function searchProductForRefill(barcode) {
   console.log('🔍 Buscando producto para relleno:', barcode);
@@ -71,14 +70,70 @@ async function searchProductForRefill(barcode) {
       };
       
       console.log('✅ Producto encontrado:', currentRefillProduct);
+      
+      // ✅ AUTOFILL - Rellenar campos automáticamente
+      const nombreInput = document.getElementById('refill-nombre');
+      const marcaInput = document.getElementById('refill-marca');
+      const piezasInput = document.getElementById('refill-piezas');
+      
+      if (nombreInput) {
+        nombreInput.value = productData.nombre || '';
+        nombreInput.style.background = '#ecfdf5';
+        nombreInput.style.borderColor = '#10b981';
+      }
+      
+      if (marcaInput) {
+        marcaInput.value = productData.marca || '';
+        marcaInput.style.background = '#ecfdf5';
+        marcaInput.style.borderColor = '#10b981';
+      }
+      
+      if (piezasInput) {
+        piezasInput.value = productData.piezasPorCaja || '';
+        piezasInput.style.background = '#ecfdf5';
+        piezasInput.style.borderColor = '#10b981';
+      }
+      
+      // Mostrar información del producto
       displayRefillProductInfo(currentRefillProduct);
       showToast('✅ Producto encontrado: ' + productData.nombre, 'success');
+      
+      // Focus en el campo de cajas
+      const boxesInput = document.getElementById('refill-boxes');
+      if (boxesInput) {
+        setTimeout(() => {
+          boxesInput.focus();
+          boxesInput.select();
+        }, 300);
+      }
       
       return true;
       
     } else {
       console.log('⚠️ Producto no encontrado');
       currentRefillProduct = null;
+      
+      // Limpiar campos autofill
+      const nombreInput = document.getElementById('refill-nombre');
+      const marcaInput = document.getElementById('refill-marca');
+      const piezasInput = document.getElementById('refill-piezas');
+      
+      if (nombreInput) {
+        nombreInput.value = '';
+        nombreInput.style.background = '';
+        nombreInput.style.borderColor = '';
+      }
+      if (marcaInput) {
+        marcaInput.value = '';
+        marcaInput.style.background = '';
+        marcaInput.style.borderColor = '';
+      }
+      if (piezasInput) {
+        piezasInput.value = '';
+        piezasInput.style.background = '';
+        piezasInput.style.borderColor = '';
+      }
+      
       hideRefillProductInfo();
       showToast('⚠️ Producto no encontrado en el inventario', 'warning');
       
@@ -103,12 +158,6 @@ function displayRefillProductInfo(product) {
     nameEl.innerHTML = '<strong>Producto:</strong> ' + product.nombre;
     stockEl.textContent = 'Stock actual: ' + (product.cajas || 0) + ' cajas en ' + (product.ubicacion || 'almacén');
     infoDiv.style.display = 'block';
-    
-    const boxesInput = document.getElementById('refill-boxes');
-    if (boxesInput) {
-      boxesInput.focus();
-      boxesInput.select();
-    }
   }
 }
 
@@ -130,7 +179,6 @@ async function processRefillMovement(boxes) {
   
   console.log('📦 Procesando relleno:', boxes, 'cajas');
   
-  // Obtener determinante si no está cargado
   if (!userDeterminanteRefill) {
     userDeterminanteRefill = await getUserDeterminanteRefill();
   }
@@ -156,7 +204,6 @@ async function processRefillMovement(boxes) {
   
   const newStock = currentStock - boxesToMove;
   
-  // Preparar datos del movimiento
   const movementData = {
     tipo: 'relleno',
     productoId: currentRefillProduct.id,
@@ -172,7 +219,6 @@ async function processRefillMovement(boxes) {
   };
   
   try {
-    // 1. Actualizar stock en inventario
     await firebase.database()
       .ref('inventario/' + userDeterminanteRefill + '/' + currentRefillProduct.id)
       .update({
@@ -181,34 +227,35 @@ async function processRefillMovement(boxes) {
         actualizadoPor: firebase.auth().currentUser.email
       });
     
-    console.log('✅ Stock actualizado');
-    
-    // 2. Registrar movimiento en historial
     await firebase.database()
       .ref('movimientos/' + userDeterminanteRefill)
       .push(movementData);
     
-    console.log('✅ Movimiento registrado en historial');
+    showToast(`✅ Movimiento registrado: ${boxesToMove} cajas. Stock restante: ${newStock}`, 'success');
     
-    // Mensaje de éxito
-    showToast(`✅ Movimiento registrado: ${boxesToMove} cajas al piso de venta. Stock restante: ${newStock}`, 'success');
-    
-    // Limpiar formulario
+    // Limpiar formulario y estilos
     const refillForm = document.getElementById('refill-form');
     if (refillForm) {
       refillForm.reset();
     }
     
+    // Limpiar estilos de autofill
+    ['refill-nombre', 'refill-marca', 'refill-piezas'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.style.background = '';
+        input.style.borderColor = '';
+      }
+    });
+    
     currentRefillProduct = null;
     hideRefillProductInfo();
     
-    // Focus en código de barras para siguiente producto
     const barcodeInput = document.getElementById('refill-barcode');
     if (barcodeInput) {
       barcodeInput.focus();
     }
     
-    // Actualizar contador de movimientos
     updateTodayMovements();
     
   } catch (error) {
@@ -241,8 +288,6 @@ async function updateTodayMovements() {
     if (countEl) {
       countEl.textContent = count;
     }
-    
-    console.log('📊 Movimientos hoy:', count);
   } catch (error) {
     console.error('❌ Error al actualizar movimientos:', error);
   }
@@ -253,10 +298,7 @@ async function updateTodayMovements() {
 // ============================================================
 async function buscarProductoManual() {
   const barcodeInput = document.getElementById('refill-barcode');
-  if (!barcodeInput) {
-    console.error('❌ Input de código de barras no encontrado');
-    return;
-  }
+  if (!barcodeInput) return;
   
   const barcode = barcodeInput.value.trim();
   
@@ -281,10 +323,8 @@ async function buscarProductoManual() {
 function setupRefillForm() {
   console.log('🔧 Configurando formulario de relleno...');
   
-  // Input de código de barras
   const barcodeInput = document.getElementById('refill-barcode');
   if (barcodeInput) {
-    // Buscar al presionar Enter
     barcodeInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -292,28 +332,32 @@ function setupRefillForm() {
       }
     });
     
-    // Limpiar producto actual cuando se edita el código
     barcodeInput.addEventListener('input', () => {
       if (currentRefillProduct) {
-        console.log('ℹ️ Código modificado, limpiando producto actual');
         currentRefillProduct = null;
         hideRefillProductInfo();
+        
+        // Limpiar estilos autofill
+        ['refill-nombre', 'refill-marca', 'refill-piezas'].forEach(id => {
+          const input = document.getElementById(id);
+          if (input) {
+            input.style.background = '';
+            input.style.borderColor = '';
+          }
+        });
       }
     });
   }
   
-  // Submit del formulario
   const refillForm = document.getElementById('refill-form');
   if (refillForm) {
     refillForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      console.log('📝 Submit de formulario de relleno');
       
       const barcodeInput = document.getElementById('refill-barcode');
       const boxesInput = document.getElementById('refill-boxes');
       const boxes = boxesInput?.value;
       
-      // Si no hay producto seleccionado, buscar primero
       if (!currentRefillProduct) {
         const barcode = barcodeInput?.value.trim();
         
@@ -323,16 +367,13 @@ function setupRefillForm() {
           return;
         }
         
-        console.log('🔍 Buscando producto antes de registrar...');
         const found = await searchProductForRefill(barcode);
         
         if (!found) {
-          console.log('❌ Producto no encontrado, abortando');
           return;
         }
       }
       
-      // Validar cantidad
       if (!boxes || boxes === '') {
         showToast('❌ Ingresa una cantidad válida', 'error');
         boxesInput?.focus();
@@ -347,35 +388,29 @@ function setupRefillForm() {
 }
 
 // ============================================================
-// INICIALIZACIÓN (CORREGIDA - SIN TEMPORIZADOR INESTABLE)
+// INICIALIZACIÓN
 // ============================================================
 function initRefillModule() {
   console.log('🎯 Inicializando módulo de relleno...');
   
-  // Verificar autenticación
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, configurando relleno...');
       
-      // Mantenemos un pequeño delay ya que onAuthStateChanged se dispara antes de que el DOM esté completamente listo
       setTimeout(() => { 
         setupRefillForm();
         updateTodayMovements();
       }, 500);
-    } else {
-      console.log('⏳ Esperando autenticación para módulo de relleno...');
     }
   });
 }
 
-// Inicialización al cargar el DOM
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initRefillModule);
 } else {
   initRefillModule();
 }
 
-console.log('✅ refill.js cargado correctamente');
+console.log('✅ refill.js con AUTOFILL cargado correctamente');
 
-// Exponer función para que pueda ser usada en ui.js al escanear
 window.searchProductForRefill = searchProductForRefill;
