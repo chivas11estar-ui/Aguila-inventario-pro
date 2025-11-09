@@ -1,11 +1,11 @@
 // ============================================================
 // Águila Inventario Pro - Service Worker
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN 7.6 - CORREGIDA Y COMPLETA
+// VERSIÓN 7.7 - CORREGIDA Y COMPLETA
 // ============================================================
 
 // CAMBIO 1: Nuevo nombre de caché para forzar la actualización
-const CACHE_NAME = "aguila-inventario-v7-6-fixes";
+const CACHE_NAME = "aguila-inventario-v7-7-fixes";
 
 // CAMBIO 2: Lista de archivos COMPLETA
 const urlsToCache = [
@@ -105,5 +105,6 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
 
 console.log("✅ service-worker.js cargado correctamente");
