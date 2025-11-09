@@ -43,7 +43,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  padding-bottom: 85px; /* (65px de la barra + 20px de espacio) */
+  padding-bottom: 120px; /* (65px de la barra + 20px de espacio) */
 }
 
 /* ============================================
