@@ -43,7 +43,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  padding-bottom: 85px; /* (65px de la barra + 20px de espacio) */
+  /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
 }
 
 /* ============================================
@@ -264,7 +264,7 @@ button:active {
   max-width: 1200px;
   margin: 0 auto;
   margin-left: 0;
-  padding-bottom: 120px; /* <-- AÑADIDO PARA DEJAR ESPACIO A LA NAVEGACIÓN */
+  /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
 }
 
 .tab-content {
@@ -452,7 +452,7 @@ button:active {
 
   .main-content {
     padding: 15px;
-    padding-bottom: 100px; /* Aumentado para móvil */
+    /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
   }
 
   .sidebar {
@@ -517,5 +517,12 @@ button:active {
 .nav-btn.active {
   color: var(--primary);
   background: var(--primary-light);
-
 }
+
+/* ============================================
+   ✅ FOOTER (ARREGLO DE LAYOUT)
+   ============================================ */
+footer {
+  padding-bottom: 85px; /* 65px de la barra + 20px de espacio */
+   }
+   
