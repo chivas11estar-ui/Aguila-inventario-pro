@@ -1,26 +1,26 @@
-# 🦅 Águila Inventario Pro v7.0
+# 🦅 Águila Inventario Pro v7.6
 
-> Sistema profesional de gestión de inventario para promotores de PepsiCo con sincronización en tiempo real y modo offline.
+> Sistema profesional de gestión de inventario para promotores de tienda, con sincronización en tiempo real, escáner de nivel profesional (Google ML Kit) y soporte PWA con modo offline.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/aguilainvantario/deploys)
+![Firebase](https://img.shields.io/badge/Firebase-Realtime_DB-orange)
+![ML Kit](https://img.shields.io/badge/Google-ML_Kit-red)
+![PWA](https://img.shields.io/badge/PWA-Instalable_%2B_Offline-blueviolet)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-7.0-blue.svg)](https://github.com/chivas11estar-ui/Aguila-inventario-pro)
 
 ---
 
 ## 📋 Tabla de Contenidos
 
 - [Características](#-características)
-- [Demo en Vivo](#-demo-en-vivo)
-- [Capturas de Pantalla](#-capturas-de-pantalla)
 - [Tecnologías](#-tecnologías)
-- [Instalación](#-instalación)
-- [Uso](#-uso)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Demo en Vivo](#-demo-en-vivo)
+- [Instalación Rápida](#-instalación-rápida)
 - [Configuración de Firebase](#-configuración-de-firebase)
-- [Despliegue](#-despliegue)
-- [Contribuir](#-contribuir)
-- [Licencia](#-licencia)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Estructura de Datos](#-estructura-de-datos)
+- [Cómo Usar](#-cómo-usar)
+- [Roadmap](#-roadmap)
 - [Autor](#-autor)
 
 ---
@@ -28,94 +28,57 @@
 ## ✨ Características
 
 ### 🔐 Autenticación Segura
-- Login con email y contraseña
-- Registro de nuevos usuarios
-- Recuperación de contraseña
-- Sesiones persistentes
-- Cierre de sesión seguro
+- **Login/Registro** con Firebase Authentication
+- **Recuperación de contraseña** por email
+- **Sistema de determinantes** (ID único de tienda para multi-usuario)
+- **Sesiones persistentes** en el dispositivo
 
-### 📦 Gestión de Inventario
-- ✅ **Agregar productos** con código de barras
-- ✅ **Búsqueda inteligente** por nombre, marca o código
-- ✅ **Filtros por marca** con contadores en tiempo real
-- ✅ **Editar y eliminar** productos
-- ✅ **Alertas de caducidad** automáticas
-- ✅ **Control de stock** bajo y sin stock
+### 📦 Inventario Multi-Tienda
+- **Visualización por marca** (Sabritas, Gamesa, Quaker, Sonric's)
+- **Búsqueda en tiempo real** por nombre, código o marca
+- **Agrupación inteligente por bodega** (mismo producto en múltiples ubicaciones)
+- **Alertas de caducidad automáticas** personalizadas por marca
+- **Edición y eliminación** de productos
+- **Sincronización en tiempo real** entre múltiples promotores de la misma tienda
 
-### 📷 Escáner de Códigos de Barras
-- Escáner integrado con cámara
-- Soporte para múltiples formatos:
-  - EAN-13, EAN-8
-  - UPC-A, UPC-E
-  - Code 128, Code 39
-- Búsqueda instantánea al escanear
+### 📷 Escáner Profesional (Google ML Kit)
+- **Detección de alta velocidad** usando BarcodeDetector API
+- **Múltiples formatos soportados:** EAN-13, EAN-8, UPC-A, UPC-E, Code 128, Code 39, QR, Data Matrix
+- **Feedback inmediato:** Visual (verde ✓), sonoro (beep) y háptico (vibración)
+- **Confirmación de doble lectura** para mayor precisión
+- **Funciona en:** Agregar Producto, Relleno, Auditoría
 
-### 🔄 Movimientos de Stock (Relleno)
-- Registro de movimientos del almacén al piso
-- Validación de stock disponible
-- Actualización automática del inventario
-- Historial de movimientos
+### 🔄 Relleno/Reabastecimiento Optimizado
+- **Escaneo con autofill automático** (nombre, marca, piezas/caja se rellenan automáticamente)
+- **Búsqueda manual** por código de barras
+- **Validación de stock** disponible
+- **Actualización automática** del inventario
+- **Historial de movimientos** con timestamp
+- **Contador diario** de movimientos realizados
 
-### 📊 Auditoría Rápida
-- Selección de bodega a auditar
-- Conteo físico vs sistema
-- Detección de diferencias
-- Historial de conteos del día
-- Contador total de cajas auditadas
+### ✓ Auditoría Inteligente
+- **Selección de bodega** a auditar
+- **Lista de productos esperados** en esa bodega
+- **Escaneo con autofill** (campos pre-rellenados)
+- **Muestra stock del sistema** en banner destacado
+- **Checkmark visual** (✓ verde) al completar cada producto
+- **Historial en tiempo real** durante la auditoría
+- **Detección automática de diferencias** (faltantes/sobrantes)
+- **Resumen final** con estadísticas
 
-### 📈 Dashboard con Estadísticas
-- Total de productos únicos
-- Total de cajas en inventario
-- Movimientos del día
-- Productos próximos a vencer (30 días)
-- Actualización en tiempo real
+### 📱 Progressive Web App (PWA) + Offline
+- **Instalable** en Android, iOS, Windows, macOS
+- **Funciona sin internet** gracias a Service Worker (Cache-First)
+- **Carga rápida** incluso sin conexión
+- **Sincronización automática** cuando vuelve la conexión
+- **Splash screen personalizado** al abrir la app
 
-### 🌐 Sincronización en Tiempo Real
-- Sincronización automática con Firebase
-- Múltiples dispositivos conectados
-- Sin pérdida de datos
-- Detección de conexión online/offline
-
-### 🔧 Sistema y Diagnóstico
-- Estado de conexión en tiempo real
-- Diagnóstico completo de Firebase
-- Estadísticas del inventario
-- Limpieza de datos locales
-- Información del dispositivo
-
-### 📱 Progressive Web App (PWA)
-- Instalable en cualquier dispositivo
-- Funciona como app nativa
-- Íconos y splash screens personalizados
-- Soporte offline (próximamente)
-
----
-
-## 🌐 Demo en Vivo
-
-🔗 **URL:** [https://aguilainvantario.netlify.app](https://aguilainvantario.netlify.app)
-
-### Credenciales de Prueba
-```
-Email: demo@aguilapro.com
-Contraseña: demo123456
-```
-
----
-
-## 📸 Capturas de Pantalla
-
-### Login y Dashboard
-![Login](docs/screenshots/login.png)
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Inventario y Búsqueda
-![Inventario](docs/screenshots/inventario.png)
-![Búsqueda](docs/screenshots/busqueda.png)
-
-### Auditoría y Relleno
-![Auditoría](docs/screenshots/auditoria.png)
-![Relleno](docs/screenshots/relleno.png)
+### ⚙️ Sistema y Diagnóstico
+- **Información del usuario** y tienda asignada
+- **Estado de Firebase** en tiempo real
+- **Diagnóstico técnico** del dispositivo
+- **Estadísticas de inventario** y movimientos
+- **Limpiar datos locales** cuando sea necesario
 
 ---
 
@@ -123,100 +86,147 @@ Contraseña: demo123456
 
 ### Frontend
 - **HTML5** - Estructura semántica
-- **CSS3** - Estilos modernos con variables CSS
-- **JavaScript (ES6+)** - Lógica de la aplicación
-- **Progressive Web App** - Instalable en dispositivos
+- **CSS3** - Variables CSS, Flexbox, Grid, Media Queries
+- **JavaScript ES6+** - Modular, async/await, Fetch API
 
-### Backend / Base de Datos
-- **Firebase Authentication** - Autenticación de usuarios
-- **Firebase Realtime Database** - Base de datos en tiempo real
-- **Firebase Hosting** - Opcional para despliegue
+### Backend & Base de Datos
+- **Firebase Authentication** - Autenticación segura
+- **Firebase Realtime Database** - Sincronización en tiempo real
 
-### Librerías
-- **QuaggaJS** - Escáner de códigos de barras
-- **Firebase SDK 9.22.0** - SDKs de Firebase (Compat)
+### APIs & Librerías
+- **Google ML Kit (BarcodeDetector)** - Escáner de códigos
+- **Firebase SDK v9 (Compat)** - Inicialización de Firebase
+- **Service Worker API** - PWA offline
+- **Notification API** - Alertas y toasts
 
-### Despliegue
-- **Netlify** - Hosting y CI/CD automático
-- **Git/GitHub** - Control de versiones
+### DevOps
+- **Netlify** - Hosting + CI/CD automático
+- **GitHub** - Control de versiones
 
 ---
 
-## 🚀 Instalación
+## 🌐 Demo en Vivo
+
+🔗 **URL:** [https://aguilainvantario.netlify.app](https://aguilainvantario.netlify.app)
+
+**Credenciales de Prueba:**
+```
+📧 Email: demo@aguilapro.com
+🔑 Contraseña: demo123456
+```
+
+---
+
+## 🚀 Instalación Rápida
 
 ### Requisitos Previos
-- Node.js 14+ (opcional, solo para desarrollo local)
+- Navegador moderno (Chrome 90+, Edge, Safari, Samsung Internet)
 - Cuenta de Firebase
-- Cuenta de Netlify (o cualquier hosting estático)
 - Git
 
-### Clonar el Repositorio
+### Pasos
 
+#### 1. Clonar el Repositorio
 ```bash
 git clone https://github.com/chivas11estar-ui/Aguila-inventario-pro.git
 cd Aguila-inventario-pro
 ```
 
-### Configurar Firebase
+#### 2. Crear Proyecto Firebase
+- Ve a [Firebase Console](https://console.firebase.google.com)
+- Crear nuevo proyecto
+- Habilitar **Authentication** (Email/Password)
+- Habilitar **Realtime Database**
+- Obtener credenciales Web
 
-1. **Crear proyecto en Firebase:**
-   - Ve a [Firebase Console](https://console.firebase.google.com/)
-   - Crea un nuevo proyecto
-   - Habilita **Authentication** (Email/Password)
-   - Habilita **Realtime Database**
+#### 3. Configurar Firebase (ver sección siguiente)
 
-2. **Obtener credenciales:**
-   - Ve a Configuración del proyecto → General
-   - En "Tus apps" → Web
-   - Copia las credenciales
+#### 4. Desplegar
+```bash
+# Opción A: Deploy local para testing
+python -m http.server 8000
+# Abrir: http://localhost:8000
 
-3. **Configurar `firebase-config.js`:**
+# Opción B: Deploy en Netlify
+# Conectar repositorio a Netlify para CI/CD automático
+```
+
+---
+
+## 🔥 Configuración de Firebase
+
+### 1. Archivo `firebase-config.js`
+
+Reemplaza el archivo con tus credenciales:
 
 ```javascript
+// firebase-config.js
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  databaseURL: "https://tu-proyecto.firebaseio.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  databaseURL: "https://your-project.firebaseio.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const auth = firebase.auth();
 ```
 
-### Configurar Reglas de Firebase
+### 2. Reglas de Seguridad (Realtime Database)
 
-**Authentication Rules:**
-```javascript
-// Solo usuarios autenticados
-```
+**CRÍTICO:** Estas reglas implementan seguridad multi-tienda.
 
-**Realtime Database Rules:**
 ```json
 {
   "rules": {
+    ".read": false,
+    ".write": false,
+    
     "usuarios": {
       "$uid": {
         ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+        ".write": "$uid === auth.uid",
+        ".validate": "newData.hasChildren(['email', 'determinante'])"
       }
     },
+    
     "inventario": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".indexOn": ["codigoBarras", "ubicacion", "nombre"],
+        "$productoId": {
+          ".validate": "newData.hasChildren(['nombre', 'codigoBarras', 'marca', 'cajas', 'ubicacion'])"
+        }
       }
     },
+    
     "movimientos": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".indexOn": ["fecha", "tipo", "productoId"]
       }
     },
+    
     "auditorias": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".indexOn": ["fecha", "bodega", "productoId"]
+      }
+    },
+    
+    "auditorias_completadas": {
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".indexOn": ["fechaFin", "bodega", "estado"]
       }
     }
   }
@@ -225,233 +235,219 @@ const firebaseConfig = {
 
 ---
 
-## 💻 Uso
-
-### Desarrollo Local
-
-#### Opción 1: Servidor Simple (Python)
-```bash
-# Python 3
-python -m http.server 8000
-
-# Abrir en navegador
-open http://localhost:8000
-```
-
-#### Opción 2: Live Server (VS Code)
-1. Instala la extensión "Live Server"
-2. Click derecho en `index.html`
-3. Selecciona "Open with Live Server"
-
-### Uso de la Aplicación
-
-#### 1. **Registro/Login**
-- Abre la aplicación
-- Regístrate con email, contraseña y datos de la tienda
-- O inicia sesión si ya tienes cuenta
-
-#### 2. **Agregar Productos**
-- Ve a la pestaña "Agregar"
-- Escanea o escribe el código de barras
-- Completa los datos del producto
-- Guarda
-
-#### 3. **Ver Inventario**
-- Ve a la pestaña "Inventario"
-- Usa la búsqueda para encontrar productos
-- Filtra por marca
-- Edita o elimina productos
-
-#### 4. **Registrar Movimientos (Relleno)**
-- Ve a la pestaña "Relleno"
-- Escanea el producto
-- Ingresa cantidad de cajas a mover
-- Registra el movimiento
-
-#### 5. **Realizar Auditoría**
-- Ve a la pestaña "Auditar"
-- Selecciona la bodega
-- Escanea productos
-- Registra el conteo físico
-- Revisa diferencias
-
-#### 6. **Ver Estadísticas**
-- Dashboard muestra resumen general
-- Sistema → Estadísticas para detalles
-- Sistema → Diagnóstico para estado técnico
-
----
-
 ## 📁 Estructura del Proyecto
 
 ```
-Aguila-inventario-pro/
-├── index.html              # Página principal
-├── styles.css              # Estilos de la aplicación
-├── firebase-config.js      # Configuración de Firebase
-├── auth.js                 # Autenticación
-├── ui.js                   # Interfaz de usuario
-├── inventory.js            # Gestión de inventario
-├── refill.js               # Movimientos de stock
-├── audit.js                # Auditorías
-├── system.js               # Sistema y diagnóstico
-├── app.js                  # Inicializador principal
-├── manifest.json           # PWA Manifest
-├── service-worker.js       # Service Worker (offline)
-├── netlify.toml            # Configuración de Netlify
-├── icon-192x192.png        # Ícono PWA 192x192
-├── icon-512x512.png        # Ícono PWA 512x512
-└── README.md               # Este archivo
+📦 Águila Inventario Pro/
+│
+├── 📄 index.html              # App Shell (HTML principal)
+├── 🎨 styles.css              # Estilos base y layout
+├── 🎨 custom-styles.css       # Estilos avanzados (bodegas, autofill)
+│
+├── 🔧 CONFIGURACIÓN
+│   ├── firebase-config.js     # Credenciales e inicialización
+│   └── manifest.json          # PWA Manifest
+│
+├── 🔐 AUTENTICACIÓN
+│   └── auth.js                # Login, Registro, Recuperar contraseña
+│
+├── 💻 LÓGICA PRINCIPAL
+│   ├── app.js                 # Controlador principal
+│   └── ui.js                  # Utilidades de UI (Toasts, Modales)
+│
+├── 📦 MÓDULOS DE NEGOCIO
+│   ├── inventory.js           # Cargar, agregar, editar inventario
+│   ├── inventory-enhanced.js  # Buscador, desplegables, agrupación
+│   ├── refill.js              # Relleno/Movimientos con autofill
+│   ├── audit.js               # Auditoría inteligente
+│   └── system.js              # Sistema y diagnóstico
+│
+├── 📷 ESCÁNER
+│   ├── scanner-mlkit.js       # Lógica del escáner (ML Kit)
+│   └── scanner-events.js      # Eventos de botones de escáner
+│
+├── ⚙️ PWA
+│   └── service-worker.js      # Cache offline y sincronización
+│
+├── 🚀 DESPLIEGUE
+│   └── netlify.toml           # Configuración de Netlify
+│
+└── 📚 ASSETS
+    ├── icon-192x192.png       # Ícono PWA 192x192
+    └── icon-512x512.png       # Ícono PWA 512x512
 ```
 
 ---
 
-## 🔥 Configuración de Firebase
+## 🔩 Estructura de Datos
 
-### Estructura de Datos
+### `usuarios/{uid}`
+Perfil del promotor asignado a una tienda.
 
-#### `usuarios/{uid}`
 ```json
 {
-  "email": "usuario@ejemplo.com",
-  "nombrePromotor": "Juan Pérez",
+  "email": "jose@empresa.com",
+  "nombrePromotor": "José Betancourt",
   "nombreTienda": "Oxxo Centro",
   "determinante": "12345",
-  "fechaRegistro": "2025-01-15T10:30:00.000Z"
+  "fechaRegistro": "2025-11-08T10:30:00.000Z"
 }
 ```
 
-#### `inventario/{uid}/{productId}`
+### `inventario/{determinante}/{productId}`
+Productos de la tienda, compartidos por todos los promotores con ese determinante.
+
 ```json
 {
   "codigoBarras": "7501234567890",
-  "nombre": "Papas Sabritas 50g",
+  "nombre": "Pepsi 1L",
   "marca": "Sabritas",
   "piezasPorCaja": 24,
   "ubicacion": "Almacén 1",
   "fechaCaducidad": "2025-12-31",
   "cajas": 10,
-  "fechaCreacion": "2025-01-15T10:30:00.000Z",
-  "fechaActualizacion": "2025-01-15T10:30:00.000Z"
+  "fechaActualizacion": "2025-11-08T15:30:00.000Z"
 }
 ```
 
-#### `movimientos/{uid}/{movementId}`
+### `movimientos/{determinante}/{movementId}`
+Historial de rellenos y ajustes.
+
 ```json
 {
   "tipo": "relleno",
-  "productoId": "abc123",
-  "productoNombre": "Papas Sabritas 50g",
-  "cantidad": 3,
+  "productoId": "-Nq...abc",
+  "productoNombre": "Pepsi 1L",
+  "productoCodigo": "7501234567890",
+  "marca": "Sabritas",
+  "cajasMovidas": 3,
   "stockAnterior": 10,
   "stockNuevo": 7,
-  "fecha": "2025-01-15T10:30:00.000Z"
+  "ubicacion": "Almacén 1",
+  "fecha": "2025-11-08T18:30:00.000Z",
+  "realizadoPor": "jose@empresa.com"
 }
 ```
 
-#### `auditorias/{uid}/{auditId}`
+### `auditorias/{determinante}/{auditId}`
+Auditorías individuales por producto.
+
 ```json
 {
-  "productoId": "abc123",
-  "productoNombre": "Papas Sabritas 50g",
+  "productoId": "-Nq...abc",
+  "productoNombre": "Pepsi 1L",
   "productoCodigo": "7501234567890",
   "marca": "Sabritas",
   "bodega": "Almacén 1",
   "stockRegistrado": 10,
   "stockContado": 9,
   "diferencia": -1,
-  "fecha": "2025-01-15T10:30:00.000Z",
-  "auditor": "usuario@ejemplo.com"
+  "fecha": "2025-11-08T20:00:00.000Z",
+  "auditor": "jose@empresa.com"
+}
+```
+
+### `auditorias_completadas/{determinante}/{sessionId}`
+Auditoría completa de una bodega.
+
+```json
+{
+  "bodega": "Almacén 1",
+  "fechaInicio": "2025-11-08T19:00:00.000Z",
+  "fechaFin": "2025-11-08T21:00:00.000Z",
+  "auditor": "jose@empresa.com",
+  "productosAuditados": 25,
+  "totalCajas": 120,
+  "diferenciasEncontradas": 3,
+  "estado": "completada"
 }
 ```
 
 ---
 
-## 🚢 Despliegue
+## 📖 Cómo Usar
 
-### Despliegue en Netlify
+### 1. Agregar Producto
+1. Ir a pestaña **➕ Agregar**
+2. Escanear código (o escribir manualmente)
+3. Completar información
+4. Seleccionar marca y bodega
+5. Guardar
 
-#### Método 1: Desde GitHub (Recomendado)
+### 2. Ver Inventario
+1. Ir a pestaña **📦 Inventario**
+2. Filtrar por marca (click en nombre)
+3. Expandir bodega para ver detalles
+4. Buscar por nombre o código
 
-1. **Push a GitHub:**
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
+### 3. Registrar Relleno
+1. Ir a pestaña **🔄 Relleno**
+2. Escanear producto (autofill automático)
+3. Ingresar cantidad de cajas a mover
+4. Guardar
 
-2. **Conectar con Netlify:**
-   - Ve a [Netlify](https://netlify.com)
-   - "New site from Git"
-   - Selecciona tu repositorio
-   - Build settings (dejar vacío para sitio estático)
-   - Deploy!
+### 4. Auditar Bodega
+1. Ir a pestaña **✓ Auditoría**
+2. Seleccionar bodega
+3. Escanear productos
+4. Ingresar cantidad contada
+5. Ver checkmarks (✓) al completar
+6. Finalizar para aplicar cambios
 
-3. **Configurar Dominio (Opcional):**
-   - Site settings → Domain management
-   - Add custom domain
-
-#### Método 2: Deploy Manual
-
-```bash
-# Instalar Netlify CLI
-npm install -g netlify-cli
-
-# Login
-netlify login
-
-# Deploy
-netlify deploy --prod
-```
-
-### Despliegue en Otros Servicios
-
-#### Vercel
-```bash
-npm install -g vercel
-vercel
-```
-
-#### GitHub Pages
-```bash
-# En Settings → Pages
-# Source: main branch / root
-```
+### 5. Ver Estadísticas
+1. Ir a pestaña **⚙️ Sistema**
+2. Click en "📊 Estadísticas"
+3. Ver movimientos, auditorías, etc.
 
 ---
 
-## 🤝 Contribuir
+## 🔮 Roadmap
 
-Las contribuciones son bienvenidas. Por favor:
+### v7.7 - Auditoría Mejorada
+- [ ] Lista visual de productos esperados en bodega
+- [ ] Resumen antes de finalizar con confirmaciones
+- [ ] Productos "no encontrados" → opción de poner en 0
+- [ ] Búsqueda de productos en otras bodegas
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add: Amazing Feature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+### v8.0 - Reportes & Analytics
+- [ ] Exportar inventario a Excel/PDF
+- [ ] Gráficas de movimientos por día/semana/mes
+- [ ] Top 10 productos más movidos
+- [ ] Alertas de stock bajo
 
-### Estándares de Código
-- Comentarios en español
-- Nombres de variables descriptivos
-- Console.logs para debugging
-- Manejo de errores con try/catch
+### v8.1 - Notificaciones
+- [ ] Notificaciones push de caducidad
+- [ ] Recordatorios de auditoría
+- [ ] Alertas de stock crítico
+
+### v8.2 - Funciones Avanzadas
+- [ ] Modo oscuro
+- [ ] Historial de cambios por producto
+- [ ] Chat interno por tienda
+- [ ] Rol de supervisor (ver múltiples tiendas)
 
 ---
 
-## 📝 Licencia
+## 📞 Soporte
 
-Este proyecto es **software propietario** y está protegido por derechos de autor.
+Si encuentras problemas:
+
+1. Revisa la consola del navegador (F12 → Console)
+2. Verifica la conexión a Firebase (⚙️ Sistema → Diagnóstico)
+3. Abre un issue en [GitHub](https://github.com/chivas11estar-ui/Aguila-inventario-pro/issues)
+4. Contacta al autor
+
+---
+
+## 📄 Licencia
+
+Proprietario © 2025 José A. G. Betancourt. Todos los derechos reservados.
 
 ```
-Copyright © 2025 José A. G. Betancourt
-Todos los derechos reservados.
-
-Queda prohibida la reproducción, distribución o modificación
-sin autorización expresa del autor.
+Se prohíbe la reproducción, distribución o modificación sin 
+autorización expresa del autor. Para licencias comerciales o 
+permisos especiales, contacta al autor.
 ```
-
-Para solicitar licencias comerciales o permisos especiales:
-- 📧 Email: jose.betancourt@aguilapro.com
 
 ---
 
@@ -459,77 +455,25 @@ Para solicitar licencias comerciales o permisos especiales:
 
 **José A. G. Betancourt**
 
-- 🌐 Website: [aguilapro.com](https://aguilapro.com)
-- 💼 LinkedIn: [José Betancourt](https://linkedin.com/in/josebetancourt)
 - 🐙 GitHub: [@chivas11estar-ui](https://github.com/chivas11estar-ui)
 - 📧 Email: chivas11estar@gmail.com
+- 🌐 Website: [aguilapro.com](https://aguilapro.com)
 
 ---
 
 ## 🙏 Agradecimientos
 
+- **Google ML Kit** por el escáner de códigos
 - **Firebase** por la infraestructura backend
-- **QuaggaJS** por el escáner de códigos de barras
-- **Netlify** por el hosting gratuito
-- **PepsiCo** por la inspiración del proyecto
-
----
-
-## 📊 Estadísticas del Proyecto
-
-- **Versión:** 7.0
-- **Líneas de Código:** ~2,500+
-- **Archivos:** 14
-- **Última Actualización:** octubre 2025
-
----
-
-## 🔮 Roadmap
-
-### Próximas Funcionalidades
-- [ ] Modo offline completo con Service Worker
-- [ ] Exportar inventario a Excel
-- [ ] Generar reportes PDF
-- [ ] Compartir por WhatsApp
-- [ ] Gráficas de movimientos
-- [ ] Historial de cambios
-- [ ] Multi-tienda (para supervisores)
-- [ ] Notificaciones push
-- [ ] Dark mode
-
----
-
-## ❓ FAQ (Preguntas Frecuentes)
-
-### ¿La app funciona sin internet?
-Actualmente no, pero estamos trabajando en modo offline para v7.1.
-
-### ¿Puedo usar la app en múltiples dispositivos?
-Sí, los datos se sincronizan automáticamente entre dispositivos.
-
-### ¿Es gratis?
-Sí para uso individual. Para licencias comerciales contacta al autor.
-
-### ¿Cómo reporto un bug?
-Abre un issue en GitHub con descripción detallada y capturas.
-
----
-
-## 📞 Soporte
-
-Si necesitas ayuda:
-
-1. Revisa la documentación
-2. Busca en [Issues](https://github.com/chivas11estar-ui/Aguila-inventario-pro/issues)
-3. Abre un nuevo Issue
-4. Contacta al autor por email
+- **Netlify** por el hosting
+- **PepsiCo** por la inspiración
 
 ---
 
 <div align="center">
 
-**Hecho con ❤️ por José A. G. Betancourt**
+**Hecho con ❤️ para promotores que merecen herramientas profesionales**
 
-[⬆ Volver arriba](#-águila-inventario-pro-v70)
+[⬆ Volver arriba](#-águila-inventario-pro-v76)
 
 </div>
