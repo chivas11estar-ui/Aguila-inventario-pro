@@ -43,7 +43,6 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
 }
 
 /* ============================================
@@ -264,7 +263,7 @@ button:active {
   max-width: 1200px;
   margin: 0 auto;
   margin-left: 0;
-  /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
+  padding-bottom: 100px;
 }
 
 .tab-content {
@@ -452,7 +451,7 @@ button:active {
 
   .main-content {
     padding: 15px;
-    /* ❌ SE QUITÓ EL PADDING DE AQUÍ ❌ */
+    padding-bottom: 120px;
   }
 
   .sidebar {
@@ -472,7 +471,7 @@ button:active {
 }
 
 /* ============================================
-   BOTTOM NAVIGATION (AÑADIDO - ESTO ARREGLA LOS BOTONES)
+   BOTTOM NAVIGATION
    ============================================ */
 .bottom-nav {
   display: flex;
@@ -506,7 +505,7 @@ button:active {
 }
 
 .nav-btn span {
-  pointer-events: none; /* Para que el click siempre sea en el <a> */
+  pointer-events: none;
 }
 
 .nav-btn:hover {
@@ -520,9 +519,10 @@ button:active {
 }
 
 /* ============================================
-   ✅ FOOTER (ARREGLO DE LAYOUT)
+   FOOTER - ARREGLO DEFINITIVO DE ESPECIFICIDAD
    ============================================ */
 footer {
-  padding-bottom: 85px; /* 65px de la barra + 20px de espacio */
-   }
-   
+  padding: 20px;
+  padding-bottom: 85px;
+  z-index: 98;
+}
