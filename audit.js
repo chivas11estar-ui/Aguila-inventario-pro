@@ -626,6 +626,126 @@ function limpiarCamposAudit() {
 }
 
 // ============================================================
+// MEJORAR: Entrada Manual de Código de Barras
+// ============================================================
+function configurarEntradaManualAudit() {
+  const inputBarcode = document.getElementById('audit-barcode');
+  
+  if (!inputBarcode) return;
+  
+  // LISTENERS MEJORADOS
+  inputBarcode.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const codigo = inputBarcode.value.trim();
+      
+      if (!codigo) {
+        showToast('⚠️ Ingresa un código de barras', 'warning');
+        return;
+      }
+      
+      // Buscar producto
+      await buscarProductoAudit();
+    }
+  });
+  
+  // VALIDACIÓN EN TIEMPO REAL
+  inputBarcode.addEventListener('input', (e) => {
+    // Limpieza automática de espacios
+    e.target.value = e.target.value.trim();
+    
+    // Cambiar estilo mientras escribe
+    if (e.target.value.length > 0) {
+      e.target.style.borderColor = '#004aad';
+    } else {
+      e.target.style.borderColor = '#e5e7eb';
+    }
+  });
+  
+  // FOCUS AL ABRIR AUDITORÍA
+  setTimeout(() => {
+    inputBarcode.focus();
+  }, 100);
+}
+
+// ============================================================
+// MEJORAR: Búsqueda Automática al Alcanzar 12+ Dígitos
+// ============================================================
+function configurarBusquedaAutomatica() {
+  const inputBarcode = document.getElementById('audit-barcode');
+  
+  if (!inputBarcode) return;
+  
+  inputBarcode.addEventListener('input', async (e) => {
+    const codigo = e.target.value.trim();
+    
+    // Si tiene 12+ dígitos, buscar automáticamente
+    if (codigo.length >= 12 && /^\d+$/.test(codigo)) {
+      // Esperar un momento para que el usuario termine de escribir
+      setTimeout(async () => {
+        await buscarProductoAudit();
+      }, 300);
+    }
+  });
+}
+
+// ============================================================
+// MEJORAR: Cantidad Contada - Auto Focus y Validación
+// ============================================================
+function configurarCantidadContada() {
+  const inputCantidad = document.getElementById('audit-boxes');
+  
+  if (!inputCantidad) return;
+  
+  // Al hacer foco, seleccionar el texto
+  inputCantidad.addEventListener('focus', (e) => {
+    e.target.select();
+  });
+  
+  // Permitir Enter para guardar directamente
+  inputCantidad.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const form = document.getElementById('audit-form');
+      if (form) {
+        const event = new Event('submit', { bubbles: true });
+        form.dispatchEvent(event);
+      }
+    }
+  });
+  
+  // Validación de números negativos
+  inputCantidad.addEventListener('input', (e) => {
+    if (e.target.value < 0) {
+      e.target.value = 0;
+    }
+  });
+}
+
+// ============================================================
+// LLAMAR TODAS LAS CONFIGURACIONES
+// ============================================================
+function configurarEntradaAuditCompleta() {
+  console.log('🔧 Configurando entrada de auditoría mejorada...');
+  
+  // Esperar a que el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      configurarEntradaManualAudit();
+      configurarBusquedaAutomatica();
+      configurarCantidadContada();
+      console.log('✅ Entrada de auditoría configurada');
+    });
+  } else {
+    configurarEntradaManualAudit();
+    configurarBusquedaAutomatica();
+    configurarCantidadContada();
+    console.log('✅ Entrada de auditoría configurada');
+  }
+}
+
+// ============================================================
 // INICIALIZACIÓN
 // ============================================================
 function inicializarAudit() {
@@ -653,17 +773,6 @@ function inicializarAudit() {
       };
     }
     
-    // Buscar producto con Enter
-    const inputBarcode = document.getElementById('audit-barcode');
-    if (inputBarcode) {
-      inputBarcode.onkeypress = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          buscarProductoAudit();
-        }
-      };
-    }
-    
     // Submit formulario
     const form = document.getElementById('audit-form');
     if (form) {
@@ -678,6 +787,9 @@ function inicializarAudit() {
     if (btnTerminar) {
       btnTerminar.onclick = terminarAuditoria;
     }
+    
+    // Configurar entrada mejorada
+    configurarEntradaAuditCompleta();
   });
 }
 
@@ -688,7 +800,7 @@ if (document.readyState === 'loading') {
   inicializarAudit();
 }
 
-console.log('✅ audit.js cargado - Walmart Style');
+console.log('✅ audit.js cargado - Walmart Style + Entrada Manual');
 
 // Exponer funciones globales
 window.buscarProductoAudit = buscarProductoAudit;
@@ -714,3 +826,5 @@ styleAudit.textContent = `
   }
 `;
 document.head.appendChild(styleAudit);
+
+console.log('✅ Mejoras de entrada manual en auditoría cargadas');

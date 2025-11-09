@@ -96,17 +96,18 @@
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
-/* CAMPOS DE AUTOFILL (READONLY) */
+/* CAMPOS DE AUTOFILL (READONLY) - CORREGIDO */
 input[readonly] {
   background: #f8fafc !important;
   color: #475569 !important;
   cursor: not-allowed;
-  border-color: #e2e8f0 !important;
+  border-color: #e2e8f0;
+  transition: border-color 0.3s ease;
 }
 
 input[readonly]:focus {
   box-shadow: none !important;
-  border-color: #cbd5e1 !important;
+  border-color: #cbd5e1;
 }
 
 /* CARD DE PRODUCTO MEJORADA */

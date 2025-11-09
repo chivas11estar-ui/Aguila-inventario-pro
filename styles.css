@@ -263,7 +263,7 @@ button:active {
   max-width: 1200px;
   margin: 0 auto;
   margin-left: 0;
-  padding-bottom: 80px; /* <-- AÑADIDO PARA DEJAR ESPACIO A LA NAVEGACIÓN */
+  padding-bottom: 120px; /* <-- AÑADIDO PARA DEJAR ESPACIO A LA NAVEGACIÓN */
 }
 
 .tab-content {
