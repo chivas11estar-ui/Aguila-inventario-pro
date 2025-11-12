@@ -2,38 +2,106 @@
   publish = "."
   command = ""
 
-# Cabeceras específicas por tipo de recurso
+# ============================================================
+# CABECERAS HTTP OPTIMIZADAS
+# ============================================================
+
+# HTML - Sin caché para actualizaciones inmediatas
 [[headers]]
   for = "/*.html"
   [headers.values]
     Content-Type = "text/html; charset=utf-8"
     Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    X-XSS-Protection = "1; mode=block"
 
+# JavaScript - Sin caché para actualizaciones inmediatas
 [[headers]]
   for = "/*.js"
   [headers.values]
     Content-Type = "application/javascript; charset=utf-8"
     Cache-Control = "no-cache, no-store, must-revalidate"
 
+# Manifest.json - PWA
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
 
+# ============================================================
+# SERVICE WORKER - CORRECCIÓN CRÍTICA
+# Cambiado de /sw.js a /service-worker.js
+# ============================================================
 [[headers]]
-  for = "/sw.js"
+  for = "/service-worker.js"
   [headers.values]
     Content-Type = "application/javascript; charset=utf-8"
-    Cache-Control = "no-cache"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
 
+# Iconos - Caché largo (1 año)
 [[headers]]
   for = "/icon-*.png"
   [headers.values]
+    Content-Type = "image/png"
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Fallback para SPA: sirve index.html cuando no existe el archivo físico
+# CSS - Sin caché
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Imágenes generales - Caché medio (1 semana)
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# robots.txt - Caché corto (1 hora)
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+# sitemap.xml - Caché corto (1 hora)
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+# ============================================================
+# SEGURIDAD GLOBAL
+# ============================================================
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ============================================================
+# REDIRECTS - SPA FALLBACK
+# ============================================================
+
+# Redirigir 404 al index.html (para SPA routing)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
   force = false
+
+# ============================================================
+# NOTAS IMPORTANTES
+# ============================================================
+# 1. service-worker.js debe estar en la raíz del proyecto
+# 2. robots.txt debe estar en la raíz del proyecto
+# 3. sitemap.xml debe estar en la raíz del proyecto
+# 4. Después de actualizar, hacer deploy en Netlify
+# ============================================================
