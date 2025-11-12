@@ -172,16 +172,20 @@ async function registrarConteo() {
   const boxesInput = document.getElementById('audit-boxes');
   const boxes = parseInt(boxesInput.value);
   
+  // VALIDACIÓN 1: Bodega seleccionada
   if (!currentAuditWarehouse) {
     showToast('Primero selecciona una bodega', 'warning');
     return false;
   }
   
-  if (!currentAuditProduct) {
-    showToast('Primero escanea un producto', 'warning');
+  // VALIDACIÓN 2: Producto escaneado (¡CRÍTICO!)
+  if (!currentAuditProduct || !currentAuditProduct.id) {
+    showToast('⚠️ Primero escanea un producto válido', 'warning');
+    document.getElementById('audit-barcode').focus();
     return false;
   }
   
+  // VALIDACIÓN 3: Cantidad válida
   if (isNaN(boxes) || boxes < 0) {
     showToast('Ingresa una cantidad válida', 'error');
     return false;
@@ -213,7 +217,7 @@ async function registrarConteo() {
       .ref('auditorias/' + userDeterminanteAudit)
       .push(auditData);
     
-    // 2. ACTUALIZAR STOCK AUTOMÁTICAMENTE (SIN CONFIRMACIÓN)
+    // 2. ACTUALIZAR STOCK AUTOMÁTICAMENTE
     await firebase.database()
       .ref('inventario/' + userDeterminanteAudit + '/' + currentAuditProduct.id)
       .update({
@@ -254,7 +258,7 @@ async function registrarConteo() {
     // 5. MOSTRAR CHECKMARK VISUAL
     mostrarCheckmarkAudit(difference);
     
-    // 6. REPRODUCIR SONIDO (si está disponible)
+    // 6. REPRODUCIR SONIDO
     reproducirBeep();
     
     // 7. VIBRACIÓN HÁPTICA
@@ -271,7 +275,7 @@ async function registrarConteo() {
     limpiarFormularioAudit();
     document.getElementById('audit-barcode').focus();
     
-    // MOSTRAR FEEDBACK
+    // 10. MOSTRAR FEEDBACK
     if (difference === 0) {
       showToast('✅ ' + currentAuditProduct.nombre + ' - OK', 'success');
     } else if (difference > 0) {
@@ -602,229 +606,59 @@ function agregarHistorial(auditData) {
 // ============================================================
 function limpiarFormularioAudit() {
   document.getElementById('audit-barcode').value = '';
-  limpiarCamposAudit();
   document.getElementById('audit-boxes').value = '';
+  currentAuditProduct = null;
+  
+  // Resetear info de stock
+  const stockInfo = document.getElementById('audit-stock-info');
+  if (stockInfo) {
+    stockInfo.style.display = 'none';
+  }
 }
 
 // ============================================================
-// LIMPIAR CAMPOS AUTOFILL
+// LIMPIAR CAMPOS (cuando no se encuentra producto)
 // ============================================================
 function limpiarCamposAudit() {
   document.getElementById('audit-nombre').value = '';
   document.getElementById('audit-marca').value = '';
   document.getElementById('audit-piezas').value = '';
-  document.getElementById('audit-stock-info').style.display = 'none';
-  document.getElementById('audit-boxes').dataset.productoId = '';
-  document.getElementById('audit-boxes').dataset.stockSistema = '';
+  document.getElementById('audit-boxes').value = '';
   
-  // Cambiar estilos a gris (no encontrado)
-  document.getElementById('audit-nombre').style.borderColor = '#e2e8f0';
-  document.getElementById('audit-marca').style.borderColor = '#e2e8f0';
-  document.getElementById('audit-piezas').style.borderColor = '#e2e8f0';
+  // Resetear bordes a gris
+  document.getElementById('audit-nombre').style.borderColor = '#d1d5db';
+  document.getElementById('audit-marca').style.borderColor = '#d1d5db';
+  document.getElementById('audit-piezas').style.borderColor = '#d1d5db';
   
-  currentAuditProduct = null;
-}
-
-// ============================================================
-// MEJORAR: Entrada Manual de Código de Barras
-// ============================================================
-function configurarEntradaManualAudit() {
-  const inputBarcode = document.getElementById('audit-barcode');
-  
-  if (!inputBarcode) return;
-  
-  // LISTENERS MEJORADOS
-  inputBarcode.addEventListener('keypress', async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const codigo = inputBarcode.value.trim();
-      
-      if (!codigo) {
-        showToast('⚠️ Ingresa un código de barras', 'warning');
-        return;
-      }
-      
-      // Buscar producto
-      await buscarProductoAudit();
-    }
-  });
-  
-  // VALIDACIÓN EN TIEMPO REAL
-  inputBarcode.addEventListener('input', (e) => {
-    // Limpieza automática de espacios
-    e.target.value = e.target.value.trim();
-    
-    // Cambiar estilo mientras escribe
-    if (e.target.value.length > 0) {
-      e.target.style.borderColor = '#004aad';
-    } else {
-      e.target.style.borderColor = '#e5e7eb';
-    }
-  });
-  
-  // FOCUS AL ABRIR AUDITORÍA
-  setTimeout(() => {
-    inputBarcode.focus();
-  }, 100);
-}
-
-// ============================================================
-// MEJORAR: Búsqueda Automática al Alcanzar 12+ Dígitos
-// ============================================================
-function configurarBusquedaAutomatica() {
-  const inputBarcode = document.getElementById('audit-barcode');
-  
-  if (!inputBarcode) return;
-  
-  inputBarcode.addEventListener('input', async (e) => {
-    const codigo = e.target.value.trim();
-    
-    // Si tiene 12+ dígitos, buscar automáticamente
-    if (codigo.length >= 12 && /^\d+$/.test(codigo)) {
-      // Esperar un momento para que el usuario termine de escribir
-      setTimeout(async () => {
-        await buscarProductoAudit();
-      }, 300);
-    }
-  });
-}
-
-// ============================================================
-// MEJORAR: Cantidad Contada - Auto Focus y Validación
-// ============================================================
-function configurarCantidadContada() {
-  const inputCantidad = document.getElementById('audit-boxes');
-  
-  if (!inputCantidad) return;
-  
-  // Al hacer foco, seleccionar el texto
-  inputCantidad.addEventListener('focus', (e) => {
-    e.target.select();
-  });
-  
-  // Permitir Enter para guardar directamente
-  inputCantidad.addEventListener('keypress', async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      const form = document.getElementById('audit-form');
-      if (form) {
-        const event = new Event('submit', { bubbles: true });
-        form.dispatchEvent(event);
-      }
-    }
-  });
-  
-  // Validación de números negativos
-  inputCantidad.addEventListener('input', (e) => {
-    if (e.target.value < 0) {
-      e.target.value = 0;
-    }
-  });
-}
-
-// ============================================================
-// LLAMAR TODAS LAS CONFIGURACIONES
-// ============================================================
-function configurarEntradaAuditCompleta() {
-  console.log('🔧 Configurando entrada de auditoría mejorada...');
-  
-  // Esperar a que el DOM esté listo
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      configurarEntradaManualAudit();
-      configurarBusquedaAutomatica();
-      configurarCantidadContada();
-      console.log('✅ Entrada de auditoría configurada');
-    });
-  } else {
-    configurarEntradaManualAudit();
-    configurarBusquedaAutomatica();
-    configurarCantidadContada();
-    console.log('✅ Entrada de auditoría configurada');
+  // Ocultar info de stock
+  const stockInfo = document.getElementById('audit-stock-info');
+  if (stockInfo) {
+    stockInfo.style.display = 'none';
   }
 }
 
 // ============================================================
-// INICIALIZACIÓN
+// ANIMACIÓN CSS PARA CHECKMARK
 // ============================================================
-function inicializarAudit() {
-  console.log('🔧 Inicializando auditoría...');
-  
-  firebase.auth().onAuthStateChanged((user) => {
-    if (!user) return;
-    
-    console.log('✅ Usuario autenticado - Auditoría configurada');
-    
-    // Botón confirmar bodega
-    const btnBodega = document.getElementById('save-warehouse-btn');
-    if (btnBodega) {
-      btnBodega.onclick = saveBodega;
-    }
-    
-    // Input bodega con Enter
-    const inputBodega = document.getElementById('audit-warehouse');
-    if (inputBodega) {
-      inputBodega.onkeypress = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          saveBodega();
-        }
-      };
-    }
-    
-    // Submit formulario
-    const form = document.getElementById('audit-form');
-    if (form) {
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        await registrarConteo();
-      };
-    }
-    
-    // Botón terminar auditoría
-    const btnTerminar = document.getElementById('finish-audit-btn');
-    if (btnTerminar) {
-      btnTerminar.onclick = terminarAuditoria;
-    }
-    
-    // Configurar entrada mejorada
-    configurarEntradaAuditCompleta();
-  });
-}
-
-// Iniciar cuando esté listo
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', inicializarAudit);
-} else {
-  inicializarAudit();
-}
-
-console.log('✅ audit.js cargado - Walmart Style + Entrada Manual');
-
-// Exponer funciones globales
-window.buscarProductoAudit = buscarProductoAudit;
-window.guardarConteoAuditoria = registrarConteo;
-
-// ============================================================
-// ANIMACIÓN CSS (INYECTADA)
-// ============================================================
-const styleAudit = document.createElement('style');
-styleAudit.textContent = `
+const style = document.createElement('style');
+style.textContent = `
   @keyframes checkmarkPop {
     0% {
-      transform: translate(-50%, -50%) scale(0) rotate(-45deg);
-      opacity: 1;
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
     }
     50% {
-      transform: translate(-50%, -50%) scale(1.3) rotate(0deg);
+      transform: translate(-50%, -50%) scale(1.2);
+      opacity: 1;
     }
     100% {
-      transform: translate(-50%, -50%) scale(1) rotate(0deg);
+      transform: translate(-50%, -50%) scale(1);
       opacity: 0;
     }
   }
 `;
-document.head.appendChild(styleAudit);
+document.head.appendChild(style);
 
-console.log('✅ Mejoras de entrada manual en auditoría cargadas');
+// ============================================================
+// FIN DEL ARCHIVO
+// ============================================================
