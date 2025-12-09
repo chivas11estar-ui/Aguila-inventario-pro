@@ -1,20 +1,20 @@
 // ============================================================
 // Águila Inventario Pro - Service Worker
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN 7.6 - CORREGIDA Y COMPLETA
+// VERSIÓN 7.8 - CON NUEVOS MÓDULOS
 // ============================================================
 
 // CAMBIO 1: Nuevo nombre de caché para forzar la actualización
-const CACHE_NAME = "aguila-inventario-v7-7-fixes";
+const CACHE_NAME = "aguila-inventario-v7-8-analytics";
 
-// CAMBIO 2: Lista de archivos COMPLETA
+// CAMBIO 2: Lista de archivos COMPLETA (ACTUALIZADA)
 const urlsToCache = [
   "/",
   "/index.html",
   
-  // CSS (Ambos archivos)
+  // CSS
   "/styles.css",
-  "/custom-styles.css", // <--- ARCHIVO QUE FALTABA
+  "/custom-styles.css",
   
   // JSON
   "/manifest.json",
@@ -27,15 +27,19 @@ const urlsToCache = [
   
   // Scripts de Funcionalidad
   "/inventory.js",
-  "/inventory-enhanced.js", // <--- ARCHIVO QUE FALTABA
-  "/refill.js",
+  "/inventory-enhanced.js",
+  "/refill-enhanced.js",      // ← NUEVO (reemplaza refill.js)
+  "/analytics.js",             // ← NUEVO
   "/audit.js",
   "/system.js",
-  "/system-events.js", // <--- ARCHIVO QUE FALTABA
+  "/system-events.js",
   
   // Scripts de Escáner
   "/scanner-mlkit.js",
-  "/scanner-events.js", // <--- ARCHIVO QUE FALTABA
+  "/scanner-events.js",
+  
+  // Librería de gráficos
+  "/charts.js",                // ← Si tienes local, sino usar CDN
   
   // Iconos
   "/icon-192x192.png",
@@ -79,7 +83,9 @@ self.addEventListener("activate", (event) => {
 // Estrategia Cache-First
 self.addEventListener("fetch", (event) => {
   // No cachear peticiones de Firebase
-  if (event.request.url.includes('firebase') || event.request.url.includes('gstatic')) {
+  if (event.request.url.includes('firebase') || 
+      event.request.url.includes('gstatic') ||
+      event.request.url.includes('cdnjs')) {
     return event.respondWith(fetch(event.request));
   }
   
@@ -106,4 +112,4 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-console.log("✅ service-worker.js cargado correctamente");
+console.log("✅ service-worker.js v7.8 cargado correctamente");

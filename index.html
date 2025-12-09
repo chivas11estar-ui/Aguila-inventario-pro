@@ -24,7 +24,9 @@
 <body>
   <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- ESCÁNER MODAL -->
+  <!-- ============================================================
+       ESCÁNER MODAL
+       ============================================================ -->
   <div id="scanner-modal" class="scanner-modal hidden">
     <div class="scanner-container">
       <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;background:var(--primary);">
@@ -41,9 +43,58 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       MODAL CREAR PRODUCTO NUEVO
+       ============================================================ -->
+  <div id="create-product-modal" class="modal-overlay hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="max-width: 500px; padding: 24px; position: relative;">
+      <button style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;" onclick="cerrarModalCrearProducto()">✕</button>
+      
+      <h3 style="color: #004aad; margin-bottom: 20px;">📝 Crear Nuevo Producto</h3>
+      
+      <div class="form-group">
+        <label for="create-product-barcode">Código de Barras</label>
+        <input id="create-product-barcode" type="text" readonly style="background: #f0f9ff;" />
+      </div>
+      
+      <div class="form-group">
+        <label for="create-product-name">Nombre del Producto *</label>
+        <input id="create-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+      </div>
+      
+      <div class="form-group">
+        <label for="create-product-marca">Marca</label>
+        <select id="create-product-marca">
+          <option value="Otra">Otra</option>
+          <option value="Sabritas">Sabritas</option>
+          <option value="Gamesa">Gamesa</option>
+          <option value="Quaker">Quaker</option>
+          <option value="Sonric's">Sonric's</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="create-product-piezas">Piezas por Caja</label>
+        <input id="create-product-piezas" type="number" value="24" min="1" />
+      </div>
+      
+      <div class="form-group">
+        <label for="create-product-warehouse">Bodega/Ubicación *</label>
+        <input id="create-product-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+        <button type="button" id="save-product-modal-btn" class="primary">💾 Crear Producto</button>
+        <button type="button" id="close-product-modal-btn" class="secondary" style="background: #e5e7eb; color: #1f2937;">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <main id="main-app">
     
-    <!-- PANTALLA AUTH -->
+    <!-- ============================================================
+         PANTALLA AUTH
+         ============================================================ -->
     <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
       <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Águila Inventario Pro</h2>
 
@@ -109,7 +160,9 @@
       </form>
     </section>
 
-    <!-- APLICACIÓN -->
+    <!-- ============================================================
+         APLICACIÓN PRINCIPAL
+         ============================================================ -->
     <section id="app-container" style="display:none;">
       
       <!-- HEADER APP -->
@@ -123,7 +176,7 @@
         </div>
       </div>
 
-      <!-- BOTTOM NAVIGATION -->
+      <!-- BOTTOM NAVIGATION (ACTUALIZADO) -->
       <nav class="bottom-nav">
         <a href="#" class="nav-btn active" data-tab="inventory">
           <span style="font-size:20px;">📦</span>
@@ -140,6 +193,10 @@
         <a href="#" class="nav-btn" data-tab="audit">
           <span style="font-size:20px;">✓</span>
           <span>Auditoría</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="analytics">
+          <span style="font-size:20px;">📊</span>
+          <span>Analytics</span>
         </a>
         <a href="#" class="nav-btn" data-tab="system">
           <span style="font-size:20px;">⚙️</span>
@@ -215,11 +272,13 @@
           </div>
         </div>
 
-        <!-- TAB: RELLENO -->
+        <!-- TAB: RELLENO (ACTUALIZADO) -->
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
-            <h2>🔄 Reabastecimiento</h2>
-            <form id="refill-form" style="margin-top:20px;">
+            <h2>🔄 Reabastecimiento Inteligente</h2>
+            <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
+            
+            <form id="refill-form" style="margin-top: 20px;">
               <div class="form-group">
                 <label for="refill-barcode">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
@@ -241,6 +300,11 @@
               <div class="form-group">
                 <label for="refill-piezas">Piezas por Caja</label>
                 <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-warehouse">Bodega/Ubicación</label>
+                <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
               </div>
 
               <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
@@ -341,6 +405,51 @@
           </div>
         </div>
 
+        <!-- TAB: ANALYTICS (NUEVO) -->
+        <div id="tab-analytics" class="tab-content hidden">
+          <div class="card">
+            <h2>📊 Analytics - Movimientos</h2>
+            <p style="color: #6b7280; font-size: 13px;">Visualiza el rendimiento de tu inventario</p>
+            
+            <!-- GRÁFICO SEMANAL -->
+            <div style="margin-top: 30px;">
+              <h3>📈 Movimientos Esta Semana</h3>
+              <div id="weekly-chart-container" style="margin-top: 15px;">
+                <p style="color: var(--muted);">Cargando gráfico...</p>
+              </div>
+              <div id="weekly-total" style="margin-top: 10px; padding: 12px; background: #f0f9ff; border-radius: 8px; color: #004aad; font-weight: 600;"></div>
+            </div>
+            
+            <!-- GRÁFICO MENSUAL -->
+            <div style="margin-top: 40px;">
+              <h3>📊 Tendencia Mensual</h3>
+              <div id="monthly-chart-container" style="margin-top: 15px;">
+                <p style="color: var(--muted);">Cargando gráfico...</p>
+              </div>
+              <div id="monthly-stats" style="margin-top: 15px;"></div>
+            </div>
+            
+            <!-- TOP PRODUCTOS -->
+            <div style="margin-top: 40px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                  <h3>🥇 Top Productos (Semanal)</h3>
+                  <div id="top-products-weekly" style="margin-top: 15px;">
+                    <p style="color: var(--muted);">Cargando...</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3>🥇 Top Productos (Mensual)</h3>
+                  <div id="top-products-monthly" style="margin-top: 15px;">
+                    <p style="color: var(--muted);">Cargando...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- TAB: SISTEMA -->
         <div id="tab-system" class="tab-content hidden">
           <div class="card">
@@ -360,33 +469,46 @@
 
   </main>
 
-  <!-- ✅ FOOTER SIN PADDING INLINE -->
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
   <footer style="background:var(--card-bg);text-align:center;border-top:2px solid var(--border);margin-top:40px;">
-    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.3</p>
-    <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt 
-                                           todos los derechos reservados</p>
+    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.5</p>
+    <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt - Todos los derechos reservados</p>
   </footer>
 
-  <!-- FIREBASE SCRIPTS -->
+  <!-- ============================================================
+       FIREBASE SCRIPTS
+       ============================================================ -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <!-- TUS ARCHIVOS JS (EN ORDEN) -->
+  <!-- ============================================================
+       CHART.JS PARA GRÁFICOS
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+  <!-- ============================================================
+       TUS ARCHIVOS JS (EN ORDEN CORRECTO)
+       ============================================================ -->
   <script src="firebase-config.js"></script>
   <script src="ui.js"></script>
   <script src="scanner-mlkit.js"></script>
   <script src="scanner-events.js"></script>
   <script src="inventory.js"></script>
-  <script src="refill.js"></script>
+  <script src="refill-enhanced.js"></script>
   <script src="audit.js"></script>
   <script src="system.js"></script>
   <script src="system-events.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
   <script src="inventory-enhanced.js"></script>
+  <script src="analytics.js"></script>
 
-  <!-- SERVICE WORKER -->
+  <!-- ============================================================
+       SERVICE WORKER
+       ============================================================ -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -397,7 +519,9 @@
     }
   </script>
 
-  <!-- SISTEMA DE NAVEGACIÓN MOBILE -->
+  <!-- ============================================================
+       SISTEMA DE NAVEGACIÓN MOBILE
+       ============================================================ -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       console.log('🎯 Sistema de navegación iniciando...');
