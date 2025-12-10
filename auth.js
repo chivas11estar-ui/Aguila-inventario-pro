@@ -1,6 +1,6 @@
 /* ============================================================
    Águila Inventario Pro - auth.js
-   CORREGIDO PARA USAR LA COLECCIÓN "usuarios/" 
+   CORREGIDO: Recarga al salir + Limpieza de espacios
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
@@ -54,7 +54,11 @@ async function handleLogin() {
 async function handleRegister() {
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
-  const determinante = document.getElementById('register-determinante')?.value;
+  
+  // CORRECCIÓN: Quitamos espacios vacíos al determinante
+  const determinanteInput = document.getElementById('register-determinante')?.value;
+  const determinante = determinanteInput ? String(determinanteInput).trim() : '';
+
   const storeName = document.getElementById('register-store-name')?.value;
   const promoterName = document.getElementById('register-promoter-name')?.value;
   
@@ -72,12 +76,12 @@ async function handleRegister() {
     console.log('📝 Registrando usuario:', email);
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
     
-    // ✅ GUARDAR EN usuarios/ (NO en promotores/)
+    // Guardamos el determinante LIMPIO (sin espacios)
     await firebase.database().ref('usuarios/' + userCredential.user.uid).set({
       email: email,
       nombrePromotor: promoterName,
       nombreTienda: storeName,
-      determinante: determinante,
+      determinante: determinante, // Ya va sin espacios
       fechaRegistro: new Date().toISOString()
     });
     
@@ -138,7 +142,6 @@ function showForgotForm() {
 }
 
 function loadUserData(userId) {
-  // ✅ BUSCAR EN usuarios/ (NO en promotores/)
   firebase.database().ref('usuarios/' + userId).once('value')
     .then((snapshot) => {
       const userData = snapshot.val();
@@ -160,14 +163,18 @@ function loadUserData(userId) {
     });
 }
 
+// CORRECCIÓN CLAVE: Recargar página al salir
 async function logout() {
   try {
     await firebase.auth().signOut();
     currentUser = null;
     showToast('✅ Sesión cerrada', 'success');
-    showLoginScreen();
-    showLoginForm();
-    document.getElementById('login-form').reset();
+    
+    // RECARGAR PÁGINA PARA LIMPIAR "FANTASMAS"
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+
   } catch (error) {
     console.error('❌ Error logout:', error);
     showToast('Error al cerrar sesión', 'error');
