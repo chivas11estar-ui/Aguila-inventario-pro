@@ -6,7 +6,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('📷 Configurando eventos del escáner...');
 
-  // BOTÓN ESCÁNER EN AGREGAR
+  // 1. BOTÓN ESCÁNER EN "AGREGAR" (Con Autofill)
   const btnScanAdd = document.getElementById('btn-scan-add');
   if (btnScanAdd) {
     btnScanAdd.addEventListener('click', function(e) {
@@ -19,8 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
           if (input) {
             input.value = code;
             console.log('✅ Código en agregar:', code);
+            
+            // LLAMADA A LA FUNCIÓN DE BÚSQUEDA
+            if (typeof window.buscarProductoParaAgregar === 'function') {
+               window.buscarProductoParaAgregar(code);
+            } else {
+               console.warn('⚠️ falta la función buscarProductoParaAgregar en inventory.js');
+            }
+
             if (typeof showToast === 'function') {
-              showToast('✅ Código detectado: ' + code, 'success');
+              showToast('✅ Código detectado', 'success');
             }
           }
         });
@@ -28,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // BOTÓN ESCÁNER EN RELLENO
+  // 2. BOTÓN ESCÁNER EN "RELLENO"
   const btnScanRefill = document.getElementById('btn-scan-refill');
   if (btnScanRefill) {
     btnScanRefill.addEventListener('click', function(e) {
@@ -40,22 +48,18 @@ document.addEventListener('DOMContentLoaded', function() {
           const input = document.getElementById('refill-barcode');
           if (input) {
             input.value = code;
-            console.log('✅ Código en relleno:', code);
             
             if (typeof window.searchProductForRefill === 'function') {
               window.searchProductForRefill(code);
             }
-            
-            if (typeof showToast === 'function') {
-              showToast('✅ Código detectado: ' + code, 'success');
-            }
+            if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
           }
         });
       }
     });
   }
 
-  // BOTÓN ESCÁNER EN AUDITORÍA
+  // 3. BOTÓN ESCÁNER EN "AUDITORÍA"
   const btnScanAudit = document.getElementById('btn-scan-audit');
   if (btnScanAudit) {
     btnScanAudit.addEventListener('click', function(e) {
@@ -67,20 +71,16 @@ document.addEventListener('DOMContentLoaded', function() {
           const input = document.getElementById('audit-barcode');
           if (input) {
             input.value = code;
-            console.log('✅ Código en auditoría:', code);
             
             if (typeof window.buscarProductoAudit === 'function') {
               window.buscarProductoAudit();
             }
-            
-            if (typeof showToast === 'function') {
-              showToast('✅ Código detectado: ' + code, 'success');
-            }
+            if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
           }
         });
       }
     });
   }
 
-  console.log('✅ Eventos del escáner configurados');
+  console.log('✅ Eventos del escáner configurados correctamente');
 });

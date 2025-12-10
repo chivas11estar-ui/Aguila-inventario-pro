@@ -586,3 +586,38 @@ window.editarProducto = editarProducto;
 window.cancelarEdicion = cancelarEdicion;
 
 console.log('✅ inventory.js con EDITAR cargado correctamente');
+// ============================================================
+// AUTOFILL PARA AGREGAR (Poner al final de inventory.js)
+// ============================================================
+window.buscarProductoParaAgregar = async function(barcode) {
+  console.log('🔍 Buscando datos para agregar:', barcode);
+  
+  if (!userDeterminante) userDeterminante = await getUserDeterminante();
+  if (!userDeterminante) return;
+
+  try {
+    const snapshot = await firebase.database()
+      .ref('inventario/' + userDeterminante)
+      .orderByChild('codigoBarras')
+      .equalTo(barcode)
+      .once('value');
+
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const key = Object.keys(data)[0];
+      const producto = data[key];
+
+      // Rellenar formulario
+      document.getElementById('add-product-name').value = producto.nombre || '';
+      document.getElementById('add-brand').value = producto.marca || 'Otra';
+      document.getElementById('add-pieces-per-box').value = producto.piezasPorCaja || '';
+      // document.getElementById('add-warehouse').value = producto.ubicacion || ''; // Opcional
+
+      if (typeof showToast === 'function') showToast('✅ Producto encontrado: ' + producto.nombre, 'success');
+    } else {
+      if (typeof showToast === 'function') showToast('🆕 Producto nuevo, completa los datos', 'info');
+    }
+  } catch (error) {
+    console.error('Error autofill:', error);
+  }
+};
