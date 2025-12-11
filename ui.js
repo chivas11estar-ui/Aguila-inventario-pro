@@ -1,5 +1,6 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: ui.js (FINAL)
+// Águila Inventario Pro - Módulo: ui.js
+// VERSIÓN CORREGIDA: Sin código zombie del escáner
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
@@ -67,21 +68,28 @@ function setupTabs() {
       e.preventDefault();
       const tabName = item.getAttribute('data-tab');
       
+      // Ocultar todos los tabs
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
+        tab.classList.add('hidden');
       });
       
+      // Desactivar todos los botones de navegación
       document.querySelectorAll('[data-tab]').forEach(nav => {
         nav.classList.remove('active');
       });
       
+      // Activar el tab seleccionado
       const tabElement = document.getElementById('tab-' + tabName);
       if (tabElement) {
         tabElement.classList.add('active');
+        tabElement.classList.remove('hidden');
       }
       
+      // Activar el botón de navegación
       item.classList.add('active');
       
+      // Cerrar sidebar en móvil
       const sidebar = document.getElementById('sidebar');
       if (sidebar) {
         sidebar.classList.remove('active');
@@ -93,64 +101,91 @@ function setupTabs() {
 }
 
 // ============================================================
+// TOGGLE SIDEBAR (MENÚ MÓVIL)
+// ============================================================
+function setupSidebar() {
+  const menuToggle = document.getElementById('menu-toggle');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  if (menuToggle && sidebar) {
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      if (overlay) {
+        overlay.classList.toggle('active');
+      }
+    });
+  }
+  
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+    });
+  }
+}
+
+// ============================================================
 // INICIALIZACIÓN
 // ============================================================
 function initUI() {
   console.log('🎨 Inicializando UI...');
   
   setupTabs();
+  setupSidebar();
   
-  // ✅ BOTÓN ESCÁNER AGREGAR - CORREGIDO
-  const btnScanAdd = document.getElementById('btn-scan-add');
-  if (btnScanAdd) {
-    btnScanAdd.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🎬 Abriendo escáner para agregar...');
-      
-      if (typeof window.openScanner === 'function') {
-        console.log('✅ openScanner disponible, abriendo...');
-        window.openScanner((code) => {
-          console.log('📦 Código escaneado:', code);
-          const input = document.getElementById('add-barcode');
-          if (input) {
-            input.value = code;
-            showToast('✅ Código detectado: ' + code, 'success');
-          }
-        });
-      } else {
-        console.error('❌ openScanner NO está disponible');
-        showToast('❌ El escáner no está disponible', 'error');
-      }
-    });
-  } else {
-    console.warn('⚠️ Botón btn-scan-add no encontrado');
-  }
-  
-  // ✅ BOTÓN CERRAR ESCÁNER
-  const closeBtn = document.getElementById('close-scanner');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🔴 Cerrando escáner...');
-      if (typeof window.closeScanner === 'function') {
-        window.closeScanner();
-      }
-    });
-  }
+  // ❌ CÓDIGO ZOMBIE ELIMINADO
+  // El escáner ahora es manejado por scanner-events.js
+  // No hay event listeners duplicados aquí
   
   console.log('✅ UI inicializado correctamente');
+  console.log('📌 Eventos del escáner manejados por scanner-events.js');
 }
 
 // ============================================================
-// MONITOREAR CONEXIÓN
+// MONITOREAR CONEXIÓN CON PROTECCIÓN
 // ============================================================
 window.addEventListener('online', () => {
-  showToast('✅ Conexión restaurada', 'success');
+  // Solo mostrar si hay usuario autenticado
+  if (firebase.auth().currentUser) {
+    showToast('✅ Conexión restaurada', 'success');
+  }
 });
 
 window.addEventListener('offline', () => {
-  showToast('📡 Sin conexión a internet', 'warning');
+  // Solo mostrar si hay usuario autenticado
+  if (firebase.auth().currentUser) {
+    showToast('📡 Sin conexión - Trabajando offline', 'warning');
+  }
 });
+
+// ============================================================
+// UTILIDADES ADICIONALES
+// ============================================================
+
+// Función para mostrar/ocultar elementos de carga
+window.showLoading = function(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.style.display = 'flex';
+  }
+};
+
+window.hideLoading = function(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.style.display = 'none';
+  }
+};
+
+// Función para confirmar acciones peligrosas
+window.confirmAction = function(message, callback) {
+  const confirmed = confirm(message);
+  if (confirmed && typeof callback === 'function') {
+    callback();
+  }
+  return confirmed;
+};
 
 // ============================================================
 // INICIAR CUANDO DOM ESTÉ LISTO
@@ -161,4 +196,4 @@ if (document.readyState === 'loading') {
   initUI();
 }
 
-console.log('✅ ui.js cargado correctamente');
+console.log('✅ ui.js cargado correctamente (sin código zombie)');
