@@ -1,11 +1,63 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: analytics.js
-// Dashboard de movimientos semanales y mensuales
+// VERSIÓN CORREGIDA CON PROTECCIÓN CONTRA PERMISSION_DENIED
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 let userDeterminanteAnalytics = null;
 let movementsData = [];
+
+// 🔑 VARIABLES PARA CONTROL DE LISTENERS
+let weeklyListener = null;
+let weeklyPath = null;
+let monthlyListener = null;
+let monthlyPath = null;
+
+// ============================================================
+// FUNCIÓN PARA DETENER LISTENERS DE ANALYTICS
+// ============================================================
+function stopAnalyticsListeners() {
+  console.log('🛑 Deteniendo listeners de analytics...');
+  
+  // Detener listener semanal
+  if (weeklyListener && weeklyPath) {
+    try {
+      firebase.database().ref(weeklyPath).off('value', weeklyListener);
+      console.log('✅ Listener semanal detenido');
+    } catch (error) {
+      console.warn('⚠️ Error deteniendo listener semanal:', error);
+    }
+  }
+  
+  // Detener listener mensual
+  if (monthlyListener && monthlyPath) {
+    try {
+      firebase.database().ref(monthlyPath).off('value', monthlyListener);
+      console.log('✅ Listener mensual detenido');
+    } catch (error) {
+      console.warn('⚠️ Error deteniendo listener mensual:', error);
+    }
+  }
+  
+  weeklyListener = null;
+  weeklyPath = null;
+  monthlyListener = null;
+  monthlyPath = null;
+  movementsData = [];
+}
+
+// Integrar con stopAllListeners global
+if (typeof window.stopAllListeners === 'function') {
+  const originalStop = window.stopAllListeners;
+  window.stopAllListeners = function() {
+    originalStop();
+    stopAnalyticsListeners();
+  };
+} else {
+  window.stopAllListeners = function() {
+    stopAnalyticsListeners();
+  };
+}
 
 // ============================================================
 // OBTENER DETERMINANTE
@@ -25,65 +77,105 @@ async function getUserDeterminanteAnalytics() {
 }
 
 // ============================================================
-// CARGAR MOVIMIENTOS DE LA SEMANA
+// CARGAR MOVIMIENTOS DE LA SEMANA CON LISTENER PROTEGIDO
 // ============================================================
 async function loadWeeklyMovements() {
   console.log('📊 Cargando movimientos semanales...');
+  
+  // Detener listener anterior
+  if (weeklyListener && weeklyPath) {
+    firebase.database().ref(weeklyPath).off('value', weeklyListener);
+  }
   
   if (!userDeterminanteAnalytics) {
     userDeterminanteAnalytics = await getUserDeterminanteAnalytics();
   }
   
   if (!userDeterminanteAnalytics) {
-    showToast('Error: No se encontró información de la tienda', 'error');
+    if (typeof showToast === 'function') {
+      showToast('Error: No se encontró información de la tienda', 'error');
+    }
     return;
   }
   
-  try {
-    // Calcular hace 7 días
-    const hace7Dias = new Date();
-    hace7Dias.setDate(hace7Dias.getDate() - 7);
-    hace7Dias.setHours(0, 0, 0, 0);
-    
-    const snapshot = await firebase.database()
-      .ref('movimientos/' + userDeterminanteAnalytics)
-      .orderByChild('fecha')
-      .startAt(hace7Dias.toISOString())
-      .once('value');
-    
-    const movimientos = [];
-    
-    if (snapshot.exists()) {
-      snapshot.forEach(child => {
-        movimientos.push(child.val());
+  // Calcular hace 7 días
+  const hace7Dias = new Date();
+  hace7Dias.setDate(hace7Dias.getDate() - 7);
+  hace7Dias.setHours(0, 0, 0, 0);
+  
+  weeklyPath = 'movimientos/' + userDeterminanteAnalytics;
+  
+  // Callback del listener
+  weeklyListener = (snapshot) => {
+    try {
+      const movimientos = [];
+      
+      if (snapshot.exists()) {
+        const ahora = new Date();
+        snapshot.forEach(child => {
+          const mov = child.val();
+          const fechaMov = new Date(mov.fecha);
+          
+          // Solo incluir movimientos de hace 7 días
+          if (fechaMov >= hace7Dias && fechaMov <= ahora) {
+            movimientos.push(mov);
+          }
+        });
+      }
+      
+      // Agrupar por día de semana
+      const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const dataByDay = {
+        'Lunes': 0,
+        'Martes': 0,
+        'Miércoles': 0,
+        'Jueves': 0,
+        'Viernes': 0,
+        'Sábado': 0,
+        'Domingo': 0
+      };
+      
+      movimientos.forEach(mov => {
+        const fecha = new Date(mov.fecha);
+        const diaSemana = diasSemana[fecha.getDay()];
+        dataByDay[diaSemana] = (dataByDay[diaSemana] || 0) + 1;
       });
+      
+      console.log('📊 Datos semanales actualizados:', dataByDay);
+      renderWeeklyChart(dataByDay, movimientos.length);
+      
+    } catch (error) {
+      console.error('❌ Error procesando movimientos semanales:', error);
+    }
+  };
+  
+  // Callback de error CON PROTECCIÓN
+  const errorCallback = (error) => {
+    // Si el usuario cerró sesión, ignorar
+    if (!firebase.auth().currentUser) {
+      console.log('🛑 Error semanal ignorado: sesión cerrada');
+      return;
     }
     
-    // Agrupar por día de semana
-    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const dataByDay = {
-      'Lunes': 0,
-      'Martes': 0,
-      'Miércoles': 0,
-      'Jueves': 0,
-      'Viernes': 0,
-      'Sábado': 0,
-      'Domingo': 0
-    };
+    // Si es PERMISSION_DENIED durante logout, ignorar
+    if (error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error de permisos semanal ignorado');
+      return;
+    }
     
-    movimientos.forEach(mov => {
-      const fecha = new Date(mov.fecha);
-      const diaSemana = diasSemana[fecha.getDay()];
-      dataByDay[diaSemana] = (dataByDay[diaSemana] || 0) + 1;
-    });
-    
-    console.log('📊 Datos semanales:', dataByDay);
-    renderWeeklyChart(dataByDay, movimientos.length);
-    
-  } catch (error) {
-    console.error('❌ Error cargando movimientos:', error);
-    showToast('Error al cargar datos: ' + error.message, 'error');
-  }
+    // Error real
+    console.error('❌ Error en listener semanal:', error);
+    if (typeof showToast === 'function') {
+      showToast('Error al cargar datos semanales', 'error');
+    }
+  };
+  
+  // Activar listener con protección
+  firebase.database()
+    .ref(weeklyPath)
+    .orderByChild('fecha')
+    .startAt(hace7Dias.toISOString())
+    .on('value', weeklyListener, errorCallback);
 }
 
 // ============================================================
@@ -156,70 +248,110 @@ function renderWeeklyChart(dataByDay, totalMovements) {
 }
 
 // ============================================================
-// CARGAR MOVIMIENTOS DEL MES
+// CARGAR MOVIMIENTOS DEL MES CON LISTENER PROTEGIDO
 // ============================================================
 async function loadMonthlyMovements() {
   console.log('📊 Cargando movimientos mensuales...');
+  
+  // Detener listener anterior
+  if (monthlyListener && monthlyPath) {
+    firebase.database().ref(monthlyPath).off('value', monthlyListener);
+  }
   
   if (!userDeterminanteAnalytics) {
     userDeterminanteAnalytics = await getUserDeterminanteAnalytics();
   }
   
   if (!userDeterminanteAnalytics) {
-    showToast('Error: No se encontró información de la tienda', 'error');
+    if (typeof showToast === 'function') {
+      showToast('Error: No se encontró información de la tienda', 'error');
+    }
     return;
   }
   
-  try {
-    // Calcular hace 30 días
-    const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
-    hace30Dias.setHours(0, 0, 0, 0);
-    
-    const snapshot = await firebase.database()
-      .ref('movimientos/' + userDeterminanteAnalytics)
-      .orderByChild('fecha')
-      .startAt(hace30Dias.toISOString())
-      .once('value');
-    
-    const movimientos = [];
-    
-    if (snapshot.exists()) {
-      snapshot.forEach(child => {
-        movimientos.push(child.val());
-      });
+  // Calcular hace 30 días
+  const hace30Dias = new Date();
+  hace30Dias.setDate(hace30Dias.getDate() - 30);
+  hace30Dias.setHours(0, 0, 0, 0);
+  
+  monthlyPath = 'movimientos/' + userDeterminanteAnalytics;
+  
+  // Callback del listener
+  monthlyListener = (snapshot) => {
+    try {
+      const movimientos = [];
+      
+      if (snapshot.exists()) {
+        const ahora = new Date();
+        snapshot.forEach(child => {
+          const mov = child.val();
+          const fechaMov = new Date(mov.fecha);
+          
+          // Solo incluir movimientos de hace 30 días
+          if (fechaMov >= hace30Dias && fechaMov <= ahora) {
+            movimientos.push(mov);
+          }
+        });
+      }
+      
+      // Calcular promedio diario
+      const promedioDiario = Math.round(movimientos.length / 30);
+      
+      renderMonthlyChart(movimientos);
+      
+      // Mostrar estadísticas
+      const statsEl = document.getElementById('monthly-stats');
+      if (statsEl) {
+        statsEl.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #004aad;">${movimientos.length}</div>
+              <div style="font-size: 12px; color: #6b7280;">Movimientos</div>
+            </div>
+            <div style="padding: 12px; background: #ecfdf5; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #10b981;">${promedioDiario}</div>
+              <div style="font-size: 12px; color: #6b7280;">Promedio/día</div>
+            </div>
+            <div style="padding: 12px; background: #fef3c7; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">📈</div>
+              <div style="font-size: 12px; color: #6b7280;">Tendencia</div>
+            </div>
+          </div>
+        `;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error procesando movimientos mensuales:', error);
+    }
+  };
+  
+  // Callback de error CON PROTECCIÓN
+  const errorCallback = (error) => {
+    // Si el usuario cerró sesión, ignorar
+    if (!firebase.auth().currentUser) {
+      console.log('🛑 Error mensual ignorado: sesión cerrada');
+      return;
     }
     
-    // Calcular promedio diario
-    const promedioDiario = Math.round(movimientos.length / 30);
-    
-    renderMonthlyChart(movimientos);
-    
-    // Mostrar estadísticas
-    const statsEl = document.getElementById('monthly-stats');
-    if (statsEl) {
-      statsEl.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-          <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-            <div style="font-size: 24px; font-weight: 700; color: #004aad;">${movimientos.length}</div>
-            <div style="font-size: 12px; color: #6b7280;">Movimientos</div>
-          </div>
-          <div style="padding: 12px; background: #ecfdf5; border-radius: 8px; text-align: center;">
-            <div style="font-size: 24px; font-weight: 700; color: #10b981;">${promedioDiario}</div>
-            <div style="font-size: 12px; color: #6b7280;">Promedio/día</div>
-          </div>
-          <div style="padding: 12px; background: #fef3c7; border-radius: 8px; text-align: center;">
-            <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">📈</div>
-            <div style="font-size: 12px; color: #6b7280;">Tendencia</div>
-          </div>
-        </div>
-      `;
+    // Si es PERMISSION_DENIED durante logout, ignorar
+    if (error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error de permisos mensual ignorado');
+      return;
     }
     
-  } catch (error) {
-    console.error('❌ Error cargando movimientos:', error);
-    showToast('Error al cargar datos: ' + error.message, 'error');
-  }
+    // Error real
+    console.error('❌ Error en listener mensual:', error);
+    if (typeof showToast === 'function') {
+      showToast('Error al cargar datos mensuales', 'error');
+    }
+  };
+  
+  // Activar listener con protección
+  firebase.database()
+    .ref(monthlyPath)
+    .orderByChild('fecha')
+    .startAt(hace30Dias.toISOString())
+    .on('value', monthlyListener, errorCallback);
 }
 
 // ============================================================
@@ -305,7 +437,7 @@ function renderMonthlyChart(movimientos) {
 }
 
 // ============================================================
-// CARGAR TOP PRODUCTOS POR MOVIMIENTO
+// CARGAR TOP PRODUCTOS (SIN LISTENERS - SOLO ONCE)
 // ============================================================
 async function loadTopProducts() {
   console.log('🏆 Cargando top productos...');
@@ -317,7 +449,7 @@ async function loadTopProducts() {
   if (!userDeterminanteAnalytics) return;
   
   try {
-    // Semanal
+    // Semanal - solo .once()
     const hace7Dias = new Date();
     hace7Dias.setDate(hace7Dias.getDate() - 7);
     hace7Dias.setHours(0, 0, 0, 0);
@@ -336,11 +468,10 @@ async function loadTopProducts() {
         const mov = child.val();
         const nombre = mov.productoNombre || 'Desconocido';
         weeklyProducts[nombre] = (weeklyProducts[nombre] || 0) + 1;
-        monthlyProducts[nombre] = (monthlyProducts[nombre] || 0) + 1;
       });
     }
     
-    // Mensual
+    // Mensual - solo .once()
     const hace30Dias = new Date();
     hace30Dias.setDate(hace30Dias.getDate() - 30);
     hace30Dias.setHours(0, 0, 0, 0);
@@ -355,10 +486,7 @@ async function loadTopProducts() {
       monthSnapshot.forEach(child => {
         const mov = child.val();
         const nombre = mov.productoNombre || 'Desconocido';
-        if (!monthlyProducts[nombre]) {
-          monthlyProducts[nombre] = 0;
-        }
-        monthlyProducts[nombre]++;
+        monthlyProducts[nombre] = (monthlyProducts[nombre] || 0) + 1;
       });
     }
     
@@ -367,14 +495,19 @@ async function loadTopProducts() {
     const monthTopContainer = document.getElementById('top-products-monthly');
     
     if (weekTopContainer) {
-      renderTopProductsList(weeklyProducts, weekTopContainer, 'Semanal');
+      renderTopProductsList(weeklyProducts, weekTopContainer);
     }
     
     if (monthTopContainer) {
-      renderTopProductsList(monthlyProducts, monthTopContainer, 'Mensual');
+      renderTopProductsList(monthlyProducts, monthTopContainer);
     }
     
   } catch (error) {
+    // Ignorar si es logout
+    if (!firebase.auth().currentUser || error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error top productos ignorado (logout)');
+      return;
+    }
     console.error('❌ Error cargando top productos:', error);
   }
 }
@@ -382,17 +515,23 @@ async function loadTopProducts() {
 // ============================================================
 // RENDERIZAR LISTA DE TOP PRODUCTOS
 // ============================================================
-function renderTopProductsList(productsData, container, periodo) {
+function renderTopProductsList(productsData, container) {
   const sorted = Object.entries(productsData)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
   
-  let html = `<h4 style="margin: 0 0 12px 0;">🏆 Top ${periodo}</h4>`;
+  if (sorted.length === 0) {
+    container.innerHTML = '<p style="color: var(--muted);">Sin datos</p>';
+    return;
+  }
+  
+  let html = '';
   
   sorted.forEach((item, idx) => {
     const nombre = item[0];
     const count = item[1];
-    const porcentaje = Math.round((count / Object.values(productsData).reduce((a, b) => a + b, 0)) * 100);
+    const totalCount = Object.values(productsData).reduce((a, b) => a + b, 0);
+    const porcentaje = Math.round((count / totalCount) * 100);
     
     const colores = ['#004aad', '#0056d4', '#1e40af', '#2d5aa5', '#3d6ab5'];
     const color = colores[idx] || '#004aad';
@@ -432,15 +571,10 @@ function initAnalyticsModule() {
         loadWeeklyMovements();
         loadMonthlyMovements();
         loadTopProducts();
-        
-        // Actualizar cada 5 minutos
-        setInterval(() => {
-          loadWeeklyMovements();
-          loadMonthlyMovements();
-          loadTopProducts();
-        }, 300000);
-        
       }, 1000);
+    } else {
+      console.log('⏳ Sin usuario, deteniendo analytics...');
+      stopAnalyticsListeners();
     }
   });
 }
@@ -451,8 +585,10 @@ if (document.readyState === 'loading') {
   initAnalyticsModule();
 }
 
-console.log('✅ analytics.js cargado correctamente');
-
+// Exponer funciones globalmente
 window.loadWeeklyMovements = loadWeeklyMovements;
 window.loadMonthlyMovements = loadMonthlyMovements;
 window.loadTopProducts = loadTopProducts;
+window.stopAnalyticsListeners = stopAnalyticsListeners;
+
+console.log('✅ analytics.js con PROTECCIÓN cargado correctamente');
