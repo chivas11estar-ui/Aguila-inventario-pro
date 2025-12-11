@@ -478,78 +478,93 @@
   </footer>
 
   <!-- ============================================================
-       FIREBASE SCRIPTS
-       ============================================================ -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+     FIREBASE SCRIPTS
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <!-- ============================================================
-       CHART.JS PARA GRÁFICOS
-       ============================================================ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<!-- ============================================================
+     CHART.JS PARA GRÁFICOS
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
-  <!-- ============================================================
-       TUS ARCHIVOS JS (EN ORDEN CORRECTO)
-       ============================================================ -->
-  <script src="firebase-config.js"></script>
-  <script src="ui.js"></script>
-  <script src="scanner-mlkit.js"></script>
-  <script src="scanner-events.js"></script>
-  <script src="inventory.js"></script>
-  <script src="refill-enhanced.js"></script>
-  <script src="audit.js"></script>
-  <script src="system.js"></script>
-  <script src="system-events.js"></script>
-  <script src="auth.js"></script>
-  <script src="app.js"></script>
-  <script src="inventory-enhanced.js"></script>
-  <script src="analytics.js"></script>
+<!-- ============================================================
+     TUS ARCHIVOS JS (ORDEN CRÍTICO CORREGIDO)
+     ============================================================ -->
 
-  <!-- ============================================================
-       SERVICE WORKER
-       ============================================================ -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('✅ Service Worker registrado'))
-          .catch(err => console.error('⚠️ SW no disponible:', err));
-      });
-    }
-  </script>
+<!-- 1. CONFIGURACIÓN BASE -->
+<script src="firebase-config.js"></script>
 
-  <!-- ============================================================
-       SISTEMA DE NAVEGACIÓN MOBILE
-       ============================================================ -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('🎯 Sistema de navegación iniciando...');
+<!-- 2. UI Y UTILIDADES (PRIMERO - Define showToast y funciones básicas) -->
+<script src="ui.js"></script>
 
-      const navButtons = document.querySelectorAll('.nav-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
+<!-- 3. AUTENTICACIÓN (Antes de los módulos que dependen del usuario) -->
+<script src="auth.js"></script>
 
-      navButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          const tabName = this.getAttribute('data-tab');
-          console.log('📑 Navegando a:', tabName);
+<!-- 4. MÓDULOS PRINCIPALES (Orden de dependencias) -->
+<script src="inventory.js"></script>
+<script src="refill-enhanced.js"></script>
+<script src="analytics.js"></script>  <!-- ⚠️ MOVIDO AQUÍ - CRÍTICO -->
+<script src="audit.js"></script>
 
-          navButtons.forEach(b => b.classList.remove('active'));
-          tabContents.forEach(t => t.classList.remove('active'));
-          tabContents.forEach(t => t.classList.add('hidden'));
+<!-- 5. ESCÁNER (Después de los módulos que lo usan) -->
+<script src="scanner-mlkit.js"></script>
+<script src="scanner-events.js"></script>
 
-          this.classList.add('active');
-          const tab = document.getElementById('tab-' + tabName);
-          if (tab) {
-            tab.classList.remove('hidden');
-            tab.classList.add('active');
-          }
-        });
-      });
+<!-- 6. SISTEMA -->
+<script src="system.js"></script>
+<script src="system-events.js"></script>
 
-      console.log('✅ Navegación lista');
+<!-- 7. APP PRINCIPAL (ÚLTIMO) -->
+<script src="app.js"></script>
+
+<!-- ❌ ELIMINADO: inventory-enhanced.js (duplicado de inventory.js) -->
+
+<!-- ============================================================
+     SERVICE WORKER
+     ============================================================ -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrado'))
+        .catch(err => console.error('⚠️ SW no disponible:', err));
     });
-  </script>
-</body>
-</html>
+  }
+</script>
+
+<!-- ============================================================
+     SISTEMA DE NAVEGACIÓN MOBILE
+     ============================================================ -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Sistema de navegación iniciando...');
+
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tabName = this.getAttribute('data-tab');
+        console.log('📑 Navegando a:', tabName);
+
+        navButtons.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(t => {
+          t.classList.remove('active');
+          t.classList.add('hidden');
+        });
+
+        this.classList.add('active');
+        const tab = document.getElementById('tab-' + tabName);
+        if (tab) {
+          tab.classList.remove('hidden');
+          tab.classList.add('active');
+        }
+      });
+    });
+
+    console.log('✅ Navegación lista');
+  });
+</script>
