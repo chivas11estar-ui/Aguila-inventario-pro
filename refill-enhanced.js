@@ -1,12 +1,65 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: refill-enhanced.js
-// VERSIÓN MEJORADA CON CREACIÓN DE PRODUCTOS NUEVOS
+// VERSIÓN CORREGIDA: Con protección contra PERMISSION_DENIED
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 let currentRefillProduct = null;
 let userDeterminanteRefill = null;
 let isCreatingNewProduct = false;
+
+// 🔑 VARIABLES PARA CONTROL DE LISTENERS
+let refillListener = null;
+let refillPath = null;
+let movementsListener = null;
+let movementsPath = null;
+
+// ============================================================
+// FUNCIÓN PARA DETENER LISTENERS DE RELLENO
+// ============================================================
+function stopRefillListeners() {
+  console.log('🛑 Deteniendo listeners de relleno...');
+  
+  // Detener listener del producto
+  if (refillListener && refillPath) {
+    try {
+      firebase.database().ref(refillPath).off('value', refillListener);
+      console.log('✅ Listener de producto detenido');
+    } catch (error) {
+      console.warn('⚠️ Error deteniendo listener de producto:', error);
+    }
+  }
+  
+  // Detener listener de movimientos
+  if (movementsListener && movementsPath) {
+    try {
+      firebase.database().ref(movementsPath).off('value', movementsListener);
+      console.log('✅ Listener de movimientos detenido');
+    } catch (error) {
+      console.warn('⚠️ Error deteniendo listener de movimientos:', error);
+    }
+  }
+  
+  refillListener = null;
+  refillPath = null;
+  movementsListener = null;
+  movementsPath = null;
+  currentRefillProduct = null;
+  isCreatingNewProduct = false;
+}
+
+// Integrar con stopAllListeners global
+if (typeof window.stopAllListeners === 'function') {
+  const originalStop = window.stopAllListeners;
+  window.stopAllListeners = function() {
+    originalStop();
+    stopRefillListeners();
+  };
+} else {
+  window.stopAllListeners = function() {
+    stopRefillListeners();
+  };
+}
 
 // ============================================================
 // OBTENER DETERMINANTE DEL USUARIO
@@ -44,6 +97,9 @@ async function searchProductForRefill(barcode) {
     showToast('⚠️ Código de barras inválido (mínimo 8 dígitos)', 'warning');
     return false;
   }
+  
+  // Detener listeners anteriores
+  stopRefillListeners();
   
   // Obtener determinante si no está cargado
   if (!userDeterminanteRefill) {
@@ -109,6 +165,10 @@ async function searchProductForRefill(barcode) {
       
       // Mostrar información del producto
       displayRefillProductInfo(currentRefillProduct);
+      
+      // 🎯 INICIAR LISTENER PROTEGIDO PARA ACTUALIZACIÓN EN TIEMPO REAL
+      startProductListener(productId);
+      
       showToast('✅ Producto encontrado: ' + productData.nombre, 'success');
       
       // Focus en el campo de cajas
@@ -137,6 +197,61 @@ async function searchProductForRefill(barcode) {
     showToast('❌ Error al buscar producto: ' + error.message, 'error');
     return false;
   }
+}
+
+// ============================================================
+// INICIAR LISTENER PROTEGIDO PARA PRODUCTO
+// ============================================================
+function startProductListener(productId) {
+  if (!userDeterminanteRefill) return;
+  
+  console.log('👂 Iniciando listener para producto:', productId);
+  
+  refillPath = 'inventario/' + userDeterminanteRefill + '/' + productId;
+  
+  // Callback del listener
+  refillListener = (snapshot) => {
+    const productData = snapshot.val();
+    
+    if (productData && currentRefillProduct) {
+      console.log('📦 Stock actualizado en tiempo real');
+      
+      // Actualizar el objeto actual
+      currentRefillProduct.cajas = productData.cajas;
+      
+      // Actualizar la UI
+      const stockEl = document.getElementById('refill-current-stock');
+      if (stockEl) {
+        stockEl.textContent = 'Stock actual: ' + (productData.cajas || 0) + ' cajas en ' + (productData.ubicacion || 'almacén');
+      }
+    }
+  };
+  
+  // Callback de error CON PROTECCIÓN
+  const errorCallback = (error) => {
+    // Si el usuario cerró sesión, ignorar
+    if (!firebase.auth().currentUser) {
+      console.log('🛑 Error ignorado: sesión cerrada');
+      return;
+    }
+    
+    // Si es PERMISSION_DENIED durante logout, ignorar
+    if (error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error de permisos ignorado (logout en proceso)');
+      return;
+    }
+    
+    // Error real
+    console.error('❌ Error en listener de producto:', error);
+    if (typeof showToast === 'function') {
+      showToast('Error de conexión', 'error');
+    }
+  };
+  
+  // Activar listener con protección
+  firebase.database()
+    .ref(refillPath)
+    .on('value', refillListener, errorCallback);
 }
 
 // ============================================================
@@ -298,6 +413,9 @@ async function guardarProductoDelModal() {
     isCreatingNewProduct = false;
     displayRefillProductInfo(currentRefillProduct);
     
+    // Iniciar listener para el nuevo producto
+    startProductListener(newProductRef.key);
+    
     showToast('✅ Producto creado: ' + nombre, 'success');
     
     // Focus en cajas
@@ -417,10 +535,10 @@ async function processRefillMovement(boxes) {
         
         await newProductRef.set({
           codigoBarras: currentRefillProduct.codigoBarras,
-          nombre: currentRefillProduct.nombre,
-          marca: currentRefillProduct.marca || 'Otra',
-          piezasPorCaja: currentRefillProduct.piezasPorCaja || 24,
-          ubicacion: currentRefillProduct.ubicacion,
+          nombre: document.getElementById('refill-nombre')?.value || currentRefillProduct.nombre,
+          marca: document.getElementById('refill-marca')?.value || currentRefillProduct.marca || 'Otra',
+          piezasPorCaja: parseInt(document.getElementById('refill-piezas')?.value) || currentRefillProduct.piezasPorCaja || 24,
+          ubicacion: document.getElementById('refill-warehouse')?.value || currentRefillProduct.ubicacion,
           cajas: boxesToMove,
           fechaCaducidad: '',
           fechaCreacion: new Date().toISOString(),
@@ -444,15 +562,20 @@ async function processRefillMovement(boxes) {
       .ref('movimientos/' + userDeterminanteRefill)
       .push(movementData);
     
+    console.log('✅ Relleno registrado exitosamente');
     showToast(`✅ Movimiento registrado: ${boxesToMove} cajas`, 'success');
     
-    // Limpiar
+    // Detener listeners del producto actual
+    stopRefillListeners();
+    
+    // Limpiar formulario
     document.getElementById('refill-form').reset();
     ['refill-nombre', 'refill-marca', 'refill-piezas', 'refill-warehouse'].forEach(id => {
       const input = document.getElementById(id);
       if (input) {
         input.style.background = '';
         input.style.borderColor = '';
+        input.style.borderWidth = '';
         input.readOnly = false;
       }
     });
@@ -471,7 +594,7 @@ async function processRefillMovement(boxes) {
 }
 
 // ============================================================
-// ACTUALIZAR CONTADOR DE MOVIMIENTOS HOY
+// ACTUALIZAR CONTADOR DE MOVIMIENTOS HOY CON PROTECCIÓN
 // ============================================================
 async function updateTodayMovements() {
   if (!userDeterminanteRefill) {
@@ -487,14 +610,23 @@ async function updateTodayMovements() {
   const movementsRef = firebase.database().ref('movimientos/' + userDeterminanteRefill);
   
   try {
-    const snapshot = await movementsRef.orderByChild('fecha').startAt(todayISO).once('value');
+    const snapshot = await movementsRef
+      .orderByChild('fecha')
+      .startAt(todayISO)
+      .once('value');
+    
     const count = snapshot.exists() ? snapshot.numChildren() : 0;
     
     const countEl = document.getElementById('total-movements');
     if (countEl) {
-      countEl.textContent = count;
+      countEl.textContent = count + ' movimientos';
     }
   } catch (error) {
+    // Ignorar error si es por logout
+    if (!firebase.auth().currentUser || error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error de movimientos ignorado (logout)');
+      return;
+    }
     console.error('❌ Error al actualizar movimientos:', error);
   }
 }
@@ -516,7 +648,7 @@ function setupRefillForm() {
     
     barcodeInput.addEventListener('input', () => {
       if (currentRefillProduct) {
-        currentRefillProduct = null;
+        stopRefillListeners();
         hideRefillProductInfo();
         
         ['refill-nombre', 'refill-marca', 'refill-piezas', 'refill-warehouse'].forEach(id => {
@@ -524,6 +656,7 @@ function setupRefillForm() {
           if (input) {
             input.style.background = '';
             input.style.borderColor = '';
+            input.style.borderWidth = '';
             input.readOnly = false;
           }
         });
@@ -618,6 +751,9 @@ function initRefillModule() {
         setupRefillForm();
         updateTodayMovements();
       }, 500);
+    } else {
+      console.log('⏳ Sin usuario, deteniendo listeners...');
+      stopRefillListeners();
     }
   });
 }
@@ -628,9 +764,11 @@ if (document.readyState === 'loading') {
   initRefillModule();
 }
 
-console.log('✅ refill-enhanced.js cargado correctamente');
-
+// Exponer funciones globalmente
 window.searchProductForRefill = searchProductForRefill;
 window.processRefillMovement = processRefillMovement;
 window.guardarProductoDelModal = guardarProductoDelModal;
 window.cerrarModalCrearProducto = cerrarModalCrearProducto;
+window.stopRefillListeners = stopRefillListeners;
+
+console.log('✅ refill-enhanced.js con PROTECCIÓN cargado correctamente');

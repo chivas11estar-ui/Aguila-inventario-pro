@@ -1,7 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
-// Copyright © 2025 José A. G. Betancourt
-// VERSIÓN CON EDITAR PRODUCTOS FUNCIONAL
+// VERSIÓN CORREGIDA: Con desconexión de listeners y manejo de errores
 // ============================================================
 
 let inventoryData = [];
@@ -9,7 +8,11 @@ let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
 let mostrarProductosSinStock = false;
-let currentEditingProduct = null; // Para guardar el producto en edición
+let currentEditingProduct = null;
+
+// 🔑 VARIABLES PARA CONTROL DE LISTENERS
+let inventoryListener = null;
+let currentInventoryPath = null;
 
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
@@ -20,36 +23,62 @@ const BRAND_EXPIRY_CONFIG = {
   'default': 60
 };
 
-// Obtener determinante del usuario
-async function getUserDeterminante() {
-    if (userDeterminante) return userDeterminante;
-    
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        console.error('Usuario no autenticado para obtener determinante.');
-        return null;
-    }
-
+// ============================================================
+// FUNCIÓN PARA DETENER TODOS LOS LISTENERS
+// ============================================================
+window.stopAllListeners = function() {
+  console.log('🛑 Deteniendo listeners de inventario...');
+  
+  if (inventoryListener && currentInventoryPath) {
     try {
-        const userRef = firebase.database().ref('usuarios/' + user.uid);
-        const snapshot = await userRef.once('value');
-        const userData = snapshot.val();
-        
-        if (userData && userData.determinante) {
-            userDeterminante = userData.determinante;
-            console.log('🔑 Determinante de usuario obtenido:', userDeterminante);
-            return userDeterminante;
-        } else {
-            console.error('No se encontró determinante para el usuario:', user.uid);
-            return null;
-        }
+      firebase.database().ref(currentInventoryPath).off('value', inventoryListener);
+      console.log('✅ Listener de inventario detenido exitosamente');
     } catch (error) {
-        console.error('Error al obtener el determinante de Firebase:', error);
-        return null;
+      console.warn('⚠️ Error al detener listener:', error);
     }
+  }
+  
+  // Reset variables
+  inventoryListener = null;
+  currentInventoryPath = null;
+  inventoryData = [];
+  filteredInventory = [];
+};
+
+// ============================================================
+// OBTENER DETERMINANTE DEL USUARIO
+// ============================================================
+async function getUserDeterminante() {
+  if (userDeterminante) return userDeterminante;
+  
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    console.error('❌ Usuario no autenticado para obtener determinante');
+    return null;
+  }
+
+  try {
+    const userRef = firebase.database().ref('usuarios/' + user.uid);
+    const snapshot = await userRef.once('value');
+    const userData = snapshot.val();
+    
+    if (userData && userData.determinante) {
+      userDeterminante = userData.determinante;
+      console.log('🔑 Determinante obtenido:', userDeterminante);
+      return userDeterminante;
+    } else {
+      console.error('❌ No se encontró determinante para el usuario:', user.uid);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error al obtener determinante:', error);
+    return null;
+  }
 }
 
-// Cargar inventario
+// ============================================================
+// CARGAR INVENTARIO CON PROTECCIÓN DE ERRORES
+// ============================================================
 async function loadInventory() {
   const listElement = document.getElementById('inventory-list');
   if (!listElement) {
@@ -57,21 +86,28 @@ async function loadInventory() {
     return;
   }
   
-  listElement.innerHTML = '<p style="color:var(--muted);">Conectando con la base de datos...</p>';
+  listElement.innerHTML = '<p style="color:var(--muted);">Cargando inventario...</p>';
+
+  // Detener listeners anteriores si existen
+  window.stopAllListeners();
 
   userDeterminante = await getUserDeterminante();
 
   if (!userDeterminante) {
-    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo cargar el inventario. Falla al obtener ID de Tienda.</p>';
-    if (typeof showToast === 'function') {
-      showToast('Error: No se encontró el ID de su tienda (Determinante)', 'error');
+    // Solo mostrar error si hay usuario autenticado
+    if (firebase.auth().currentUser) {
+      listElement.innerHTML = '<p style="color:var(--error);">❌ No se encontró ID de Tienda.</p>';
+      if (typeof showToast === 'function') {
+        showToast('Error: No se encontró el ID de su tienda', 'error');
+      }
     }
     return;
   }
   
-  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
+  currentInventoryPath = 'inventario/' + userDeterminante;
   
-  inventoryRef.on('value', (snapshot) => {
+  // Crear el callback del listener
+  inventoryListener = (snapshot) => {
     try {
       const productsObject = snapshot.val();
       inventoryData = [];
@@ -82,12 +118,11 @@ async function loadInventory() {
           ...productsObject[key]
         }));
         
-        console.log(`✅ Inventario cargado: ${inventoryData.length} productos.`);
+        console.log(`✅ Inventario cargado: ${inventoryData.length} productos`);
         
         applyFiltersAndRender();
         updateDashboardStats(inventoryData);
         generateBrandFilters(inventoryData);
-        
       } else {
         inventoryData = [];
         listElement.innerHTML = '<p style="color:var(--muted);">Aún no hay productos registrados. Use la pestaña "Agregar".</p>';
@@ -95,19 +130,38 @@ async function loadInventory() {
         generateBrandFilters([]);
       }
     } catch (error) {
-      console.error('Error procesando datos del inventario:', error);
-      listElement.innerHTML = '<p style="color:var(--error);">❌ Error al procesar los datos del inventario.</p>';
-      if (typeof showToast === 'function') {
-        showToast('Error al procesar el inventario: ' + error.message, 'error');
-      }
+      console.error('❌ Error procesando inventario:', error);
+      listElement.innerHTML = '<p style="color:var(--error);">❌ Error al procesar datos.</p>';
     }
-  }, (error) => {
-    console.error('❌ Error de conexión a Firebase DB:', error);
-    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo conectar a Firebase. Verifique su conexión o reinicie la app.</p>';
+  };
+  
+  // Callback de error MEJORADO
+  const errorCallback = (error) => {
+    // Si el usuario ya cerró sesión, ignorar el error
+    if (!firebase.auth().currentUser) {
+      console.log('🛑 Error ignorado: sesión cerrada');
+      return;
+    }
+    
+    // Si es error de permisos durante logout, ignorar
+    if (error.code === 'PERMISSION_DENIED') {
+      console.log('🛑 Error de permisos ignorado (logout en proceso)');
+      return;
+    }
+    
+    // Error real - mostrar al usuario
+    console.error('❌ Error Firebase:', error);
+    listElement.innerHTML = '<p style="color:var(--error);">❌ Error de conexión. Verifica tu internet.</p>';
+    
     if (typeof showToast === 'function') {
-      showToast('Fallo en la conexión al servidor: ' + error.message, 'error');
+      showToast('Error de conexión: ' + error.message, 'error');
     }
-  });
+  };
+  
+  // Activar el listener con manejo de errores
+  firebase.database()
+    .ref(currentInventoryPath)
+    .on('value', inventoryListener, errorCallback);
 }
 
 // ============================================================
@@ -124,7 +178,7 @@ function renderInventoryList() {
     return;
   }
   
-  // 1️⃣ AGRUPAR POR CÓDIGO DE BARRAS
+  // Agrupar por código de barras
   const productosAgrupados = {};
   
   productosConStock.forEach(prod => {
@@ -154,7 +208,7 @@ function renderInventoryList() {
       productosAgrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
   
-  // 2️⃣ AGRUPAR POR MARCA
+  // Agrupar por marca
   const porMarca = {};
   
   Object.values(productosAgrupados).forEach(product => {
@@ -165,10 +219,11 @@ function renderInventoryList() {
     porMarca[marca].push(product);
   });
   
-  // 3️⃣ ORDENAR MARCAS
-  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'].filter(m => porMarca[m]);
+  // Ordenar marcas
+  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra']
+    .filter(m => porMarca[m]);
   
-  // 4️⃣ RENDERIZAR
+  // Renderizar HTML
   let html = '';
   
   marcasOrdenadas.forEach(marca => {
@@ -176,7 +231,12 @@ function renderInventoryList() {
     
     html += `
       <div data-brand-section="${marca}" style="margin-bottom:24px;">
-        <div data-brand-header data-brand-name="${marca}" style="background:linear-gradient(135deg,var(--primary),#003a8a);color:white;padding:12px 16px;border-radius:8px;margin-bottom:12px;font-weight:700;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+        <div data-brand-header data-brand-name="${marca}" 
+             style="background:linear-gradient(135deg,var(--primary),#003a8a);
+                    color:white;padding:12px 16px;border-radius:8px;
+                    margin-bottom:12px;font-weight:700;font-size:14px;
+                    cursor:pointer;display:flex;justify-content:space-between;
+                    align-items:center;">
           <span>🏷️ ${marca} (<span data-product-count>${productos.length}</span> productos)</span>
           <span style="font-size:12px;">▼</span>
         </div>
@@ -213,7 +273,10 @@ function renderInventoryList() {
       }
 
       html += `
-        <div data-product-item data-product-name="${product.nombre}" data-product-code="${product.codigoBarras}" class="card" style="background:white;border-left:4px solid var(--primary);margin-bottom:10px;">
+        <div data-product-item data-product-name="${product.nombre}" 
+             data-product-code="${product.codigoBarras}" 
+             class="card" 
+             style="background:white;border-left:4px solid var(--primary);margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div style="flex:1;">
               <h4 style="margin:0 0 8px 0;color:var(--primary);">${product.nombre}</h4>
@@ -240,13 +303,23 @@ function renderInventoryList() {
               <ul class="bodega-list" style="list-style:none;padding:10px 0 0 0;margin:0;">
                 ${product.bodegas.map(b => {
                   const bodegaExpiry = b.fechaCaducidad ? new Date(b.fechaCaducidad) : null;
-                  const bodegaDays = bodegaExpiry ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+                  const bodegaDays = bodegaExpiry ? 
+                    Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
                   
                   return `
-                    <li style="padding:8px;margin:5px 0;background:#f8fafc;border-left:3px solid #2563eb;border-radius:4px;">
+                    <li style="padding:8px;margin:5px 0;background:#f8fafc;
+                               border-left:3px solid #2563eb;border-radius:4px;">
                       <strong>${b.ubicacion}:</strong> ${b.cajas} cajas
-                      ${bodegaDays !== null ? `<br><small style="color:#64748b;font-size:0.85em;">Cad: ${b.fechaCaducidad} (${bodegaDays} días)</small>` : ''}
-                      <br><button onclick="editarProducto('${b.id}')" style="margin-top:6px;padding:4px 8px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;">✏️ Editar</button>
+                      ${bodegaDays !== null ? 
+                        `<br><small style="color:#64748b;font-size:0.85em;">
+                          Cad: ${b.fechaCaducidad} (${bodegaDays} días)
+                        </small>` : ''}
+                      <br><button onclick="editarProducto('${b.id}')" 
+                                  style="margin-top:6px;padding:4px 8px;background:#2563eb;
+                                         color:white;border:none;border-radius:4px;
+                                         cursor:pointer;font-size:11px;">
+                        ✏️ Editar
+                      </button>
                     </li>
                   `;
                 }).join('')}
@@ -262,7 +335,10 @@ function renderInventoryList() {
           `}
           
           <div style="margin-top:12px;">
-            <button onclick="editarProducto('${product.bodegas[0].id}')" style="width:100%;padding:10px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
+            <button onclick="editarProducto('${product.bodegas[0].id}')" 
+                    style="width:100%;padding:10px;background:#2563eb;color:white;
+                           border:none;border-radius:6px;cursor:pointer;
+                           font-size:13px;font-weight:600;">
               ✏️ Editar Producto
             </button>
           </div>
@@ -279,7 +355,9 @@ function renderInventoryList() {
   listElement.innerHTML = html;
 }
 
-// Aplicar filtros
+// ============================================================
+// APLICAR FILTROS
+// ============================================================
 function applyFiltersAndRender() {
   const searchInput = document.getElementById('inventory-search');
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
@@ -305,29 +383,50 @@ function applyFiltersAndRender() {
   renderInventoryList();
 }
 
-// Generar filtros de marca
+// ============================================================
+// GENERAR FILTROS DE MARCA
+// ============================================================
 function generateBrandFilters(data) {
   const brands = [...new Set(data.map(p => p.marca))];
   const filterContainer = document.getElementById('brand-filters');
   if (!filterContainer) return;
   
-  let filterHTML = `<button class="brand-filter-btn ${currentBrandFilter === 'all' ? 'active' : ''}" data-brand="all" style="padding:8px 16px;border:1px solid var(--border);background:${currentBrandFilter === 'all' ? 'var(--primary)' : 'white'};color:${currentBrandFilter === 'all' ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">Todos</button>`;
+  let filterHTML = `
+    <button class="brand-filter-btn ${currentBrandFilter === 'all' ? 'active' : ''}" 
+            data-brand="all" 
+            style="padding:8px 16px;border:1px solid var(--border);
+                   background:${currentBrandFilter === 'all' ? 'var(--primary)' : 'white'};
+                   color:${currentBrandFilter === 'all' ? 'white' : 'var(--text)'};
+                   border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">
+      Todos
+    </button>`;
   
   brands.forEach(brand => {
     const isActive = currentBrandFilter === brand;
-    filterHTML += `<button class="brand-filter-btn" data-brand="${brand}" style="padding:8px 16px;border:1px solid var(--border);background:${isActive ? 'var(--primary)' : 'white'};color:${isActive ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">${brand}</button>`;
+    filterHTML += `
+      <button class="brand-filter-btn" 
+              data-brand="${brand}" 
+              style="padding:8px 16px;border:1px solid var(--border);
+                     background:${isActive ? 'var(--primary)' : 'white'};
+                     color:${isActive ? 'white' : 'var(--text)'};
+                     border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">
+        ${brand}
+      </button>`;
   });
   
   filterContainer.innerHTML = filterHTML;
 }
 
-// Actualizar estadísticas
+// ============================================================
+// ACTUALIZAR ESTADÍSTICAS (Placeholder)
+// ============================================================
 function updateDashboardStats(data) {
-  console.log('📊 Actualizando estadísticas...');
+  console.log('📊 Actualizando estadísticas con', data.length, 'productos');
+  // Aquí puedes agregar lógica para actualizar widgets de estadísticas
 }
 
 // ============================================================
-// EDITAR PRODUCTO - FUNCIÓN COMPLETA
+// EDITAR PRODUCTO
 // ============================================================
 async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
@@ -342,7 +441,6 @@ async function editarProducto(productId) {
   }
   
   try {
-    // Buscar el producto en el array local
     const product = inventoryData.find(p => p.id === productId);
     
     if (!product) {
@@ -352,31 +450,27 @@ async function editarProducto(productId) {
     
     currentEditingProduct = product;
     
-    // Cambiar a la pestaña "Agregar" (la usaremos como editor)
+    // Cambiar a pestaña de agregar
     const addTab = document.getElementById('tab-add');
     const inventoryTab = document.getElementById('tab-inventory');
     
     if (addTab && inventoryTab) {
-      // Ocultar inventario
       inventoryTab.classList.remove('active');
       inventoryTab.classList.add('hidden');
-      
-      // Mostrar agregar
       addTab.classList.remove('hidden');
       addTab.classList.add('active');
       
-      // Actualizar navegación
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector('[data-tab="add"]')?.classList.add('active');
     }
     
-    // Cambiar título del formulario
+    // Cambiar título
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) {
       formTitle.textContent = '✏️ Editar Producto';
     }
     
-    // Rellenar el formulario con los datos del producto
+    // Rellenar formulario
     document.getElementById('add-barcode').value = product.codigoBarras || '';
     document.getElementById('add-product-name').value = product.nombre || '';
     document.getElementById('add-brand').value = product.marca || '';
@@ -385,14 +479,14 @@ async function editarProducto(productId) {
     document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
     document.getElementById('add-boxes').value = product.cajas || '';
     
-    // Cambiar el texto del botón submit
+    // Cambiar botón submit
     const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = '💾 Actualizar Producto';
-      submitBtn.style.background = '#f59e0b'; // Color warning para indicar edición
+      submitBtn.style.background = '#f59e0b';
     }
     
-    // Agregar botón cancelar si no existe
+    // Agregar botón cancelar
     let cancelBtn = document.getElementById('cancel-edit-btn');
     if (!cancelBtn) {
       cancelBtn = document.createElement('button');
@@ -407,13 +501,11 @@ async function editarProducto(productId) {
     }
     
     showToast('✏️ Editando: ' + product.nombre, 'info');
-    
-    // Scroll al top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
   } catch (error) {
-    console.error('❌ Error al editar producto:', error);
-    showToast('❌ Error al cargar el producto: ' + error.message, 'error');
+    console.error('❌ Error al editar:', error);
+    showToast('❌ Error: ' + error.message, 'error');
   }
 }
 
@@ -423,36 +515,30 @@ async function editarProducto(productId) {
 function cancelarEdicion() {
   currentEditingProduct = null;
   
-  // Limpiar formulario
   document.getElementById('add-product-form').reset();
   
-  // Restaurar título
   const formTitle = document.querySelector('#tab-add h2');
   if (formTitle) {
     formTitle.textContent = '➕ Agregar Producto';
   }
   
-  // Restaurar botón submit
   const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
   if (submitBtn) {
     submitBtn.textContent = '✅ Guardar Producto';
     submitBtn.style.background = '';
   }
   
-  // Eliminar botón cancelar
   const cancelBtn = document.getElementById('cancel-edit-btn');
   if (cancelBtn) {
     cancelBtn.remove();
   }
   
-  // Volver a inventario
   const addTab = document.getElementById('tab-add');
   const inventoryTab = document.getElementById('tab-inventory');
   
   if (addTab && inventoryTab) {
     addTab.classList.remove('active');
     addTab.classList.add('hidden');
-    
     inventoryTab.classList.remove('hidden');
     inventoryTab.classList.add('active');
     
@@ -491,13 +577,11 @@ async function handleAddProduct(event) {
       actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
     };
     
-    // Validar datos obligatorios
     if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
       showToast('❌ Completa todos los campos correctamente', 'error');
       return;
     }
     
-    // Si estamos editando
     if (currentEditingProduct) {
       console.log('💾 Actualizando producto:', currentEditingProduct.id);
       
@@ -507,9 +591,7 @@ async function handleAddProduct(event) {
       
       showToast('✅ Producto actualizado correctamente', 'success');
       currentEditingProduct = null;
-      
     } else {
-      // Si estamos agregando uno nuevo
       console.log('💾 Guardando nuevo producto...');
       
       await firebase.database()
@@ -519,10 +601,9 @@ async function handleAddProduct(event) {
       showToast('✅ Producto guardado correctamente', 'success');
     }
     
-    // Limpiar formulario
+    // Resetear formulario
     document.getElementById('add-product-form').reset();
     
-    // Restaurar interfaz
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) {
       formTitle.textContent = '➕ Agregar Producto';
@@ -539,7 +620,7 @@ async function handleAddProduct(event) {
       cancelBtn.remove();
     }
     
-    // Volver a tab de inventario
+    // Volver a inventario
     const inventoryTab = document.getElementById('tab-inventory');
     const addTab = document.getElementById('tab-add');
     if (inventoryTab && addTab) {
@@ -548,16 +629,56 @@ async function handleAddProduct(event) {
       addTab.classList.remove('active');
       addTab.classList.add('hidden');
       
-      const navItems = document.querySelectorAll('[data-tab]');
-      navItems.forEach(nav => nav.classList.remove('active'));
+      document.querySelectorAll('[data-tab]').forEach(nav => nav.classList.remove('active'));
       document.querySelector('[data-tab="inventory"]')?.classList.add('active');
     }
     
   } catch (error) {
-    console.error('Error al guardar/actualizar producto:', error);
+    console.error('❌ Error:', error);
     showToast('❌ Error: ' + error.message, 'error');
   }
 }
+
+// ============================================================
+// AUTOFILL PARA AGREGAR PRODUCTOS
+// ============================================================
+window.buscarProductoParaAgregar = async function(barcode) {
+  console.log('🔍 Buscando producto:', barcode);
+  
+  if (!userDeterminante) {
+    userDeterminante = await getUserDeterminante();
+  }
+  
+  if (!userDeterminante) return;
+
+  try {
+    const snapshot = await firebase.database()
+      .ref('inventario/' + userDeterminante)
+      .orderByChild('codigoBarras')
+      .equalTo(barcode)
+      .once('value');
+
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const key = Object.keys(data)[0];
+      const producto = data[key];
+
+      document.getElementById('add-product-name').value = producto.nombre || '';
+      document.getElementById('add-brand').value = producto.marca || 'Otra';
+      document.getElementById('add-pieces-per-box').value = producto.piezasPorCaja || '';
+
+      if (typeof showToast === 'function') {
+        showToast('✅ Producto encontrado: ' + producto.nombre, 'success');
+      }
+    } else {
+      if (typeof showToast === 'function') {
+        showToast('🆕 Producto nuevo, completa los datos', 'info');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error autofill:', error);
+  }
+};
 
 // ============================================================
 // INICIALIZACIÓN
@@ -568,7 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const addProductForm = document.getElementById('add-product-form');
   if (addProductForm) {
     addProductForm.addEventListener('submit', handleAddProduct);
-    console.log('✅ Formulario de agregar/editar producto configurado');
+    console.log('✅ Formulario configurado');
+  }
+  
+  // Búsqueda en tiempo real
+  const searchInput = document.getElementById('inventory-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', applyFiltersAndRender);
   }
   
   firebase.auth().onAuthStateChanged((user) => {
@@ -585,39 +712,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.editarProducto = editarProducto;
 window.cancelarEdicion = cancelarEdicion;
 
-console.log('✅ inventory.js con EDITAR cargado correctamente');
-// ============================================================
-// AUTOFILL PARA AGREGAR (Poner al final de inventory.js)
-// ============================================================
-window.buscarProductoParaAgregar = async function(barcode) {
-  console.log('🔍 Buscando datos para agregar:', barcode);
-  
-  if (!userDeterminante) userDeterminante = await getUserDeterminante();
-  if (!userDeterminante) return;
-
-  try {
-    const snapshot = await firebase.database()
-      .ref('inventario/' + userDeterminante)
-      .orderByChild('codigoBarras')
-      .equalTo(barcode)
-      .once('value');
-
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const key = Object.keys(data)[0];
-      const producto = data[key];
-
-      // Rellenar formulario
-      document.getElementById('add-product-name').value = producto.nombre || '';
-      document.getElementById('add-brand').value = producto.marca || 'Otra';
-      document.getElementById('add-pieces-per-box').value = producto.piezasPorCaja || '';
-      // document.getElementById('add-warehouse').value = producto.ubicacion || ''; // Opcional
-
-      if (typeof showToast === 'function') showToast('✅ Producto encontrado: ' + producto.nombre, 'success');
-    } else {
-      if (typeof showToast === 'function') showToast('🆕 Producto nuevo, completa los datos', 'info');
-    }
-  } catch (error) {
-    console.error('Error autofill:', error);
-  }
-};
+console.log('✅ inventory.js cargado correctamente');

@@ -1,10 +1,11 @@
 /* ============================================================
    Águila Inventario Pro - auth.js
-   CORREGIDO: Recarga al salir + Limpieza de espacios
+   VERSIÓN CORREGIDA: Desconecta listeners + Mejor manejo de sesión
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
 
+// Toast notification helper
 if (typeof window.showToast !== 'function') {
   window.showToast = function(message, type = 'info') {
     console.log('[TOAST]', type.toUpperCase(), message);
@@ -21,6 +22,9 @@ if (typeof window.showToast !== 'function') {
 
 let currentUser = null;
 
+// ============================================================
+// FUNCIONES DE PANTALLA
+// ============================================================
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
@@ -31,6 +35,9 @@ function showApp() {
   document.getElementById('app-container').style.display = 'block';
 }
 
+// ============================================================
+// MANEJO DE LOGIN
+// ============================================================
 async function handleLogin() {
   const email = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
@@ -51,6 +58,9 @@ async function handleLogin() {
   }
 }
 
+// ============================================================
+// MANEJO DE REGISTRO
+// ============================================================
 async function handleRegister() {
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
@@ -59,8 +69,8 @@ async function handleRegister() {
   const determinanteInput = document.getElementById('register-determinante')?.value;
   const determinante = determinanteInput ? String(determinanteInput).trim() : '';
 
-  const storeName = document.getElementById('register-store-name')?.value;
-  const promoterName = document.getElementById('register-promoter-name')?.value;
+  const storeName = document.getElementById('register-store-name')?.value.trim();
+  const promoterName = document.getElementById('register-promoter-name')?.value.trim();
   
   if (!email || !password || !determinante || !storeName || !promoterName) {
     showToast('❌ Completa todos los campos', 'error');
@@ -99,6 +109,9 @@ async function handleRegister() {
   }
 }
 
+// ============================================================
+// RECUPERACIÓN DE CONTRASEÑA
+// ============================================================
 async function handleForgotPassword() {
   const email = document.getElementById('forgot-email')?.value.trim();
   
@@ -123,6 +136,9 @@ async function handleForgotPassword() {
   }
 }
 
+// ============================================================
+// NAVEGACIÓN ENTRE FORMULARIOS
+// ============================================================
 function showLoginForm() {
   document.getElementById('login-form').classList.remove('hidden');
   document.getElementById('register-form').classList.add('hidden');
@@ -141,6 +157,9 @@ function showForgotForm() {
   document.getElementById('forgot-password-form').classList.remove('hidden');
 }
 
+// ============================================================
+// CARGAR DATOS DEL USUARIO
+// ============================================================
 function loadUserData(userId) {
   firebase.database().ref('usuarios/' + userId).once('value')
     .then((snapshot) => {
@@ -163,24 +182,51 @@ function loadUserData(userId) {
     });
 }
 
-// CORRECCIÓN CLAVE: Recargar página al salir
+// ============================================================
+// LOGOUT CORREGIDO - DESCONECTA LISTENERS ANTES
+// ============================================================
 async function logout() {
   try {
+    console.log('🚪 Cerrando sesión...');
+    
+    // 1️⃣ PRIMERO: Detener TODOS los listeners
+    if (typeof window.stopAllListeners === 'function') {
+      console.log('🛑 Deteniendo listeners...');
+      window.stopAllListeners();
+    } else {
+      console.warn('⚠️ stopAllListeners no está disponible');
+    }
+    
+    // 2️⃣ Pequeña pausa para asegurar desconexión
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    // 3️⃣ AHORA SÍ: Cerrar sesión en Firebase
     await firebase.auth().signOut();
     currentUser = null;
+    
+    console.log('✅ Sesión cerrada correctamente');
     showToast('✅ Sesión cerrada', 'success');
     
-    // RECARGAR PÁGINA PARA LIMPIAR "FANTASMAS"
+    // 4️⃣ Limpiar interfaz
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('auth-setup').style.display = 'block';
+    
+    // 5️⃣ Recargar para limpiar completamente el estado
     setTimeout(() => {
-        window.location.reload();
-    }, 500);
+      window.location.reload();
+    }, 600);
 
   } catch (error) {
-    console.error('❌ Error logout:', error);
+    console.error('❌ Error en logout:', error);
     showToast('Error al cerrar sesión', 'error');
+    // Forzar recarga si hay error
+    setTimeout(() => window.location.reload(), 500);
   }
 }
 
+// ============================================================
+// MENSAJES DE ERROR
+// ============================================================
 function getErrorMessage(errorCode) {
   const errors = {
     'auth/invalid-email': '❌ Email inválido',
@@ -191,11 +237,15 @@ function getErrorMessage(errorCode) {
     'auth/email-already-in-use': '❌ Email ya registrado',
     'auth/weak-password': '❌ Contraseña muy débil (mínimo 6 caracteres)',
     'auth/network-request-failed': '❌ Error de red',
-    'auth/operation-not-allowed': '❌ Operación no permitida'
+    'auth/operation-not-allowed': '❌ Operación no permitida',
+    'auth/too-many-requests': '❌ Demasiados intentos, espera un momento'
   };
   return errors[errorCode] || '❌ Error de autenticación: ' + errorCode;
 }
 
+// ============================================================
+// LISTENER DE ESTADO DE AUTENTICACIÓN
+// ============================================================
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
@@ -208,21 +258,48 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
+// ============================================================
+// INICIALIZACIÓN DE EVENTOS
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
   
-  document.getElementById('btn-login')?.addEventListener('click', handleLogin);
+  // Login
+  const btnLogin = document.getElementById('btn-login');
+  if (btnLogin) {
+    btnLogin.addEventListener('click', handleLogin);
+  }
   
-  document.getElementById('register-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleRegister();
-  });
+  // Enter en el formulario de login
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  if (loginEmail && loginPassword) {
+    [loginEmail, loginPassword].forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    });
+  }
   
-  document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleForgotPassword();
-  });
+  // Register
+  const registerForm = document.getElementById('register-form');
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleRegister();
+    });
+  }
   
+  // Forgot password
+  const forgotForm = document.getElementById('forgot-password-form');
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleForgotPassword();
+    });
+  }
+  
+  // Navegación entre formularios
   document.getElementById('show-register')?.addEventListener('click', (e) => {
     e.preventDefault();
     showRegisterForm();
@@ -243,12 +320,17 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoginForm();
   });
   
+  // Logout buttons
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   document.getElementById('btn-logout-settings')?.addEventListener('click', logout);
+  
+  console.log('✅ Eventos de autenticación registrados');
 });
 
+// Exponer funciones globalmente
 window.logout = logout;
 window.showLoginScreen = showLoginScreen;
 window.showApp = showApp;
+window.currentUser = currentUser;
 
 console.log('✅ auth.js cargado correctamente');
