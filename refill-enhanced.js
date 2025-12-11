@@ -439,32 +439,43 @@ function cerrarModalCrearProducto() {
 }
 
 // ============================================================
-// MOSTRAR INFORMACIÓN DEL PRODUCTO
+// MOSTRAR INFORMACIÓN DEL PRODUCTO - CON DEBUG
 // ============================================================
 function displayRefillProductInfo(product) {
+  console.log('🔍 DEBUG displayRefillProductInfo llamada');
+  console.log('📦 Producto recibido:', product);
+  console.log('📊 Cajas en producto:', product.cajas);
+  console.log('📊 Tipo de cajas:', typeof product.cajas);
+  
   const infoDiv = document.getElementById('refill-product-info');
   const nameEl = document.getElementById('refill-product-name');
   const stockEl = document.getElementById('refill-current-stock');
   
+  console.log('🎯 Elementos encontrados:', {
+    infoDiv: !!infoDiv,
+    nameEl: !!nameEl,
+    stockEl: !!stockEl
+  });
+  
   if (infoDiv && nameEl && stockEl) {
     if (product.id) {
+      const cajas = parseInt(product.cajas) || 0;
+      const ubicacion = product.ubicacion || 'almacén';
+      
       nameEl.innerHTML = '<strong>Producto:</strong> ' + product.nombre;
-      stockEl.textContent = 'Stock actual: ' + (product.cajas || 0) + ' cajas en ' + (product.ubicacion || 'almacén');
+      stockEl.textContent = 'Stock actual: ' + cajas + ' cajas en ' + ubicacion;
+      
+      console.log('✅ UI actualizada con cajas:', cajas, 'ubicación:', ubicacion);
     } else {
       nameEl.innerHTML = '<strong style="color:#f59e0b;">📝 NUEVO:</strong> ' + product.nombre;
       stockEl.textContent = 'Bodega: ' + product.ubicacion;
+      console.log('✅ Producto nuevo mostrado');
     }
     infoDiv.style.display = 'block';
+  } else {
+    console.error('❌ No se encontraron elementos de UI');
   }
 }
-
-function hideRefillProductInfo() {
-  const infoDiv = document.getElementById('refill-product-info');
-  if (infoDiv) {
-    infoDiv.style.display = 'none';
-  }
-}
-
 // ============================================================
 // REGISTRAR MOVIMIENTO DE RELLENO
 // ============================================================
