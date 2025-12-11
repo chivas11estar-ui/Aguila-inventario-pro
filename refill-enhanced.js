@@ -1,6 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: refill-enhanced.js
-// VERSIÓN CORREGIDA: Con protección contra PERMISSION_DENIED
+// VERSIÓN DEFINITIVA CON LISTENERS Y PROTECCIÓN
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
@@ -11,8 +11,6 @@ let isCreatingNewProduct = false;
 // 🔑 VARIABLES PARA CONTROL DE LISTENERS
 let refillListener = null;
 let refillPath = null;
-let movementsListener = null;
-let movementsPath = null;
 
 // ============================================================
 // FUNCIÓN PARA DETENER LISTENERS DE RELLENO
@@ -20,30 +18,17 @@ let movementsPath = null;
 function stopRefillListeners() {
   console.log('🛑 Deteniendo listeners de relleno...');
   
-  // Detener listener del producto
   if (refillListener && refillPath) {
     try {
       firebase.database().ref(refillPath).off('value', refillListener);
-      console.log('✅ Listener de producto detenido');
+      console.log('✅ Listener de relleno detenido');
     } catch (error) {
-      console.warn('⚠️ Error deteniendo listener de producto:', error);
-    }
-  }
-  
-  // Detener listener de movimientos
-  if (movementsListener && movementsPath) {
-    try {
-      firebase.database().ref(movementsPath).off('value', movementsListener);
-      console.log('✅ Listener de movimientos detenido');
-    } catch (error) {
-      console.warn('⚠️ Error deteniendo listener de movimientos:', error);
+      console.warn('⚠️ Error deteniendo listener:', error);
     }
   }
   
   refillListener = null;
   refillPath = null;
-  movementsListener = null;
-  movementsPath = null;
   currentRefillProduct = null;
   isCreatingNewProduct = false;
 }
@@ -127,6 +112,8 @@ async function searchProductForRefill(barcode) {
       };
       
       console.log('✅ Producto encontrado:', currentRefillProduct);
+      console.log('📦 Cajas iniciales:', currentRefillProduct.cajas);
+      
       isCreatingNewProduct = false;
       
       // ✅ AUTOFILL - Rellenar campos automáticamente
@@ -215,6 +202,7 @@ function startProductListener(productId) {
     
     if (productData && currentRefillProduct) {
       console.log('📦 Stock actualizado en tiempo real');
+      console.log('   Cajas nuevas:', productData.cajas);
       
       // Actualizar el objeto actual
       currentRefillProduct.cajas = productData.cajas;
@@ -262,7 +250,6 @@ function mostrarModalCrearProducto(barcode) {
   if (!modal) {
     console.warn('⚠️ Modal de crear producto no existe en HTML');
     
-    // Si no existe, mostrar opción manual
     const confirmado = confirm(
       '❌ Producto no encontrado.\n\n' +
       '¿Quieres crear un producto nuevo con este código?\n\n' +
@@ -275,18 +262,15 @@ function mostrarModalCrearProducto(barcode) {
     return;
   }
   
-  // Llenar código en el modal
   const barcodeField = document.getElementById('create-product-barcode');
   if (barcodeField) {
     barcodeField.value = barcode;
     barcodeField.readOnly = true;
   }
   
-  // Mostrar modal
   modal.style.display = 'flex';
   modal.classList.remove('hidden');
   
-  // Focus en nombre
   const nameField = document.getElementById('create-product-name');
   if (nameField) {
     nameField.focus();
@@ -301,7 +285,6 @@ function mostrarModalCrearProducto(barcode) {
 function habilitarCreacionManual(barcode) {
   isCreatingNewProduct = true;
   
-  // Habilitar campos
   document.getElementById('refill-nombre').readOnly = false;
   document.getElementById('refill-nombre').style.background = '#fff';
   document.getElementById('refill-nombre').style.borderColor = '#f59e0b';
@@ -322,13 +305,11 @@ function habilitarCreacionManual(barcode) {
   document.getElementById('refill-warehouse').style.borderColor = '#f59e0b';
   document.getElementById('refill-warehouse').style.borderWidth = '2px';
   
-  // Limpiar campos
   document.getElementById('refill-nombre').value = '';
   document.getElementById('refill-marca').value = 'Otra';
   document.getElementById('refill-piezas').value = '24';
   document.getElementById('refill-warehouse').value = '';
   
-  // Guardar el código
   currentRefillProduct = {
     id: null,
     codigoBarras: barcode,
@@ -339,7 +320,6 @@ function habilitarCreacionManual(barcode) {
     cajas: 0
   };
   
-  // Mostrar info
   const infoDiv = document.getElementById('refill-product-info');
   if (infoDiv) {
     infoDiv.innerHTML = `
@@ -398,13 +378,11 @@ async function guardarProductoDelModal() {
       ...productData
     };
     
-    // Cerrar modal
     const modal = document.getElementById('create-product-modal');
     if (modal) {
       modal.style.display = 'none';
     }
     
-    // Llenar formulario de relleno
     document.getElementById('refill-nombre').value = nombre;
     document.getElementById('refill-marca').value = marca || 'Otra';
     document.getElementById('refill-piezas').value = piezas;
@@ -418,7 +396,6 @@ async function guardarProductoDelModal() {
     
     showToast('✅ Producto creado: ' + nombre, 'success');
     
-    // Focus en cajas
     document.getElementById('refill-boxes').focus();
     
   } catch (error) {
@@ -439,23 +416,16 @@ function cerrarModalCrearProducto() {
 }
 
 // ============================================================
-// MOSTRAR INFORMACIÓN DEL PRODUCTO - CON DEBUG
+// MOSTRAR INFORMACIÓN DEL PRODUCTO
 // ============================================================
 function displayRefillProductInfo(product) {
-  console.log('🔍 DEBUG displayRefillProductInfo llamada');
-  console.log('📦 Producto recibido:', product);
-  console.log('📊 Cajas en producto:', product.cajas);
-  console.log('📊 Tipo de cajas:', typeof product.cajas);
+  console.log('🔍 Mostrando info del producto');
+  console.log('📦 Producto:', product);
+  console.log('📊 Cajas:', product.cajas, 'Tipo:', typeof product.cajas);
   
   const infoDiv = document.getElementById('refill-product-info');
   const nameEl = document.getElementById('refill-product-name');
   const stockEl = document.getElementById('refill-current-stock');
-  
-  console.log('🎯 Elementos encontrados:', {
-    infoDiv: !!infoDiv,
-    nameEl: !!nameEl,
-    stockEl: !!stockEl
-  });
   
   if (infoDiv && nameEl && stockEl) {
     if (product.id) {
@@ -465,17 +435,24 @@ function displayRefillProductInfo(product) {
       nameEl.innerHTML = '<strong>Producto:</strong> ' + product.nombre;
       stockEl.textContent = 'Stock actual: ' + cajas + ' cajas en ' + ubicacion;
       
-      console.log('✅ UI actualizada con cajas:', cajas, 'ubicación:', ubicacion);
+      console.log('✅ UI actualizada - Cajas:', cajas);
     } else {
       nameEl.innerHTML = '<strong style="color:#f59e0b;">📝 NUEVO:</strong> ' + product.nombre;
       stockEl.textContent = 'Bodega: ' + product.ubicacion;
-      console.log('✅ Producto nuevo mostrado');
     }
     infoDiv.style.display = 'block';
   } else {
-    console.error('❌ No se encontraron elementos de UI');
+    console.error('❌ Elementos no encontrados:', { infoDiv: !!infoDiv, nameEl: !!nameEl, stockEl: !!stockEl });
   }
 }
+
+function hideRefillProductInfo() {
+  const infoDiv = document.getElementById('refill-product-info');
+  if (infoDiv) {
+    infoDiv.style.display = 'none';
+  }
+}
+
 // ============================================================
 // REGISTRAR MOVIMIENTO DE RELLENO
 // ============================================================
@@ -486,6 +463,7 @@ async function processRefillMovement(boxes) {
   }
   
   console.log('📦 Procesando relleno:', boxes, 'cajas');
+  console.log('📦 Stock actual del producto:', currentRefillProduct.cajas);
   
   if (!userDeterminanteRefill) {
     userDeterminanteRefill = await getUserDeterminanteRefill();
@@ -496,10 +474,11 @@ async function processRefillMovement(boxes) {
     return;
   }
   
-  const currentStock = currentRefillProduct.cajas || 0;
+  const currentStock = parseInt(currentRefillProduct.cajas) || 0;
   const boxesToMove = parseInt(boxes);
   
-  // Validaciones
+  console.log('📊 Validando:', { currentStock, boxesToMove });
+  
   if (isNaN(boxesToMove) || boxesToMove <= 0) {
     showToast('❌ La cantidad debe ser mayor a 0', 'error');
     return;
@@ -529,9 +508,7 @@ async function processRefillMovement(boxes) {
   };
   
   try {
-    // Si es producto nuevo, establecer el stock
     if (!currentRefillProduct.id || isCreatingNewProduct) {
-      // Crear producto si no existe
       const inventoryRef = firebase.database()
         .ref('inventario/' + userDeterminanteRefill);
       
@@ -558,7 +535,6 @@ async function processRefillMovement(boxes) {
         });
       }
     } else {
-      // Actualizar stock existente
       await firebase.database()
         .ref('inventario/' + userDeterminanteRefill + '/' + currentRefillProduct.id)
         .update({
@@ -568,7 +544,6 @@ async function processRefillMovement(boxes) {
         });
     }
     
-    // Registrar movimiento
     await firebase.database()
       .ref('movimientos/' + userDeterminanteRefill)
       .push(movementData);
@@ -576,10 +551,8 @@ async function processRefillMovement(boxes) {
     console.log('✅ Relleno registrado exitosamente');
     showToast(`✅ Movimiento registrado: ${boxesToMove} cajas`, 'success');
     
-    // Detener listeners del producto actual
     stopRefillListeners();
     
-    // Limpiar formulario
     document.getElementById('refill-form').reset();
     ['refill-nombre', 'refill-marca', 'refill-piezas', 'refill-warehouse'].forEach(id => {
       const input = document.getElementById(id);
@@ -633,7 +606,6 @@ async function updateTodayMovements() {
       countEl.textContent = count + ' movimientos';
     }
   } catch (error) {
-    // Ignorar error si es por logout
     if (!firebase.auth().currentUser || error.code === 'PERMISSION_DENIED') {
       console.log('🛑 Error de movimientos ignorado (logout)');
       return;
@@ -710,7 +682,6 @@ function setupRefillForm() {
     });
   }
   
-  // Eventos del modal
   const saveModalBtn = document.getElementById('save-product-modal-btn');
   if (saveModalBtn) {
     saveModalBtn.addEventListener('click', guardarProductoDelModal);
@@ -782,4 +753,4 @@ window.guardarProductoDelModal = guardarProductoDelModal;
 window.cerrarModalCrearProducto = cerrarModalCrearProducto;
 window.stopRefillListeners = stopRefillListeners;
 
-console.log('✅ refill-enhanced.js con PROTECCIÓN cargado correctamente');
+console.log('✅ refill-enhanced.js con PROTECCIÓN y LISTENERS cargado correctamente');
