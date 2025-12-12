@@ -1,52 +1,81 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: analytics.js
-// VERSIÓN CORREGIDA CON PROTECCIÓN CONTRA PERMISSION_DENIED
+// VERSIÓN CORREGIDA, OPTIMIZADA Y PROTEGIDA
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-let userDeterminanteAnalytics = null;
-let movementsData = [];
+/*
+  Principales mejoras:
+  - Caché de determinante (evita múltiples lecturas concurrentes).
+  - Función reutilizable para filtrar movimientos por rango de fechas.
+  - Uso de limitToLast() y startAt() para reducir carga en nodos grandes.
+  - Evitar snapshot.forEach en favor de Object.values cuando sea posible.
+  - Limpieza robusta de listeners y destrucción de instancias Chart.
+  - Manejo protegido de errores (logout / PERMISSION_DENIED).
+  - Renderización defensiva (elementos DOM comprobados).
+*/
 
-// 🔑 VARIABLES PARA CONTROL DE LISTENERS
+let userDeterminanteAnalytics = null;
+let determinantePromise = null;
+
 let weeklyListener = null;
 let weeklyPath = null;
 let monthlyListener = null;
 let monthlyPath = null;
 
-// ============================================================
-// FUNCIÓN PARA DETENER LISTENERS DE ANALYTICS
-// ============================================================
+let weeklyChartInstance = null;
+let monthlyChartInstance = null;
+
+// -------------------- UTILIDADES --------------------
+function safeGetEl(id) {
+  return document.getElementById(id) || null;
+}
+
+function toDateSafe(value) {
+  // Intenta convertir a Date de forma tolerante.
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d;
+}
+
+function logDebug(...args) {
+  if (console && console.log) console.log(...args);
+}
+
+// -------------------- DETENER LISTENERS --------------------
 function stopAnalyticsListeners() {
-  console.log('🛑 Deteniendo listeners de analytics...');
-  
-  // Detener listener semanal
-  if (weeklyListener && weeklyPath) {
-    try {
+  logDebug('🛑 Deteniendo listeners de analytics...');
+
+  try {
+    if (weeklyListener && weeklyPath) {
       firebase.database().ref(weeklyPath).off('value', weeklyListener);
-      console.log('✅ Listener semanal detenido');
-    } catch (error) {
-      console.warn('⚠️ Error deteniendo listener semanal:', error);
+      logDebug('✅ Listener semanal detenido:', weeklyPath);
     }
+  } catch (err) {
+    console.warn('⚠️ Error deteniendo listener semanal:', err);
   }
-  
-  // Detener listener mensual
-  if (monthlyListener && monthlyPath) {
-    try {
+
+  try {
+    if (monthlyListener && monthlyPath) {
       firebase.database().ref(monthlyPath).off('value', monthlyListener);
-      console.log('✅ Listener mensual detenido');
-    } catch (error) {
-      console.warn('⚠️ Error deteniendo listener mensual:', error);
+      logDebug('✅ Listener mensual detenido:', monthlyPath);
     }
+  } catch (err) {
+    console.warn('⚠️ Error deteniendo listener mensual:', err);
   }
-  
+
   weeklyListener = null;
   weeklyPath = null;
   monthlyListener = null;
   monthlyPath = null;
-  movementsData = [];
+
+  // destruir charts si existen
+  try { if (window.weeklyChartInstance) { window.weeklyChartInstance.destroy(); window.weeklyChartInstance = null; } } catch(e){/*ignore*/}
+  try { if (window.monthlyChartInstance) { window.monthlyChartInstance.destroy(); window.monthlyChartInstance = null; } } catch(e){/*ignore*/}
 }
 
-// Integrar con stopAllListeners global
+// Integrar con stopAllListeners global (si existe)
 if (typeof window.stopAllListeners === 'function') {
   const originalStop = window.stopAllListeners;
   window.stopAllListeners = function() {
@@ -59,145 +88,148 @@ if (typeof window.stopAllListeners === 'function') {
   };
 }
 
-// ============================================================
-// OBTENER DETERMINANTE
-// ============================================================
+// -------------------- OBTENER DETERMINANTE (CACHEADO) --------------------
 async function getUserDeterminanteAnalytics() {
-  const userId = firebase.auth().currentUser?.uid;
-  if (!userId) return null;
-  
-  try {
-    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
-    const userData = snapshot.val();
-    return userData?.determinante || null;
-  } catch (error) {
-    console.error('Error obtener determinante:', error);
-    return null;
-  }
+  // Evitar llamadas repetidas concurrentes usando determinantePromise
+  if (userDeterminanteAnalytics) return userDeterminanteAnalytics;
+  if (determinantePromise) return determinantePromise;
+
+  determinantePromise = (async () => {
+    try {
+      const userId = firebase.auth().currentUser?.uid;
+      if (!userId) return null;
+      const snap = await firebase.database().ref('usuarios/' + userId).once('value');
+      const data = snap.val();
+      userDeterminanteAnalytics = data?.determinante || null;
+      return userDeterminanteAnalytics;
+    } catch (error) {
+      console.error('❌ Error obtener determinante:', error);
+      userDeterminanteAnalytics = null;
+      return null;
+    } finally {
+      determinantePromise = null; // permitir reintento después
+    }
+  })();
+
+  return determinantePromise;
 }
 
-// ============================================================
-// CARGAR MOVIMIENTOS DE LA SEMANA CON LISTENER PROTEGIDO
-// ============================================================
-async function loadWeeklyMovements() {
-  console.log('📊 Cargando movimientos semanales...');
-  
-  // Detener listener anterior
-  if (weeklyListener && weeklyPath) {
-    firebase.database().ref(weeklyPath).off('value', weeklyListener);
-  }
-  
-  if (!userDeterminanteAnalytics) {
-    userDeterminanteAnalytics = await getUserDeterminanteAnalytics();
-  }
-  
-  if (!userDeterminanteAnalytics) {
-    if (typeof showToast === 'function') {
-      showToast('Error: No se encontró información de la tienda', 'error');
+// -------------------- FILTRAR MOVIMIENTOS POR RANGO (REUTILIZABLE) --------------------
+function filtrarMovimientosPorRango(snapshotVal, desde, hasta) {
+  // snapshotVal puede ser objeto o null
+  const out = [];
+  if (!snapshotVal) return out;
+
+  // snapshotVal probablemente es { id: mov, id2: mov2, ... }
+  const arr = Array.isArray(snapshotVal) ? snapshotVal : Object.values(snapshotVal);
+  const desdeTs = desde ? desde.getTime() : null;
+  const hastaTs = hasta ? hasta.getTime() : null;
+
+  for (let i = 0; i < arr.length; i++) {
+    const mov = arr[i];
+    const fecha = toDateSafe(mov?.fecha);
+    if (!fecha) continue;
+    const t = fecha.getTime();
+    if ((desdeTs === null || t >= desdeTs) && (hastaTs === null || t <= hastaTs)) {
+      out.push(mov);
     }
+  }
+  return out;
+}
+
+// -------------------- CARGAR MOVIMIENTOS SEMANALES --------------------
+async function loadWeeklyMovements() {
+  logDebug('📊 Cargando movimientos semanales...');
+
+  // detener listener previo si existe
+  if (weeklyListener && weeklyPath) {
+    try { firebase.database().ref(weeklyPath).off('value', weeklyListener); } catch(e){/*ignore*/}
+    weeklyListener = null;
+    weeklyPath = null;
+  }
+
+  const determinante = await getUserDeterminanteAnalytics();
+  if (!determinante) {
+    if (typeof showToast === 'function') showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
-  
-  // Calcular hace 7 días
+
+  // Rango: últimos 7 días (desde 00:00)
+  const ahora = new Date();
   const hace7Dias = new Date();
-  hace7Dias.setDate(hace7Dias.getDate() - 7);
+  hace7Dias.setDate(ahora.getDate() - 7);
   hace7Dias.setHours(0, 0, 0, 0);
-  
-  weeklyPath = 'movimientos/' + userDeterminanteAnalytics;
-  
-  // Callback del listener
+
+  weeklyPath = 'movimientos/' + determinante;
+
   weeklyListener = (snapshot) => {
     try {
-      const movimientos = [];
-      
-      if (snapshot.exists()) {
-        const ahora = new Date();
-        snapshot.forEach(child => {
-          const mov = child.val();
-          const fechaMov = new Date(mov.fecha);
-          
-          // Solo incluir movimientos de hace 7 días
-          if (fechaMov >= hace7Dias && fechaMov <= ahora) {
-            movimientos.push(mov);
-          }
-        });
-      }
-      
-      // Agrupar por día de semana
+      const raw = snapshot.val();
+      // Filtrar en memoria usando función reusable
+      const movimientos = filtrarMovimientosPorRango(raw, hace7Dias, ahora);
+
+      // Agrupar por día de la semana (Lunes..Domingo)
       const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const dataByDay = {
-        'Lunes': 0,
-        'Martes': 0,
-        'Miércoles': 0,
-        'Jueves': 0,
-        'Viernes': 0,
-        'Sábado': 0,
-        'Domingo': 0
+        'Lunes': 0,'Martes': 0,'Miércoles': 0,'Jueves': 0,'Viernes': 0,'Sábado': 0,'Domingo': 0
       };
-      
+
       movimientos.forEach(mov => {
-        const fecha = new Date(mov.fecha);
-        const diaSemana = diasSemana[fecha.getDay()];
-        dataByDay[diaSemana] = (dataByDay[diaSemana] || 0) + 1;
+        const fecha = toDateSafe(mov.fecha);
+        if (!fecha) return;
+        const dia = diasSemana[fecha.getDay()];
+        dataByDay[dia] = (dataByDay[dia] || 0) + 1;
       });
-      
-      console.log('📊 Datos semanales actualizados:', dataByDay);
+
+      logDebug('📊 Datos semanales actualizados:', dataByDay);
       renderWeeklyChart(dataByDay, movimientos.length);
-      
     } catch (error) {
       console.error('❌ Error procesando movimientos semanales:', error);
     }
   };
-  
-  // Callback de error CON PROTECCIÓN
+
   const errorCallback = (error) => {
-    // Si el usuario cerró sesión, ignorar
     if (!firebase.auth().currentUser) {
-      console.log('🛑 Error semanal ignorado: sesión cerrada');
+      logDebug('🛑 Error semanal ignorado: sesión cerrada');
       return;
     }
-    
-    // Si es PERMISSION_DENIED durante logout, ignorar
-    if (error.code === 'PERMISSION_DENIED') {
-      console.log('🛑 Error de permisos semanal ignorado');
+    if (error && error.code === 'PERMISSION_DENIED') {
+      logDebug('🛑 Error de permisos semanal ignorado');
       return;
     }
-    
-    // Error real
     console.error('❌ Error en listener semanal:', error);
-    if (typeof showToast === 'function') {
-      showToast('Error al cargar datos semanales', 'error');
-    }
+    if (typeof showToast === 'function') showToast('Error al cargar datos semanales', 'error');
   };
-  
-  // Activar listener con protección
-  firebase.database()
-    .ref(weeklyPath)
-    .orderByChild('fecha')
-    .startAt(hace7Dias.toISOString())
-    .on('value', weeklyListener, errorCallback);
+
+  try {
+    // Limitar resultados servirá si tienes muchos movimientos: startAt + limitToLast
+    firebase.database()
+      .ref(weeklyPath)
+      .orderByChild('fecha')
+      .startAt(hace7Dias.toISOString())
+      .limitToLast(2000) // límite razonable para reducir carga; ajustar según tu UX
+      .on('value', weeklyListener, errorCallback);
+  } catch (err) {
+    console.error('❌ No se pudo iniciar listener semanal:', err);
+  }
 }
 
-// ============================================================
-// RENDERIZAR GRÁFICO SEMANAL CON CHARTS.JS
-// ============================================================
+// -------------------- RENDERIZAR GRÁFICO SEMANAL --------------------
 function renderWeeklyChart(dataByDay, totalMovements) {
-  const container = document.getElementById('weekly-chart-container');
+  const container = safeGetEl('weekly-chart-container');
   if (!container) return;
-  
+
   const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const data = dias.map(dia => dataByDay[dia] || 0);
-  
+  const data = dias.map(d => dataByDay[d] || 0);
+
   // Limpiar canvas anterior
   container.innerHTML = '<canvas id="weeklyChart" style="max-height: 300px;"></canvas>';
-  
-  const ctx = document.getElementById('weeklyChart');
+  const ctx = safeGetEl('weeklyChart');
   if (!ctx) return;
-  
-  if (window.weeklyChartInstance) {
-    window.weeklyChartInstance.destroy();
-  }
-  
+
+  // Destruir instancia previa si existe
+  try { if (window.weeklyChartInstance) { window.weeklyChartInstance.destroy(); window.weeklyChartInstance = null; } } catch(e){/*ignore*/}
+
   window.weeklyChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -205,9 +237,9 @@ function renderWeeklyChart(dataByDay, totalMovements) {
       datasets: [{
         label: 'Productos Movidos',
         data: data,
+        // Nota: colores píntalos desde CSS si quieres tema dinámico; aquí dejamos valores por defecto
         backgroundColor: [
-          '#004aad', '#003a8a', '#002d6a', '#1e40af', '#0048d4',
-          '#0056d4', '#004aad'
+          '#004aad', '#003a8a', '#002d6a', '#1e40af', '#0048d4', '#0056d4', '#004aad'
         ],
         borderRadius: 8,
         borderSkipped: false,
@@ -219,88 +251,57 @@ function renderWeeklyChart(dataByDay, totalMovements) {
       responsive: true,
       maintainAspectRatio: true,
       plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        title: {
-          display: true,
-          text: '📊 Movimientos de la Semana',
-          font: { size: 14, weight: 'bold' }
-        }
+        legend: { display: true, position: 'top' },
+        title: { display: true, text: '📊 Movimientos de la Semana', font: { size: 14, weight: 'bold' } }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1
-          }
-        }
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
       }
     }
   });
-  
+
   // Mostrar total
-  const totalEl = document.getElementById('weekly-total');
+  const totalEl = safeGetEl('weekly-total');
   if (totalEl) {
     totalEl.innerHTML = `<strong>Total esta semana:</strong> ${totalMovements} productos movidos`;
   }
 }
 
-// ============================================================
-// CARGAR MOVIMIENTOS DEL MES CON LISTENER PROTEGIDO
-// ============================================================
+// -------------------- CARGAR MOVIMIENTOS MENSUALES --------------------
 async function loadMonthlyMovements() {
-  console.log('📊 Cargando movimientos mensuales...');
-  
-  // Detener listener anterior
+  logDebug('📊 Cargando movimientos mensuales...');
+
   if (monthlyListener && monthlyPath) {
-    firebase.database().ref(monthlyPath).off('value', monthlyListener);
+    try { firebase.database().ref(monthlyPath).off('value', monthlyListener); } catch(e){/*ignore*/}
+    monthlyListener = null;
+    monthlyPath = null;
   }
-  
-  if (!userDeterminanteAnalytics) {
-    userDeterminanteAnalytics = await getUserDeterminanteAnalytics();
-  }
-  
-  if (!userDeterminanteAnalytics) {
-    if (typeof showToast === 'function') {
-      showToast('Error: No se encontró información de la tienda', 'error');
-    }
+
+  const determinante = await getUserDeterminanteAnalytics();
+  if (!determinante) {
+    if (typeof showToast === 'function') showToast('Error: No se encontró información de la tienda', 'error');
     return;
   }
-  
-  // Calcular hace 30 días
+
+  const ahora = new Date();
   const hace30Dias = new Date();
-  hace30Dias.setDate(hace30Dias.getDate() - 30);
+  hace30Dias.setDate(ahora.getDate() - 30);
   hace30Dias.setHours(0, 0, 0, 0);
-  
-  monthlyPath = 'movimientos/' + userDeterminanteAnalytics;
-  
-  // Callback del listener
+
+  monthlyPath = 'movimientos/' + determinante;
+
   monthlyListener = (snapshot) => {
     try {
-      const movimientos = [];
-      
-      if (snapshot.exists()) {
-        const ahora = new Date();
-        snapshot.forEach(child => {
-          const mov = child.val();
-          const fechaMov = new Date(mov.fecha);
-          
-          // Solo incluir movimientos de hace 30 días
-          if (fechaMov >= hace30Dias && fechaMov <= ahora) {
-            movimientos.push(mov);
-          }
-        });
-      }
-      
-      // Calcular promedio diario
-      const promedioDiario = Math.round(movimientos.length / 30);
-      
+      const raw = snapshot.val();
+      const movimientos = filtrarMovimientosPorRango(raw, hace30Dias, ahora);
+
+      // Calcular promedio diario (precaución dividir por 30)
+      const promedioDiario = Math.round((movimientos.length / 30) || 0);
+
       renderMonthlyChart(movimientos);
-      
+
       // Mostrar estadísticas
-      const statsEl = document.getElementById('monthly-stats');
+      const statsEl = safeGetEl('monthly-stats');
       if (statsEl) {
         statsEl.innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
@@ -319,78 +320,68 @@ async function loadMonthlyMovements() {
           </div>
         `;
       }
-      
     } catch (error) {
       console.error('❌ Error procesando movimientos mensuales:', error);
     }
   };
-  
-  // Callback de error CON PROTECCIÓN
+
   const errorCallback = (error) => {
-    // Si el usuario cerró sesión, ignorar
     if (!firebase.auth().currentUser) {
-      console.log('🛑 Error mensual ignorado: sesión cerrada');
+      logDebug('🛑 Error mensual ignorado: sesión cerrada');
       return;
     }
-    
-    // Si es PERMISSION_DENIED durante logout, ignorar
-    if (error.code === 'PERMISSION_DENIED') {
-      console.log('🛑 Error de permisos mensual ignorado');
+    if (error && error.code === 'PERMISSION_DENIED') {
+      logDebug('🛑 Error de permisos mensual ignorado');
       return;
     }
-    
-    // Error real
     console.error('❌ Error en listener mensual:', error);
-    if (typeof showToast === 'function') {
-      showToast('Error al cargar datos mensuales', 'error');
-    }
+    if (typeof showToast === 'function') showToast('Error al cargar datos mensuales', 'error');
   };
-  
-  // Activar listener con protección
-  firebase.database()
-    .ref(monthlyPath)
-    .orderByChild('fecha')
-    .startAt(hace30Dias.toISOString())
-    .on('value', monthlyListener, errorCallback);
+
+  try {
+    firebase.database()
+      .ref(monthlyPath)
+      .orderByChild('fecha')
+      .startAt(hace30Dias.toISOString())
+      .limitToLast(5000) // límite razonable, ajustar según tamaño de datos
+      .on('value', monthlyListener, errorCallback);
+  } catch (err) {
+    console.error('❌ No se pudo iniciar listener mensual:', err);
+  }
 }
 
-// ============================================================
-// RENDERIZAR GRÁFICO MENSUAL
-// ============================================================
+// -------------------- RENDERIZAR GRÁFICO MENSUAL --------------------
 function renderMonthlyChart(movimientos) {
-  const container = document.getElementById('monthly-chart-container');
+  const container = safeGetEl('monthly-chart-container');
   if (!container) return;
-  
-  // Agrupar por días del mes
+
+  // Agrupar por dia (día + mes corto)
+  const monthsShort = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const dataByDate = {};
-  
+
   movimientos.forEach(mov => {
-    const fecha = new Date(mov.fecha);
+    const fecha = toDateSafe(mov.fecha);
+    if (!fecha) return;
     const dia = fecha.getDate();
-    const clave = `${dia} ${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][fecha.getMonth()]}`;
-    
+    const clave = `${dia} ${monthsShort[fecha.getMonth()]}`;
     dataByDate[clave] = (dataByDate[clave] || 0) + 1;
   });
-  
-  // Ordenar por fecha
+
   const sortedDates = Object.keys(dataByDate).sort((a, b) => {
-    const diaA = parseInt(a.split(' ')[0]);
-    const diaB = parseInt(b.split(' ')[0]);
+    const diaA = parseInt(a.split(' ')[0], 10);
+    const diaB = parseInt(b.split(' ')[0], 10);
     return diaA - diaB;
   });
-  
+
   const data = sortedDates.map(d => dataByDate[d]);
-  
+
   // Limpiar canvas anterior
   container.innerHTML = '<canvas id="monthlyChart" style="max-height: 300px;"></canvas>';
-  
-  const ctx = document.getElementById('monthlyChart');
+  const ctx = safeGetEl('monthlyChart');
   if (!ctx) return;
-  
-  if (window.monthlyChartInstance) {
-    window.monthlyChartInstance.destroy();
-  }
-  
+
+  try { if (window.monthlyChartInstance) { window.monthlyChartInstance.destroy(); window.monthlyChartInstance = null; } } catch(e){/*ignore*/}
+
   window.monthlyChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
@@ -399,7 +390,7 @@ function renderMonthlyChart(movimientos) {
         label: 'Movimientos Diarios',
         data: data,
         borderColor: '#004aad',
-        backgroundColor: 'rgba(0, 74, 173, 0.1)',
+        backgroundColor: 'rgba(0,74,173,0.08)',
         borderWidth: 3,
         fill: true,
         tension: 0.4,
@@ -414,132 +405,110 @@ function renderMonthlyChart(movimientos) {
       responsive: true,
       maintainAspectRatio: true,
       plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        title: {
-          display: true,
-          text: '📈 Tendencia Mensual (Últimos 30 días)',
-          font: { size: 14, weight: 'bold' }
-        }
+        legend: { display: true, position: 'top' },
+        title: { display: true, text: '📈 Tendencia Mensual (Últimos 30 días)', font: { size: 14, weight: 'bold' } }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1
-          }
-        }
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
       }
     }
   });
 }
 
-// ============================================================
-// CARGAR TOP PRODUCTOS (SIN LISTENERS - SOLO ONCE)
-// ============================================================
+// -------------------- CARGAR TOP PRODUCTS (OPERACIÓN ONCE) --------------------
 async function loadTopProducts() {
-  console.log('🏆 Cargando top productos...');
-  
-  if (!userDeterminanteAnalytics) {
-    userDeterminanteAnalytics = await getUserDeterminanteAnalytics();
-  }
-  
-  if (!userDeterminanteAnalytics) return;
-  
+  logDebug('🏆 Cargando top productos...');
+
+  const determinante = await getUserDeterminanteAnalytics();
+  if (!determinante) return;
+
   try {
-    // Semanal - solo .once()
+    // Rango semanal
+    const ahora = new Date();
     const hace7Dias = new Date();
-    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    hace7Dias.setDate(ahora.getDate() - 7);
     hace7Dias.setHours(0, 0, 0, 0);
-    
-    const weekSnapshot = await firebase.database()
-      .ref('movimientos/' + userDeterminanteAnalytics)
+
+    const weekSnap = await firebase.database()
+      .ref('movimientos/' + determinante)
       .orderByChild('fecha')
       .startAt(hace7Dias.toISOString())
+      .limitToLast(2000)
       .once('value');
-    
+
     const weeklyProducts = {};
-    const monthlyProducts = {};
-    
-    if (weekSnapshot.exists()) {
-      weekSnapshot.forEach(child => {
-        const mov = child.val();
+    if (weekSnap.exists()) {
+      const raw = weekSnap.val();
+      const movs = Object.values(raw || {});
+      movs.forEach(mov => {
         const nombre = mov.productoNombre || 'Desconocido';
         weeklyProducts[nombre] = (weeklyProducts[nombre] || 0) + 1;
       });
     }
-    
-    // Mensual - solo .once()
+
+    // Rango mensual
     const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    hace30Dias.setDate(ahora.getDate() - 30);
     hace30Dias.setHours(0, 0, 0, 0);
-    
-    const monthSnapshot = await firebase.database()
-      .ref('movimientos/' + userDeterminanteAnalytics)
+
+    const monthSnap = await firebase.database()
+      .ref('movimientos/' + determinante)
       .orderByChild('fecha')
       .startAt(hace30Dias.toISOString())
+      .limitToLast(5000)
       .once('value');
-    
-    if (monthSnapshot.exists()) {
-      monthSnapshot.forEach(child => {
-        const mov = child.val();
+
+    const monthlyProducts = {};
+    if (monthSnap.exists()) {
+      const raw = monthSnap.val();
+      const movs = Object.values(raw || {});
+      movs.forEach(mov => {
         const nombre = mov.productoNombre || 'Desconocido';
         monthlyProducts[nombre] = (monthlyProducts[nombre] || 0) + 1;
       });
     }
-    
-    // Renderizar top 5
-    const weekTopContainer = document.getElementById('top-products-weekly');
-    const monthTopContainer = document.getElementById('top-products-monthly');
-    
-    if (weekTopContainer) {
-      renderTopProductsList(weeklyProducts, weekTopContainer);
-    }
-    
-    if (monthTopContainer) {
-      renderTopProductsList(monthlyProducts, monthTopContainer);
-    }
-    
+
+    // Render top 5
+    const weekTopContainer = safeGetEl('top-products-weekly');
+    const monthTopContainer = safeGetEl('top-products-monthly');
+
+    if (weekTopContainer) renderTopProductsList(weeklyProducts, weekTopContainer);
+    if (monthTopContainer) renderTopProductsList(monthlyProducts, monthTopContainer);
   } catch (error) {
-    // Ignorar si es logout
     if (!firebase.auth().currentUser || error.code === 'PERMISSION_DENIED') {
-      console.log('🛑 Error top productos ignorado (logout)');
+      logDebug('🛑 Error top productos ignorado (logout)');
       return;
     }
     console.error('❌ Error cargando top productos:', error);
   }
 }
 
-// ============================================================
-// RENDERIZAR LISTA DE TOP PRODUCTOS
-// ============================================================
+// -------------------- RENDER LISTA TOP PRODUCTS --------------------
 function renderTopProductsList(productsData, container) {
   const sorted = Object.entries(productsData)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  
+
   if (sorted.length === 0) {
     container.innerHTML = '<p style="color: var(--muted);">Sin datos</p>';
     return;
   }
-  
+
+  const totalCount = Object.values(productsData).reduce((a, b) => a + b, 0) || 1;
+
   let html = '';
-  
+  const colores = ['#004aad', '#0056d4', '#1e40af', '#2d5aa5', '#3d6ab5'];
+
   sorted.forEach((item, idx) => {
     const nombre = item[0];
     const count = item[1];
-    const totalCount = Object.values(productsData).reduce((a, b) => a + b, 0);
     const porcentaje = Math.round((count / totalCount) * 100);
-    
-    const colores = ['#004aad', '#0056d4', '#1e40af', '#2d5aa5', '#3d6ab5'];
     const color = colores[idx] || '#004aad';
-    
+
     html += `
       <div style="margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span style="font-weight: 600; font-size: 13px;">
+          <span style="font-weight: 600; font-size: 13px; color:#111827;">
             ${idx + 1}. ${nombre}
           </span>
           <span style="font-weight: 700; color: ${color};">${count}x</span>
@@ -553,27 +522,25 @@ function renderTopProductsList(productsData, container) {
       </div>
     `;
   });
-  
+
   container.innerHTML = html;
 }
 
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
+// -------------------- INITIALIZATION --------------------
 function initAnalyticsModule() {
-  console.log('📊 Inicializando módulo de analytics...');
-  
+  logDebug('📊 Inicializando módulo de analytics...');
+
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
-      console.log('✅ Usuario autenticado, cargando analytics...');
-      
+      logDebug('✅ Usuario autenticado, cargando analytics...');
+      // Esperar un poco para seguridad (y permitir que otros módulos inicialicen)
       setTimeout(() => {
         loadWeeklyMovements();
         loadMonthlyMovements();
         loadTopProducts();
-      }, 1000);
+      }, 800);
     } else {
-      console.log('⏳ Sin usuario, deteniendo analytics...');
+      logDebug('⏳ Sin usuario, deteniendo analytics...');
       stopAnalyticsListeners();
     }
   });
@@ -585,10 +552,10 @@ if (document.readyState === 'loading') {
   initAnalyticsModule();
 }
 
-// Exponer funciones globalmente
+// -------------------- EXPOSICIÓN GLOBAL --------------------
 window.loadWeeklyMovements = loadWeeklyMovements;
 window.loadMonthlyMovements = loadMonthlyMovements;
 window.loadTopProducts = loadTopProducts;
 window.stopAnalyticsListeners = stopAnalyticsListeners;
 
-console.log('✅ analytics.js con PROTECCIÓN cargado correctamente');
+logDebug('✅ analytics.js CORREGIDO, OPTIMIZADO y CARGADO correctamente');

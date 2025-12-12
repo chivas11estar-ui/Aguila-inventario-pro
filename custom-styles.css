@@ -1,31 +1,57 @@
 /* ============================================================
-   CUSTOM STYLES - Águila Inventario Pro
-   Estilos para agrupación de bodegas y autofill
+   Águila Inventario Pro - Custom UI Styles (Versión Optimizada)
+   Limpieza, variables, accesibilidad, mobile y consistencia total
    ============================================================ */
 
-/* DETALLES DE BODEGAS */
+/* ------------------------------ */
+/* VARIABLES GLOBALES             */
+/* ------------------------------ */
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+  --border: #e5e7eb;
+  --border-dark: #d1d5db;
+  --bg-light: #f8fafc;
+  --bg-card: #ffffff;
+  --text-muted: #64748b;
+  --shadow-soft: rgba(0,0,0,0.08);
+}
+
+/* Suavidad general */
+* {
+  transition: all .2s ease;
+}
+
+/* ============================================================
+   DETALLES DE BODEGAS
+   ============================================================ */
 .bodega-details {
   margin-top: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
-  background: #ffffff;
-  transition: all 0.3s ease;
+  background: var(--bg-card);
 }
 
 .bodega-details[open] {
-  background: #f8fafc;
-  border-color: #2563eb;
+  background: var(--bg-light);
+  border-color: var(--primary);
 }
 
 .bodega-details summary {
   cursor: pointer;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--primary);
   padding: 5px;
   list-style: none;
   user-select: none;
-  transition: all 0.2s;
 }
 
 .bodega-details summary::-webkit-details-marker {
@@ -36,7 +62,7 @@
   content: '▶';
   display: inline-block;
   margin-right: 8px;
-  transition: transform 0.3s;
+  transition: transform .3s;
   font-size: 10px;
 }
 
@@ -45,50 +71,51 @@
 }
 
 .bodega-details summary:hover {
-  background: #eff6ff;
+  background: var(--primary-light);
   border-radius: 6px;
-  color: #1d4ed8;
+  color: var(--primary-hover);
 }
 
 .bodega-list {
   list-style: none;
   padding: 10px 0 0 0;
   margin: 0;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn .3s ease;
 }
 
 .bodega-list li {
   padding: 10px;
   margin: 8px 0;
-  background: #ffffff;
-  border-left: 3px solid #2563eb;
+  background: var(--bg-card);
+  border-left: 3px solid var(--primary);
   border-radius: 6px;
   font-size: 13px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s;
+  box-shadow: 0 1px 3px var(--shadow-soft);
 }
 
 .bodega-list li:hover {
-  background: #f8fafc;
-  border-left-color: #1d4ed8;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: var(--bg-light);
+  border-left-color: var(--primary-hover);
+  box-shadow: 0 2px 6px var(--shadow-soft);
   transform: translateX(2px);
 }
 
 .bodega-list small {
-  color: #64748b;
-  font-size: 0.85em;
+  color: var(--text-muted);
+  font-size: .85em;
   display: block;
   margin-top: 4px;
 }
 
-/* INFO DE STOCK EN AUDITORÍA */
+/* ============================================================
+   INFO DE STOCK EN AUDITORÍA
+   ============================================================ */
 #audit-stock-info {
   display: none;
   padding: 12px 16px;
   margin: 12px 0;
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, var(--success-light), var(--success-light));
+  border-left: 4px solid var(--success);
   border-radius: 8px;
   color: #065f46;
   font-weight: 700;
@@ -96,38 +123,38 @@
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
-/* CAMPOS DE AUTOFILL (READONLY) - CORREGIDO */
+/* ============================================================
+   CAMPOS READONLY MEJORADOS
+   ============================================================ */
 input[readonly] {
-  background: #f8fafc !important;
+  background: var(--bg-light) !important;
   color: #475569 !important;
   cursor: not-allowed;
-  border-color: #e2e8f0;
-  transition: border-color 0.3s ease;
+  border-color: var(--border-dark);
 }
 
 input[readonly]:focus {
   box-shadow: none !important;
-  border-color: #cbd5e1;
+  border-color: var(--border-dark);
 }
 
-/* CARD DE PRODUCTO MEJORADA */
+/* ============================================================
+   CARD DE PRODUCTO
+   ============================================================ */
 .card {
-  transition: all 0.3s ease;
+  transition: all .3s ease;
   position: relative;
   overflow: hidden;
+  background: var(--bg-card);
+  border-radius: 8px;
 }
 
 .card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, transparent, rgba(0, 74, 173, 0.02));
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(0, 74, 173, 0.03));
   opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
 }
 
 .card:hover::before {
@@ -136,12 +163,7 @@ input[readonly]:focus {
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-/* BOTONES EN CARDS */
-.card button {
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 .card button:hover {
@@ -149,10 +171,12 @@ input[readonly]:focus {
 }
 
 .card button:active {
-  transform: scale(0.95);
+  transform: scale(.95);
 }
 
-/* BADGES Y TAGS */
+/* ============================================================
+   BADGES Y TAGS
+   ============================================================ */
 .expiry-badge {
   display: inline-block;
   padding: 4px 8px;
@@ -160,57 +184,61 @@ input[readonly]:focus {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: .5px;
 }
 
 .expiry-badge.expired {
-  background: #fee2e2;
+  background: var(--danger-light);
   color: #991b1b;
 }
 
 .expiry-badge.warning {
-  background: #fef3c7;
+  background: var(--warning-light);
   color: #92400e;
 }
 
 .expiry-badge.good {
-  background: #d1fae5;
+  background: var(--success-light);
   color: #065f46;
 }
 
-/* ANIMACIONES */
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideDown {
-  from {
-    max-height: 0;
-    opacity: 0;
-  }
-  to {
-    max-height: 500px;
-    opacity: 1;
-  }
+@keyframes loading {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* TOTALES DE PRODUCTO */
+/* ============================================================
+   LOADING SKELETON
+   ============================================================ */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+  height: 100px;
+}
+
+/* ============================================================
+   PRODUCT TOTAL
+   ============================================================ */
 .product-total {
   font-size: 32px;
   font-weight: 700;
-  color: #10b981;
-  line-height: 1;
-  text-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  text-shadow: 0 2px 4px rgba(16,185,129,0.1);
 }
 
-/* CÓDIGO DE BARRAS */
+/* ============================================================
+   CÓDIGO DE BARRAS
+   ============================================================ */
 .barcode-display {
   font-family: 'Courier New', monospace;
   font-weight: 600;
@@ -221,95 +249,50 @@ input[readonly]:focus {
   letter-spacing: 1px;
 }
 
-/* RESPONSIVE MEJORADO */
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 @media (max-width: 768px) {
-  .bodega-details {
-    padding: 8px;
-  }
-  
-  .bodega-list li {
-    padding: 8px;
-    font-size: 12px;
-  }
-  
-  .product-total {
-    font-size: 28px;
-  }
-  
-  #audit-stock-info {
-    font-size: 13px;
-    padding: 10px 12px;
-  }
-  
-  .card {
-    margin-bottom: 12px;
-  }
+  .bodega-details { padding: 8px; }
+  .bodega-list li { padding: 8px; font-size: 12px; }
+  .product-total { font-size: 28px; }
+  #audit-stock-info { font-size: 13px; padding: 10px 12px; }
+  .card { margin-bottom: 12px; }
 }
 
-/* HEADER DE MARCA CON HOVER */
-[data-brand-header] {
-  transition: all 0.2s ease;
-}
-
+/* ============================================================
+   HEADER DE MARCA HOVER
+   ============================================================ */
 [data-brand-header]:hover {
-  background: linear-gradient(135deg, #1d4ed8, #002f6c) !important;
+  background: linear-gradient(135deg, var(--primary-hover), #002f6c) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 74, 173, 0.2);
+  box-shadow: 0 4px 12px rgba(0,74,173,0.2);
 }
 
-[data-brand-header]:active {
-  transform: translateY(0);
-}
+/* ============================================================
+   TOOLTIP
+   ============================================================ */
+[title] { cursor: help; }
 
-/* ESTADOS DE CARGA */
-.loading-skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 8px;
-  height: 100px;
-}
+/* ============================================================
+   SMOOTH SCROLL
+   ============================================================ */
+html { scroll-behavior: smooth; }
 
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* TOOLTIP MEJORADO */
-[title] {
-  position: relative;
-  cursor: help;
-}
-
-/* SMOOTH SCROLL */
-html {
-  scroll-behavior: smooth;
-}
-
-/* FOCUS VISIBLE MEJORADO */
+/* ============================================================
+   FOCUS VISIBLE
+   ============================================================ */
 :focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* PRINT STYLES */
+/* ============================================================
+   PRINT MODE
+   ============================================================ */
 @media print {
-  .bodega-details {
-    page-break-inside: avoid;
-  }
-  
-  .card {
-    page-break-inside: avoid;
-    box-shadow: none;
-    border: 1px solid #ddd;
-  }
-  
-  button {
-    display: none !important;
-  }
+  .bodega-details { page-break-inside: avoid; }
+  .card { page-break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+  button { display: none !important; }
 }

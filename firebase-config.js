@@ -1,12 +1,14 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: firebase-config.js
-// Copyright © 2025 José A. G. Betancourt
-//
-// Este archivo inicializa Firebase y expone los servicios
-// (Auth y Database) para el resto de la aplicación.
+// Versión Optimizada 2025 - Estable, Segura y Profesional
+// © 2025 José A. G. Betancourt
 // ============================================================
 
-// Configuración de Firebase
+console.log("🔥 Cargando módulo firebase-config.js...");
+
+/* ------------------------------------------------------------
+   CONFIGURACIÓN DE FIREBASE (VERSIÓN FINAL)
+------------------------------------------------------------ */
 const firebaseConfig = {
   apiKey: "AIzaSyBkzOZj4HIE0ikLZoYIhR99y8q7mhio5FE",
   authDomain: "promosentry.firebaseapp.com",
@@ -17,50 +19,61 @@ const firebaseConfig = {
   appId: "1:140188605265:web:c53fe5b09ea08793e6d170"
 };
 
-/**
- * Función que inicializa Firebase y expone los servicios globalmente.
- */
+/* ------------------------------------------------------------
+   FUNCIÓN PRINCIPAL: Inicializa Firebase correctamente
+------------------------------------------------------------ */
 function initFirebase() {
-  console.log('🔥 Iniciando Firebase...');
-  
+  console.log("🔧 Intentando inicializar Firebase…");
+
   try {
-    // Verificar si el objeto global 'firebase' de la versión compat está cargado.
-    if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
-      console.error('❌ Error: El objeto Firebase no está disponible. ¿Faltan los SDKs en index.html?');
-      return false; 
+    // 1️⃣ Validación estricta: verifica que los SDKs existan
+    if (
+      typeof firebase === "undefined" ||
+      typeof firebase.initializeApp !== "function"
+    ) {
+      console.error(
+        "❌ Error crítico: Los SDKs de Firebase no están cargados. Revisa index.html."
+      );
+      window.firebaseReady = false;
+      return false;
     }
-    
-    // 1. Inicializar la app
-    if (!firebase.apps || firebase.apps.length === 0) {
-      firebase.initializeApp(firebaseConfig);
-      console.log('✅ Firebase inicializado correctamente');
-      console.log('📦 Proyecto:', firebaseConfig.projectId);
+
+    // 2️⃣ Prevenir doble inicialización
+    if (firebase.apps && firebase.apps.length > 0) {
+      console.warn("⚠️ Firebase ya estaba inicializado, usando instancia existente.");
     } else {
-      console.log('⚠️ Firebase ya estaba inicializado');
+      firebase.initializeApp(firebaseConfig);
+      console.log("✅ Firebase inicializado correctamente.");
     }
-    
-    // 2. Exponer servicios para el resto de los módulos
+
+    // 3️⃣ Exponer Servicios Globales (Auth + DB)
     window.firebaseApp = firebase.app();
     window.firebaseAuth = firebase.auth();
     window.firebaseDB = firebase.database();
 
-    console.log('🔐 Servicios de Firebase listos (Auth, DB).');
-    
+    // 4️⃣ Bandera global para saber si Firebase está listo
+    window.firebaseReady = true;
+
+    console.log("🔐 Servicios listos: Auth + Realtime Database.");
+    console.log("📦 Proyecto:", firebaseConfig.projectId);
+
     return true;
 
   } catch (err) {
-    console.error('❌ Error crítico inicializando Firebase:', err);
+    console.error("❌ Error fatal inicializando Firebase:", err);
+    window.firebaseReady = false;
     return false;
   }
 }
 
-// ============================================================
-// LLAMADA CRÍTICA: Inicializa Firebase en cuanto este script cargue.
-// Esto bloquea la ejecución de auth.js, etc., hasta que Firebase esté listo.
-// ============================================================
+/* ------------------------------------------------------------
+   EJECUCIÓN AUTOMÁTICA AL CARGAR EL SCRIPT
+------------------------------------------------------------ */
 initFirebase();
 
-// Exponer la función globalmente solo si es necesaria más tarde
+/* ------------------------------------------------------------
+   EXPOSE API (solo si se requiere en módulos externos)
+------------------------------------------------------------ */
 window.initFirebase = initFirebase;
 
-console.log('✅ firebase-config.js cargado correctamente');
+console.log("✅ firebase-config.js cargado con éxito.");
