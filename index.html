@@ -1,167 +1,135 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- ========================================================= -->
-  <!-- Águila Inventario Pro                                    -->
-  <!-- Copyright © 2025 José A. G. Betancourt                    -->
-  <!-- ========================================================= -->
-
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#004aad">
-
-  <title>🦅 Águila Inventario Pro</title>
-  <meta name="description" content="Sistema profesional de inventario para promotores con escáner y modo offline.">
-
-  <!-- ======================= PWA ======================= -->
+  <title>Águila Inventario Pro</title>
+  
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192x192.png">
-  <link rel="apple-touch-icon" href="icon-512x512.png">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
 
-  <!-- ======================= ESTILOS ======================= -->
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="custom-styles.css">
 
-  <!-- ======================= FIREBASE (COMPAT) ======================= -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <script src="firebase-config.js"></script>
 </head>
-
 <body>
 
-<!-- ========================================================= -->
-<!-- SIDEBAR OVERLAY                                          -->
-<!-- ========================================================= -->
-<div id="sidebar-overlay"></div>
-
-<!-- ========================================================= -->
-<!-- SIDEBAR                                                  -->
-<!-- ========================================================= -->
-<aside id="sidebar">
-  <div class="sidebar-header">
-    <h2>🦅 Águila Pro</h2>
+  <div id="login-screen" class="login-container">
+    <div class="login-card">
+      <div class="brand-logo">🦅</div>
+      <h1>Águila Pro</h1>
+      <p>Gestión Inteligente de Inventario</p>
+      
+      <form id="login-form">
+        <div class="input-group">
+          <input type="email" id="login-email" placeholder="Correo electrónico" required autocomplete="email">
+        </div>
+        <div class="input-group">
+          <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="btn-login" class="btn-primary-full">Iniciar Sesión</button>
+      </form>
+      <div id="login-msg"></div>
+    </div>
   </div>
 
-  <nav class="sidebar-nav">
-    <a href="#" data-tab="inventario" class="active">📦 Inventario</a>
-    <a href="#" data-tab="agregar">➕ Agregar</a>
-    <a href="#" data-tab="relleno">🔄 Relleno</a>
-    <a href="#" data-tab="auditoria">✓ Auditoría</a>
-    <a href="#" data-tab="sistema">⚙️ Sistema</a>
-    <hr>
-    <a href="#" id="btn-logout">🚪 Cerrar sesión</a>
-  </nav>
-</aside>
+  <div id="app-screen" class="hidden">
+    
+    <header class="app-header">
+      <button id="btn-menu" class="icon-btn">☰</button>
+      <h1 class="header-title">Águila Inventario</h1>
+      <div id="btn-offline-status" class="status-indicator">📡</div>
+    </header>
 
-<!-- ========================================================= -->
-<!-- APP CONTAINER (⚠️ NO OCULTO POR DEFECTO)                 -->
-<!-- ========================================================= -->
-<div id="app-container" class="app-container">
+    <div id="sidebar-overlay"></div>
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="user-profile">
+          <div class="avatar">👤</div>
+          <span id="user-email-display">Cargando...</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="btn-logout warning-text">Cerrar Sesión</button>
+      </nav>
+    </aside>
 
-  <!-- ======================= HEADER ======================= -->
-  <header class="app-header">
-    <button id="menu-toggle">☰</button>
-    <h1>Águila Inventario Pro</h1>
+    <main id="main-content">
+      
+      <section id="tab-inventory" class="tab-content active">
+        <div class="toolbar">
+          <div id="brand-filters" class="scroll-h"></div>
+        </div>
+        <div id="inventory-search-container">
+          <input type="text" id="inventory-search" placeholder="🔍 Buscar producto...">
+        </div>
+        <div id="inventory-list" class="card-list">
+          </div>
+      </section>
 
-    <div class="status-indicator status-online">
-      <span id="connection-status-text">Conectado</span>
-    </div>
-  </header>
+      <section id="tab-agregar" class="tab-content hidden">
+        <h2>Agregar / Editar</h2>
+        <div class="scan-area">
+          <button id="btn-scan-add" class="btn-scan-large">📷 Escanear Código</button>
+        </div>
+        <form id="add-product-form">
+          <input type="text" id="add-barcode" placeholder="Código de Barras" readonly>
+          <input type="text" id="add-product-name" placeholder="Nombre del Producto">
+          <select id="add-brand">
+            <option value="Sabritas">Sabritas</option>
+            <option value="Gamesa">Gamesa</option>
+            <option value="Sonric's">Sonric's</option>
+            <option value="Quaker">Quaker</option>
+            <option value="Otros">Otros</option>
+          </select>
+          <div class="row">
+            <input type="number" id="add-boxes" placeholder="Cajas" inputmode="numeric">
+            <input type="number" id="add-pieces" placeholder="Pzas sueltas" inputmode="numeric">
+          </div>
+          <button type="submit" class="btn-save">Guardar Producto</button>
+        </form>
+      </section>
 
-  <!-- ======================= MAIN ======================= -->
-  <main class="app-main">
+      <section id="tab-refill" class="tab-content hidden">
+         <h2>Relleno Diario</h2>
+         <p class="placeholder-text">Módulo de Relleno en construcción...</p>
+      </section>
 
-    <!-- INVENTARIO -->
-    <section id="tab-inventario" class="tab-content active">
-      <h2>📦 Inventario</h2>
-      <input id="inventory-search" placeholder="Buscar producto...">
-      <div id="inventory-container"></div>
-    </section>
+    </main>
 
-    <!-- AGREGAR -->
-    <section id="tab-agregar" class="tab-content hidden">
-      <h2>➕ Agregar Producto</h2>
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="inventory">
+        <span class="icon">📦</span>
+        <span class="label">Stock</span>
+      </button>
+      <button class="nav-item" data-tab="agregar">
+        <span class="icon">➕</span>
+        <span class="label">Agregar</span>
+      </button>
+      <button class="nav-item" data-tab="refill">
+        <span class="icon">🔄</span>
+        <span class="label">Relleno</span>
+      </button>
+      <button class="nav-item" data-tab="audit">
+        <span class="icon">📋</span>
+        <span class="label">Auditoría</span>
+      </button>
+    </nav>
+  </div>
 
-      <button class="scanner-btn" data-scan-context="agregar">📷 Escanear</button>
+  <div id="app-toast-container"></div>
 
-      <form id="form-agregar-producto">
-        <input id="agregar-codigo" placeholder="Código" required>
-        <input id="agregar-nombre" placeholder="Nombre" required>
-        <input id="agregar-marca" placeholder="Marca" required>
-        <input id="agregar-piezas" type="number" placeholder="Piezas por caja" required>
-        <input id="agregar-cajas" type="number" placeholder="Cajas" required>
-        <input id="agregar-ubicacion" placeholder="Bodega" required>
-        <input id="agregar-caducidad" type="date" required>
-        <button type="submit">💾 Guardar</button>
-      </form>
-    </section>
-
-    <!-- RELLENO -->
-    <section id="tab-relleno" class="tab-content hidden">
-      <h2>🔄 Relleno</h2>
-      <button class="scanner-btn" data-scan-context="relleno">📷 Escanear</button>
-
-      <form id="form-relleno">
-        <input id="relleno-codigo" placeholder="Código" required>
-        <input id="relleno-nombre" placeholder="Nombre">
-        <input id="relleno-marca" placeholder="Marca">
-        <input id="relleno-piezas" type="number" placeholder="Piezas por caja">
-        <input id="relleno-cajas" type="number" placeholder="Cajas movidas" required>
-        <input id="relleno-caducidad" type="date" required>
-        <button type="submit">📦 Registrar</button>
-      </form>
-    </section>
-
-    <!-- AUDITORÍA -->
-    <section id="tab-auditoria" class="tab-content hidden">
-      <h2>✓ Auditoría</h2>
-      <select id="audit-bodega-select"></select>
-      <button class="scanner-btn" data-scan-context="auditoria">📷 Escanear</button>
-      <div id="audit-list"></div>
-    </section>
-
-    <!-- SISTEMA -->
-    <section id="tab-sistema" class="tab-content hidden">
-      <h2>⚙️ Sistema</h2>
-      <button id="btn-diagnostico">🔍 Diagnóstico</button>
-      <button id="btn-stats">📊 Estadísticas</button>
-      <button id="btn-clear-data">🗑️ Limpiar datos</button>
-    </section>
-
-  </main>
-</div>
-
-<!-- ========================================================= -->
-<!-- FOOTER                                                   -->
-<!-- ========================================================= -->
-<footer style="text-align:center;padding:16px;border-top:1px solid #ddd;">
-  <p><strong>Águila Inventario Pro v7.8</strong></p>
-  <p>&copy; 2025 José A. G. Betancourt</p>
-</footer>
-
-<!-- ========================================================= -->
-<!-- SCRIPTS (ORDEN CORRECTO)                                 -->
-<!-- ========================================================= -->
-<script src="ui.js"></script>
-<script src="auth.js"></script>
-<script src="app.js"></script>
-<script src="inventory.js"></script>
-<script src="inventory-enhanced.js"></script>
-<script src="refill-enhanced.js"></script>
-<script src="audit.js"></script>
-<script src="system.js"></script>
-<script src="system-events.js"></script>
-<script src="scanner-mlkit.js"></script>
-<script src="scanner-events.js"></script>
-
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
-  }
-</script>
-
+  <script src="firebase-config.js"></script> <script src="ui.js"></script>              <script src="app.js"></script>             <script src="auth.js"></script>            <script src="inventory.js"></script>       <script>
+    // Inicialización del Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('SW Registrado'))
+        .catch(err => console.log('SW Falló', err));
+    }
+  </script>
 </body>
 </html>
