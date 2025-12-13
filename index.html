@@ -1,570 +1,219 @@
 <!DOCTYPE html>
-<html lang="es-MX" dir="ltr">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
-  <meta name="author" content="José A. G. Betancourt">
-  <meta name="theme-color" content="#004aad">
+  <!-- ========================================================= -->
+  <!-- Águila Inventario Pro - App Shell Principal               -->
+  <!-- Copyright © 2025 José A. G. Betancourt                     -->
+  <!-- ========================================================= -->
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#004aad" />
+
   <title>🦅 Águila Inventario Pro</title>
+  <meta name="description" content="Sistema profesional de inventario para promotores de tienda con escáner y modo offline." />
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Águila Pro">
-  <link rel="apple-touch-icon" href="icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
+  <!-- ======================= PWA ======================= -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon-192x192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="assets/icon-512x512.png" />
 
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="custom-styles.css">
+  <!-- ======================= ESTILOS ======================= -->
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="custom-styles.css" />
+
+  <!-- ======================= FIREBASE SDK (COMPAT) ======================= -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- ======================= CONFIG ======================= -->
+  <script src="firebase-config.js"></script>
 </head>
 
 <body>
-  <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- ============================================================
-       ESCÁNER MODAL
-       ============================================================ -->
-  <div id="scanner-modal" class="scanner-modal hidden">
-    <div class="scanner-container">
-      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;background:var(--primary);">
-        <h3 style="color:white;margin:0;font-size:1.1em;">📷 Escáner de Código de Barras</h3>
-      </div>
-      <div class="scanner-video-wrapper">
-        <video id="scanner-video" autoplay playsinline></video>
-        <div class="scanner-overlay">
-          <div class="scanner-frame"></div>
-          <div class="scanner-instruction">Apunta la cámara al código de barras</div>
-        </div>
-      </div>
-      <button id="close-scanner" class="scanner-close-btn">Cerrar Escáner</button>
-    </div>
+<!-- ========================================================= -->
+<!-- OVERLAY SIDEBAR (MÓVIL)                                   -->
+<!-- ========================================================= -->
+<div id="sidebar-overlay"></div>
+
+<!-- ========================================================= -->
+<!-- SIDEBAR / MENÚ LATERAL                                   -->
+<!-- ========================================================= -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <h2>🦅 Águila Pro</h2>
   </div>
 
-  <!-- ============================================================
-       MODAL CREAR PRODUCTO NUEVO
-       ============================================================ -->
-  <div id="create-product-modal" class="modal-overlay hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
-    <div class="modal-content card" style="max-width: 500px; padding: 24px; position: relative;">
-      <button style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;" onclick="cerrarModalCrearProducto()">✕</button>
-      
-      <h3 style="color: #004aad; margin-bottom: 20px;">📝 Crear Nuevo Producto</h3>
-      
-      <div class="form-group">
-        <label for="create-product-barcode">Código de Barras</label>
-        <input id="create-product-barcode" type="text" readonly style="background: #f0f9ff;" />
-      </div>
-      
-      <div class="form-group">
-        <label for="create-product-name">Nombre del Producto *</label>
-        <input id="create-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
-      </div>
-      
-      <div class="form-group">
-        <label for="create-product-marca">Marca</label>
-        <select id="create-product-marca">
-          <option value="Otra">Otra</option>
-          <option value="Sabritas">Sabritas</option>
-          <option value="Gamesa">Gamesa</option>
-          <option value="Quaker">Quaker</option>
-          <option value="Sonric's">Sonric's</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="create-product-piezas">Piezas por Caja</label>
-        <input id="create-product-piezas" type="number" value="24" min="1" />
-      </div>
-      
-      <div class="form-group">
-        <label for="create-product-warehouse">Bodega/Ubicación *</label>
-        <input id="create-product-warehouse" type="text" placeholder="Ej: Almacén 1" required />
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-        <button type="button" id="save-product-modal-btn" class="primary">💾 Crear Producto</button>
-        <button type="button" id="close-product-modal-btn" class="secondary" style="background: #e5e7eb; color: #1f2937;">❌ Cancelar</button>
-      </div>
+  <nav class="sidebar-nav">
+    <a href="#" data-tab="inventario" class="active">📦 Inventario</a>
+    <a href="#" data-tab="agregar">➕ Agregar</a>
+    <a href="#" data-tab="relleno">🔄 Relleno</a>
+    <a href="#" data-tab="auditoria">✓ Auditoría</a>
+    <a href="#" data-tab="sistema">⚙️ Sistema</a>
+    <hr />
+    <a href="#" id="btn-logout">🚪 Cerrar sesión</a>
+  </nav>
+</aside>
+
+<!-- ========================================================= -->
+<!-- CONTENEDOR PRINCIPAL                                    -->
+<!-- ========================================================= -->
+<div class="app-container">
+
+  <!-- ======================= HEADER ======================= -->
+  <header class="app-header">
+    <button id="menu-toggle">☰</button>
+    <h1>Águila Inventario Pro</h1>
+
+    <div class="status-indicator status-online">
+      <span id="connection-status-text">Conectado</span>
     </div>
-  </div>
+  </header>
 
-  <main id="main-app">
-    
-    <!-- ============================================================
-         PANTALLA AUTH
-         ============================================================ -->
-    <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
-      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Águila Inventario Pro</h2>
+  <!-- ======================= CONTENIDO ======================= -->
+  <main class="app-main">
 
-      <!-- LOGIN FORM -->
-      <form id="login-form">
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input id="login-email" type="email" placeholder="tu.email@empresa.com" required />
-        </div>
-        <div class="form-group">
-          <label for="login-password">Contraseña</label>
-          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
-        </div>
-        <button type="button" id="btn-login" class="success" style="width:100%;">Iniciar Sesión</button>
-        <p style="text-align:center;margin-top:15px;">
-          <a href="#" id="show-forgot-password" style="color:var(--warning);">¿Olvidaste tu contraseña?</a>
-        </p>
-        <p style="text-align:center;">
-          <a href="#" id="show-register" style="color:var(--primary);">¿Eres nuevo? Regístrate aquí</a>
-        </p>
-      </form>
+    <!-- ===================================================== -->
+    <!-- TAB: INVENTARIO                                      -->
+    <!-- ===================================================== -->
+    <section id="tab-inventario" class="tab-content active">
+      <h2>📦 Inventario</h2>
 
-      <!-- FORGOT PASSWORD FORM -->
-      <form id="forgot-password-form" class="hidden">
-        <h3 style="text-align:center;color:var(--primary);">Recuperar Contraseña</h3>
-        <div class="form-group">
-          <label for="forgot-email">Email</label>
-          <input id="forgot-email" type="email" placeholder="tu.email@empresa.com" required />
-        </div>
-        <button type="submit" class="warning" style="width:100%;">Enviar Enlace</button>
-        <p style="text-align:center;margin-top:15px;">
-          <a href="#" id="show-login-from-forgot" style="color:var(--primary);">Volver al inicio de sesión</a>
-        </p>
-      </form>
+      <input
+        type="text"
+        id="inventory-search"
+        placeholder="Buscar por nombre o código..."
+      />
 
-      <!-- REGISTER FORM -->
-      <form id="register-form" class="hidden">
-        <h3 style="text-align:center;color:var(--primary);">Registro Inicial</h3>
-        <div class="form-group">
-          <label for="register-email">Email</label>
-          <input id="register-email" type="email" placeholder="tu.email@empresa.com" required />
-        </div>
-        <div class="form-group">
-          <label for="register-password">Contraseña</label>
-          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
-        </div>
-        <div class="form-group">
-          <label for="register-determinante">Determinante (Tienda)</label>
-          <input id="register-determinante" type="number" placeholder="Ej: 12345" required />
-        </div>
-        <div class="form-group">
-          <label for="register-store-name">Nombre de la Tienda</label>
-          <input id="register-store-name" type="text" placeholder="Ej: Oxxo Centro" required />
-        </div>
-        <div class="form-group">
-          <label for="register-promoter-name">Nombre del Promotor</label>
-          <input id="register-promoter-name" type="text" placeholder="Ej: Juan Pérez" required />
-        </div>
-        <button type="submit" class="success" style="width:100%;">Registrar y Entrar</button>
-        <p style="text-align:center;margin-top:15px;">
-          <a href="#" id="show-login" style="color:var(--primary);">Ya tengo cuenta</a>
-        </p>
+      <div id="inventory-container">
+        <!-- inventory.js renderiza aquí -->
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- TAB: AGREGAR PRODUCTO                                -->
+    <!-- ===================================================== -->
+    <section id="tab-agregar" class="tab-content hidden">
+      <h2>➕ Agregar Producto</h2>
+
+      <button class="scanner-btn" data-scan-context="agregar">
+        📷 Escanear código
+      </button>
+
+      <form id="form-agregar-producto">
+        <input id="agregar-codigo" placeholder="Código de barras" required />
+        <input id="agregar-nombre" placeholder="Nombre del producto" required />
+        <input id="agregar-marca" placeholder="Marca" required />
+        <input id="agregar-piezas" type="number" placeholder="Piezas por caja" required />
+        <input id="agregar-cajas" type="number" placeholder="Cajas" required />
+        <input id="agregar-ubicacion" placeholder="Bodega / Ubicación" required />
+        <input id="agregar-caducidad" type="date" required />
+
+        <button type="submit">💾 Guardar producto</button>
       </form>
     </section>
 
-    <!-- ============================================================
-         APLICACIÓN PRINCIPAL
-         ============================================================ -->
-    <section id="app-container" style="display:none;">
-      
-      <!-- HEADER APP -->
-      <div class="app-header">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="app-title">🦅 Águila Inventario Pro</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button class="btn-icon" id="btn-offline-status">📡</button>
-          <button class="btn-icon" id="btn-logout">🚪</button>
-        </div>
+    <!-- ===================================================== -->
+    <!-- TAB: RELLENO                                         -->
+    <!-- ===================================================== -->
+    <section id="tab-relleno" class="tab-content hidden">
+      <h2>🔄 Relleno / Reabastecimiento</h2>
+
+      <button class="scanner-btn" data-scan-context="relleno">
+        📷 Escanear producto
+      </button>
+
+      <form id="form-relleno">
+        <input id="relleno-codigo" placeholder="Código de barras" required />
+        <input id="relleno-nombre" placeholder="Nombre del producto" />
+        <input id="relleno-marca" placeholder="Marca" />
+        <input id="relleno-piezas" type="number" placeholder="Piezas por caja" />
+        <input id="relleno-cajas" type="number" placeholder="Cajas movidas" required />
+        <input id="relleno-caducidad" type="date" required />
+
+        <button type="submit">📦 Registrar relleno</button>
+      </form>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- TAB: AUDITORÍA                                       -->
+    <!-- ===================================================== -->
+    <section id="tab-auditoria" class="tab-content hidden">
+      <h2>✓ Auditoría</h2>
+
+      <select id="audit-bodega-select">
+        <option value="">Selecciona bodega</option>
+      </select>
+
+      <button class="scanner-btn" data-scan-context="auditoria">
+        📷 Escanear producto
+      </button>
+
+      <div id="audit-list">
+        <!-- audit.js renderiza aquí -->
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- TAB: SISTEMA                                         -->
+    <!-- ===================================================== -->
+    <section id="tab-sistema" class="tab-content hidden">
+      <h2>⚙️ Sistema</h2>
+
+      <div class="system-panel">
+        <p>🌐 Estado: <span id="system-connection-status"></span></p>
+        <p>⚙️ Service Worker: <span id="system-sw-status"></span></p>
+        <p>⏳ Operaciones pendientes: <span id="system-pending-ops"></span></p>
       </div>
 
-      <!-- BOTTOM NAVIGATION (ACTUALIZADO) -->
-      <nav class="bottom-nav">
-        <a href="#" class="nav-btn active" data-tab="inventory">
-          <span style="font-size:20px;">📦</span>
-          <span>Inventario</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="add">
-          <span style="font-size:20px;">➕</span>
-          <span>Agregar</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="refill">
-          <span style="font-size:20px;">🔄</span>
-          <span>Relleno</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="audit">
-          <span style="font-size:20px;">✓</span>
-          <span>Auditoría</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="analytics">
-          <span style="font-size:20px;">📊</span>
-          <span>Analytics</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="system">
-          <span style="font-size:20px;">⚙️</span>
-          <span>Sistema</span>
-        </a>
-      </nav>
-
-      <!-- CONTENIDO PRINCIPAL -->
-      <div class="main-content">
-        
-        <!-- TAB: INVENTARIO -->
-        <div id="tab-inventory" class="tab-content active">
-          <div class="card">
-            <h2>📦 Inventario por Marca</h2>
-            <div id="inventory-list" style="margin-top:20px;">
-              <p style="color:var(--muted);">Cargando inventario...</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: AGREGAR PRODUCTO -->
-        <div id="tab-add" class="tab-content hidden">
-          <div class="card">
-            <h2>➕ Agregar Producto</h2>
-            <form id="add-product-form" style="margin-top:20px;">
-              <div class="form-group">
-                <label for="add-barcode">Código de Barras</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
-                  <button type="button" id="btn-scan-add" class="success" style="width:auto;padding:12px 16px;">📷</button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="add-product-name">Nombre del Producto</label>
-                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
-              </div>
-
-              <div class="form-group">
-                <label for="add-brand">Marca</label>
-                <select id="add-brand" required>
-                  <option value="">-- Selecciona una marca --</option>
-                  <option value="Sabritas">Sabritas</option>
-                  <option value="Gamesa">Gamesa</option>
-                  <option value="Quaker">Quaker</option>
-                  <option value="Sonric's">Sonric's</option>
-                  <option value="Otra">Otra</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="add-pieces-per-box">Piezas por Caja</label>
-                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
-              </div>
-
-              <div class="form-group">
-                <label for="add-warehouse">Ubicación/Almacén</label>
-                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
-              </div>
-
-              <div class="form-group">
-                <label for="add-expiry-date">Fecha de Caducidad</label>
-                <input id="add-expiry-date" type="date" required />
-              </div>
-
-              <div class="form-group">
-                <label for="add-boxes">Cantidad de Cajas</label>
-                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
-              </div>
-
-              <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
-            </form>
-          </div>
-        </div>
-
-        <!-- TAB: RELLENO (ACTUALIZADO) -->
-        <div id="tab-refill" class="tab-content hidden">
-          <div class="card">
-            <h2>🔄 Reabastecimiento Inteligente</h2>
-            <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
-            
-            <form id="refill-form" style="margin-top: 20px;">
-              <div class="form-group">
-                <label for="refill-barcode">Código de Barras</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
-                  <button type="button" id="btn-scan-refill" class="success" style="width:auto;padding:12px 16px;">📷</button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="refill-nombre">Nombre del Producto</label>
-                <input id="refill-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="refill-marca">Marca</label>
-                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="refill-piezas">Piezas por Caja</label>
-                <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="refill-warehouse">Bodega/Ubicación</label>
-                <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
-                <p id="refill-product-name"></p>
-                <p id="refill-current-stock" style="color:var(--muted);"></p>
-              </div>
-
-              <div class="form-group">
-                <label for="refill-boxes">Cantidad de Cajas a Mover</label>
-                <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
-              </div>
-
-              <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
-            </form>
-
-            <div style="margin-top:30px;">
-              <h3>📊 Movimientos Hoy</h3>
-              <p style="font-size:24px;font-weight:700;color:var(--success);">
-                <span id="total-movements">0</span> cajas
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: AUDITORÍA -->
-        <div id="tab-audit" class="tab-content hidden">
-          <div class="card">
-            <h2>✓ Auditoría</h2>
-            <form id="audit-form" style="margin-top:20px;">
-              <div class="form-group">
-                <label for="audit-warehouse">Bodega a Auditar</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
-                  <button type="button" id="save-warehouse-btn" class="success" style="width:auto;padding:12px 16px;">✓</button>
-                </div>
-              </div>
-
-              <div id="current-warehouse-display" style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
-                Ninguna bodega seleccionada
-              </div>
-
-              <div class="form-group">
-                <label for="audit-barcode">Código de Barras</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
-                  <button type="button" id="btn-scan-audit" class="success" style="width:auto;padding:12px 16px;">📷</button>
-                </div>
-              </div>
-
-              <div id="audit-stock-info" style="display:none;"></div>
-
-              <div class="form-group">
-                <label for="audit-nombre">Nombre del Producto</label>
-                <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="audit-marca">Marca</label>
-                <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="audit-piezas">Piezas por Caja</label>
-                <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
-                <p id="audit-product-name"></p>
-                <p id="audit-product-brand" style="color:var(--muted);"></p>
-              </div>
-
-              <div class="form-group">
-                <label for="audit-boxes">Cantidad Contada (Cajas)</label>
-                <input id="audit-boxes" type="number" placeholder="Cantidad física" min="0" />
-              </div>
-
-              <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
-            </form>
-
-            <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;display:none;">
-              🏁 Terminar Auditoría
-            </button>
-
-            <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--primary);" id="audit-total-count">0</div>
-                <div style="color:var(--muted);font-size:12px;">cajas auditadas</div>
-              </div>
-              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--success);" id="audit-products-count">0</div>
-                <div style="color:var(--muted);font-size:12px;">productos</div>
-              </div>
-            </div>
-
-            <div id="audit-history" style="margin-top:20px;">
-              <p style="color:var(--muted);">Historial vacío</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: ANALYTICS (NUEVO) -->
-        <div id="tab-analytics" class="tab-content hidden">
-          <div class="card">
-            <h2>📊 Analytics - Movimientos</h2>
-            <p style="color: #6b7280; font-size: 13px;">Visualiza el rendimiento de tu inventario</p>
-            
-            <!-- GRÁFICO SEMANAL -->
-            <div style="margin-top: 30px;">
-              <h3>📈 Movimientos Esta Semana</h3>
-              <div id="weekly-chart-container" style="margin-top: 15px;">
-                <p style="color: var(--muted);">Cargando gráfico...</p>
-              </div>
-              <div id="weekly-total" style="margin-top: 10px; padding: 12px; background: #f0f9ff; border-radius: 8px; color: #004aad; font-weight: 600;"></div>
-            </div>
-            
-            <!-- GRÁFICO MENSUAL -->
-            <div style="margin-top: 40px;">
-              <h3>📊 Tendencia Mensual</h3>
-              <div id="monthly-chart-container" style="margin-top: 15px;">
-                <p style="color: var(--muted);">Cargando gráfico...</p>
-              </div>
-              <div id="monthly-stats" style="margin-top: 15px;"></div>
-            </div>
-            
-            <!-- TOP PRODUCTOS -->
-            <div style="margin-top: 40px;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                  <h3>🥇 Top Productos (Semanal)</h3>
-                  <div id="top-products-weekly" style="margin-top: 15px;">
-                    <p style="color: var(--muted);">Cargando...</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3>🥇 Top Productos (Mensual)</h3>
-                  <div id="top-products-monthly" style="margin-top: 15px;">
-                    <p style="color: var(--muted);">Cargando...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: SISTEMA -->
-        <div id="tab-system" class="tab-content hidden">
-          <div class="card">
-            <h2>⚙️ Sistema</h2>
-            <p id="user-info" style="font-weight:600;margin:10px 0;">Usuario</p>
-            
-            <button class="primary" id="btn-diagnostico">🔍 Diagnóstico</button>
-            <button class="primary" id="btn-stats">📊 Estadísticas</button>
-            <button class="warning" id="btn-clear-data">🗑️ Limpiar Datos</button>
-            <button class="error" id="btn-logout-settings">🚪 Cerrar Sesión</button>
-          </div>
-        </div>
-
-      </div>
-
+      <button id="btn-diagnostico">🔍 Diagnóstico</button>
+      <button id="btn-stats">📊 Estadísticas</button>
+      <button id="btn-clear-data">🗑️ Limpiar datos locales</button>
     </section>
 
   </main>
+</div>
 
-  <!-- ============================================================
-       FOOTER
-       ============================================================ -->
-  <footer style="background:var(--card-bg);text-align:center;border-top:2px solid var(--border);margin-top:40px;">
-    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.5</p>
-    <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt - Todos los derechos reservados</p>
-  </footer>
+<!-- ========================================================= -->
+<!-- SCRIPTS (ORDEN CRÍTICO)                                  -->
+<!-- ========================================================= -->
 
-  <!-- ============================================================
-     FIREBASE SCRIPTS
-     ============================================================ -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-<!-- ============================================================
-     CHART.JS PARA GRÁFICOS
-     ============================================================ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-
-<!-- ============================================================
-     TUS ARCHIVOS JS (ORDEN CRÍTICO CORREGIDO)
-     ============================================================ -->
-
-<!-- 1. CONFIGURACIÓN BASE -->
-<script src="firebase-config.js"></script>
-
-<!-- 2. UI Y UTILIDADES (PRIMERO - Define showToast y funciones básicas) -->
+<!-- UI primero -->
 <script src="ui.js"></script>
 
-<!-- 3. AUTENTICACIÓN (Antes de los módulos que dependen del usuario) -->
+<!-- Autenticación -->
 <script src="auth.js"></script>
 
-<!-- 4. MÓDULOS PRINCIPALES (Orden de dependencias) -->
+<!-- Lógica principal -->
+<script src="app.js"></script>
+
+<!-- Inventario -->
 <script src="inventory.js"></script>
-<script src="refill-enhanced.js"></script>
-<script src="analytics.js"></script>  <!-- ⚠️ MOVIDO AQUÍ - CRÍTICO -->
+<script src="inventory-enhanced.js"></script>
+
+<!-- Relleno y Auditoría -->
+<script src="refill.js"></script>
 <script src="audit.js"></script>
 
-<!-- 5. ESCÁNER (Después de los módulos que lo usan) -->
+<!-- Sistema -->
+<script src="system.js"></script>
+
+<!-- Escáner -->
 <script src="scanner-mlkit.js"></script>
 <script src="scanner-events.js"></script>
 
-<!-- 6. SISTEMA -->
-<script src="system.js"></script>
-<script src="system-events.js"></script>
-
-<!-- 7. APP PRINCIPAL (ÚLTIMO) -->
-<script src="app.js"></script>
-
-<!-- ❌ ELIMINADO: inventory-enhanced.js (duplicado de inventory.js) -->
-
-<!-- ============================================================
-     SERVICE WORKER
-     ============================================================ -->
+<!-- ========================================================= -->
+<!-- SERVICE WORKER (PWA)                                     -->
+<!-- ========================================================= -->
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('✅ Service Worker registrado'))
-        .catch(err => console.error('⚠️ SW no disponible:', err));
-    });
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('✅ Service Worker registrado'))
+      .catch(err => console.error('❌ SW error', err));
   }
 </script>
 
-<!-- ============================================================
-     SISTEMA DE NAVEGACIÓN MOBILE
-     ============================================================ -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de navegación iniciando...');
-
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const tabName = this.getAttribute('data-tab');
-        console.log('📑 Navegando a:', tabName);
-
-        navButtons.forEach(b => b.classList.remove('active'));
-        tabContents.forEach(t => {
-          t.classList.remove('active');
-          t.classList.add('hidden');
-        });
-
-        this.classList.add('active');
-        const tab = document.getElementById('tab-' + tabName);
-        if (tab) {
-          tab.classList.remove('hidden');
-          tab.classList.add('active');
-        }
-      });
-    });
-
-    console.log('✅ Navegación lista');
-  });
-</script>
+</body>
+</html>
