@@ -12,18 +12,23 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="custom-styles.css">
 
+  <!-- Firebase SDK v9 (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
+  <!-- ============================================================
+       PANTALLA DE LOGIN (ID CORREGIDO)
+       ============================================================ -->
   <div id="login-screen" class="login-container">
     <div class="login-card">
       <div class="brand-logo">🦅</div>
       <h1>Águila Pro</h1>
       <p>Gestión de Inventario</p>
       
+      <!-- FORMULARIO DE LOGIN -->
       <form id="login-form">
         <div class="input-group">
           <input type="email" id="login-email" placeholder="Correo electrónico" required autocomplete="email">
@@ -32,20 +37,67 @@
           <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
         </div>
         <button type="submit" id="btn-login" class="btn-primary-full">Iniciar Sesión</button>
+        <div style="margin-top:10px; text-align:center;">
+          <a href="#" id="show-register" style="font-size:13px;">¿No tienes cuenta? Regístrate</a>
+          <br>
+          <a href="#" id="show-forgot-password" style="font-size:13px;">¿Olvidaste tu contraseña?</a>
+        </div>
       </form>
-      <div id="login-msg" style="color:red; margin-top:10px;"></div>
+
+      <!-- FORMULARIO DE REGISTRO (OCULTO) -->
+      <form id="register-form" class="hidden">
+        <div class="input-group">
+          <input type="email" id="register-email" placeholder="Correo electrónico" required>
+        </div>
+        <div class="input-group">
+          <input type="password" id="register-password" placeholder="Contraseña (mín. 6 caracteres)" required>
+        </div>
+        <div class="input-group">
+          <input type="text" id="register-determinante" placeholder="ID de Tienda" required>
+        </div>
+        <div class="input-group">
+          <input type="text" id="register-store-name" placeholder="Nombre de la Tienda" required>
+        </div>
+        <div class="input-group">
+          <input type="text" id="register-promoter-name" placeholder="Tu Nombre" required>
+        </div>
+        <button type="submit" class="btn-primary-full">Registrarse</button>
+        <div style="margin-top:10px; text-align:center;">
+          <a href="#" id="show-login" style="font-size:13px;">Ya tengo cuenta, Iniciar Sesión</a>
+        </div>
+      </form>
+
+      <!-- FORMULARIO DE RECUPERAR CONTRASEÑA (OCULTO) -->
+      <form id="forgot-password-form" class="hidden">
+        <div class="input-group">
+          <input type="email" id="forgot-email" placeholder="Tu correo electrónico" required>
+        </div>
+        <button type="submit" class="btn-primary-full">Enviar Enlace de Recuperación</button>
+        <div style="margin-top:10px; text-align:center;">
+          <a href="#" id="show-login-from-forgot" style="font-size:13px;">Volver al Login</a>
+        </div>
+      </form>
+
+      <div id="login-msg" style="color:red; margin-top:10px; text-align:center;"></div>
     </div>
   </div>
 
+  <!-- ============================================================
+       PANTALLA PRINCIPAL DE LA APP (ID CORREGIDO)
+       ============================================================ -->
   <div id="app-screen" class="hidden">
     
+    <!-- HEADER -->
     <header class="app-header">
       <button id="btn-menu" class="icon-btn">☰</button>
       <h1 class="header-title">Inventario</h1>
       <div id="btn-offline-status" class="status-indicator">📡</div>
     </header>
 
+    <!-- OVERLAY DEL SIDEBAR -->
     <div id="sidebar-overlay"></div>
+
+    <!-- SIDEBAR -->
     <aside id="sidebar">
       <div class="sidebar-header">
         <div class="user-profile">
@@ -53,12 +105,14 @@
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="btn-logout warning-text">Cerrar Sesión</button>
+        <button class="btn-logout warning-text" onclick="logout()">Cerrar Sesión</button>
       </nav>
     </aside>
 
+    <!-- CONTENIDO PRINCIPAL -->
     <main id="main-content">
       
+      <!-- TAB: INVENTARIO -->
       <section id="tab-inventory" class="tab-content active">
         <div class="toolbar">
           <div id="brand-filters" class="scroll-h"></div>
@@ -67,10 +121,12 @@
           <input type="text" id="inventory-search" placeholder="🔍 Buscar producto...">
         </div>
         <div id="inventory-list" class="card-list">
-          </div>
+          <p style="color:var(--muted);">Cargando inventario...</p>
+        </div>
       </section>
 
-      <section id="tab-agregar" class="tab-content hidden">
+      <!-- TAB: AGREGAR PRODUCTO -->
+      <section id="tab-add" class="tab-content hidden">
         <h2>Agregar Producto</h2>
         <div class="scan-area">
           <button id="btn-scan-add" class="btn-scan-large">📷 Escanear Nuevo</button>
@@ -85,14 +141,17 @@
             <option value="Quaker">Quaker</option>
             <option value="Otros">Otros</option>
           </select>
+          <input type="number" id="add-pieces-per-box" placeholder="Piezas por Caja">
+          <input type="text" id="add-warehouse" placeholder="Bodega/Ubicación">
+          <input type="date" id="add-expiry-date" placeholder="Fecha de Caducidad">
           <div class="row">
             <input type="number" id="add-boxes" placeholder="Cajas">
-            <input type="number" id="add-pieces" placeholder="Piezas">
           </div>
           <button type="submit" class="btn-save">Guardar</button>
         </form>
       </section>
 
+      <!-- TAB: RELLENO -->
       <section id="tab-refill" class="tab-content hidden">
          <h2>🔄 Relleno Rápido</h2>
          <div class="scan-area">
@@ -117,6 +176,7 @@
          </div>
       </section>
 
+      <!-- TAB: AUDITORÍA -->
       <section id="tab-audit" class="tab-content hidden">
          <h2>📋 Auditoría</h2>
          
@@ -144,11 +204,12 @@
 
     </main>
 
+    <!-- NAVEGACIÓN INFERIOR -->
     <nav class="bottom-nav">
       <button class="nav-item active" data-tab="inventory">
         <span class="icon">📦</span><span class="label">Stock</span>
       </button>
-      <button class="nav-item" data-tab="agregar">
+      <button class="nav-item" data-tab="add">
         <span class="icon">➕</span><span class="label">Agregar</span>
       </button>
       <button class="nav-item" data-tab="refill">
@@ -160,23 +221,45 @@
     </nav>
   </div>
 
-  <div id="app-toast-container"></div>
+  <!-- MODAL DEL ESCÁNER -->
+  <div id="scanner-modal" class="scanner-modal hidden">
+    <div class="scanner-container">
+      <div class="scanner-video-wrapper">
+        <video id="scanner-video" autoplay playsinline></video>
+        <div class="scanner-overlay">
+          <div class="scanner-frame"></div>
+          <p class="scanner-instruction">Centra el código de barras</p>
+        </div>
+      </div>
+      <button id="close-scanner" class="scanner-close-btn">Cerrar Escáner</button>
+    </div>
+  </div>
 
+  <!-- CONTENEDOR DE TOASTS -->
+  <div id="app-toast-container" class="toast-container"></div>
+
+  <!-- SCRIPTS EN ORDEN CORRECTO -->
   <script src="firebase-config.js"></script>
   <script src="ui.js"></script>
-  <script src="app.js"></script>
   <script src="auth.js"></script>
+  <script src="app.js"></script>
   
   <script src="inventory.js"></script>
-  <script src="refill.js"></script> <script src="audit.js"></script>
+  <script src="inventory-enhanced.js"></script>
+  <script src="refill.js"></script>
+  <script src="audit.js"></script>
   <script src="system.js"></script>
+  <script src="system-events.js"></script>
   
   <script src="scanner-mlkit.js"></script>
   <script src="scanner-events.js"></script>
 
+  <!-- SERVICE WORKER -->
   <script>
     if ('serviceWorker' in navigator) {
-       navigator.serviceWorker.register('./service-worker.js');
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrado'))
+        .catch(err => console.log('❌ Error en SW:', err));
     }
   </script>
 </body>

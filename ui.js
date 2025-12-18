@@ -1,164 +1,251 @@
-// ============================================================
-// Águila Inventario Pro - Módulo: ui.js (FINAL)
-// Copyright © 2025 José A. G. Betancourt
-// ============================================================
+/* ============================================================
+   Águila Inventario Pro - ui.js
+   Utilidades de UI: Toasts, Modales, Notificaciones
+   ============================================================ */
+
+console.log('🎨 ui.js iniciando...');
 
 // ============================================================
-// DEFINICIÓN GLOBAL Y SEGURA DE showToast
+// SISTEMA DE TOASTS
 // ============================================================
 window.showToast = function(message, type = 'info') {
-  console.log('[TOAST]', type.toUpperCase(), '→', message);
+  console.log('[TOAST]', type.toUpperCase(), message);
   
-  const containerId = 'app-toast-container';
-  let container = document.getElementById(containerId);
+  // Buscar o crear contenedor de toasts
+  let container = document.getElementById('app-toast-container');
   
   if (!container) {
     container = document.createElement('div');
-    container.id = containerId;
-    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99998;display:flex;flex-direction:column;gap:10px;max-width:400px;';
+    container.id = 'app-toast-container';
+    container.className = 'toast-container';
     document.body.appendChild(container);
   }
   
+  // Crear elemento de toast
   const toast = document.createElement('div');
-  toast.className = 'toast toast-' + type;
-  toast.textContent = message;
-  toast.style.cssText = `
-    background: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    border-left: 4px solid ${getToastColor(type)};
-    font-size: 14px;
-    animation: slideIn 0.3s ease-out;
-    cursor: pointer;
-  `;
+  toast.className = `toast ${type}`;
   
+  // Agregar icono según el tipo
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  const icon = icons[type] || icons.info;
+  toast.textContent = `${icon} ${message}`;
+  
+  // Agregar al contenedor
   container.appendChild(toast);
   
+  // Animación de entrada
   setTimeout(() => {
-    toast.style.cssText += 'opacity:0;transform:translateX(100%);transition:all 0.3s ease-out;';
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
+    toast.style.animation = 'slideIn 0.3s ease-out';
+  }, 10);
   
-  toast.addEventListener('click', () => {
-    toast.style.cssText += 'opacity:0;transform:translateX(100%);transition:all 0.3s ease-out;';
-    setTimeout(() => toast.remove(), 300);
-  });
+  // Auto-eliminar después de 3.5 segundos
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, 3500);
 };
 
-function getToastColor(type) {
-  const colors = {
-    'success': '#10b981',
-    'error': '#ef4444',
-    'warning': '#f59e0b',
-    'info': '#004aad'
+// ============================================================
+// CONFIRMACIÓN CON ESTILO
+// ============================================================
+window.showConfirm = function(message, onConfirm, onCancel) {
+  const result = confirm(message);
+  if (result && onConfirm) {
+    onConfirm();
+  } else if (!result && onCancel) {
+    onCancel();
+  }
+  return result;
+};
+
+// ============================================================
+// LOADER/SPINNER
+// ============================================================
+window.showLoader = function(message = 'Cargando...') {
+  let loader = document.getElementById('app-loader');
+  
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'app-loader';
+    loader.className = 'app-loader';
+    loader.innerHTML = `
+      <div class="loader-backdrop"></div>
+      <div class="loader-content">
+        <div class="spinner"></div>
+        <p class="loader-message">${message}</p>
+      </div>
+    `;
+    document.body.appendChild(loader);
+  }
+  
+  loader.style.display = 'flex';
+};
+
+window.hideLoader = function() {
+  const loader = document.getElementById('app-loader');
+  if (loader) {
+    loader.style.display = 'none';
+  }
+};
+
+// ============================================================
+// ESTILOS DINÁMICOS PARA LOADER
+// ============================================================
+const loaderStyles = `
+  .app-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .loader-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  
+  .loader-content {
+    position: relative;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #004aad;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .loader-message {
+    color: #333;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
+`;
+
+// Inyectar estilos del loader
+const styleSheet = document.createElement('style');
+styleSheet.textContent = loaderStyles;
+document.head.appendChild(styleSheet);
+
+// ============================================================
+// DEBOUNCE (útil para búsquedas)
+// ============================================================
+window.debounce = function(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
   };
-  return colors[type] || colors['info'];
-}
+};
 
 // ============================================================
-// MANEJO DE TABS
+// FORMATEAR FECHA
 // ============================================================
-function setupTabs() {
-  const navItems = document.querySelectorAll('[data-tab]');
+window.formatDate = function(date) {
+  if (!date) return 'N/A';
   
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const tabName = item.getAttribute('data-tab');
-      
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
-      document.querySelectorAll('[data-tab]').forEach(nav => {
-        nav.classList.remove('active');
-      });
-      
-      const tabElement = document.getElementById('tab-' + tabName);
-      if (tabElement) {
-        tabElement.classList.add('active');
-      }
-      
-      item.classList.add('active');
-      
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar) {
-        sidebar.classList.remove('active');
-      }
-      
-      console.log('📑 Tab activado:', tabName);
-    });
-  });
-}
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 'Fecha inválida';
+  
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // ============================================================
-// INICIALIZACIÓN
+// FORMATEAR NÚMERO
 // ============================================================
-function initUI() {
-  console.log('🎨 Inicializando UI...');
-  
-  setupTabs();
-  
-  // ✅ BOTÓN ESCÁNER AGREGAR - CORREGIDO
-  const btnScanAdd = document.getElementById('btn-scan-add');
-  if (btnScanAdd) {
-    btnScanAdd.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🎬 Abriendo escáner para agregar...');
-      
-      if (typeof window.openScanner === 'function') {
-        console.log('✅ openScanner disponible, abriendo...');
-        window.openScanner((code) => {
-          console.log('📦 Código escaneado:', code);
-          const input = document.getElementById('add-barcode');
-          if (input) {
-            input.value = code;
-            showToast('✅ Código detectado: ' + code, 'success');
-          }
-        });
-      } else {
-        console.error('❌ openScanner NO está disponible');
-        showToast('❌ El escáner no está disponible', 'error');
-      }
-    });
-  } else {
-    console.warn('⚠️ Botón btn-scan-add no encontrado');
+window.formatNumber = function(num) {
+  if (!num && num !== 0) return '0';
+  return new Intl.NumberFormat('es-MX').format(num);
+};
+
+// ============================================================
+// COPIAR AL PORTAPAPELES
+// ============================================================
+window.copyToClipboard = async function(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ Copiado al portapapeles', 'success');
+    return true;
+  } catch (error) {
+    console.error('Error al copiar:', error);
+    showToast('❌ Error al copiar', 'error');
+    return false;
   }
-  
-  // ✅ BOTÓN CERRAR ESCÁNER
-  const closeBtn = document.getElementById('close-scanner');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🔴 Cerrando escáner...');
-      if (typeof window.closeScanner === 'function') {
-        window.closeScanner();
-      }
-    });
+};
+
+// ============================================================
+// VIBRACIÓN (útil para feedback en móvil)
+// ============================================================
+window.vibrate = function(pattern = [100]) {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern);
   }
-  
-  console.log('✅ UI inicializado correctamente');
-}
+};
 
 // ============================================================
-// MONITOREAR CONEXIÓN
+// VERIFICAR SI ES MÓVIL
 // ============================================================
-window.addEventListener('online', () => {
-  showToast('✅ Conexión restaurada', 'success');
-});
-
-window.addEventListener('offline', () => {
-  showToast('📡 Sin conexión a internet', 'warning');
-});
+window.isMobile = function() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 // ============================================================
-// INICIAR CUANDO DOM ESTÉ LISTO
+// SCROLL SUAVE A ELEMENTO
 // ============================================================
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initUI);
-} else {
-  initUI();
-}
+window.scrollToElement = function(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
 
 console.log('✅ ui.js cargado correctamente');
