@@ -1,6 +1,6 @@
 /* ============================================================
    Águila Inventario Pro - auth.js
-   VERSIÓN CORREGIDA - IDs sincronizados con index.html
+   VERSIÓN CORREGIDA - Con verificación DOM Ready
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
@@ -20,26 +20,60 @@ if (typeof window.showToast !== 'function') {
 }
 
 let currentUser = null;
+let isDOMReady = false;
 
 // ============================================================
-// FUNCIONES DE CAMBIO DE PANTALLA - CORREGIDAS
+// VERIFICAR SI EL DOM ESTÁ LISTO
 // ============================================================
-function showLoginScreen() {
+function checkDOMReady() {
+  return document.readyState === 'complete' || document.readyState === 'interactive';
+}
+
+function waitForDOM() {
+  return new Promise((resolve) => {
+    if (checkDOMReady()) {
+      resolve();
+    } else {
+      document.addEventListener('DOMContentLoaded', resolve, { once: true });
+    }
+  });
+}
+
+// ============================================================
+// FUNCIONES DE CAMBIO DE PANTALLA - PROTEGIDAS
+// ============================================================
+async function showLoginScreen() {
+  await waitForDOM();
+  
   const loginScreen = document.getElementById('login-screen');
   const appScreen = document.getElementById('app-screen');
   
-  if (loginScreen) loginScreen.style.display = 'block';
-  if (appScreen) appScreen.style.display = 'none';
+  if (!loginScreen || !appScreen) {
+    console.error('❌ Elementos de UI no encontrados');
+    setTimeout(showLoginScreen, 100); // Reintentar
+    return;
+  }
+  
+  loginScreen.style.display = 'block';
+  appScreen.style.display = 'none';
   
   console.log('🔐 Mostrando pantalla de login');
 }
 
-function showApp() {
+async function showApp() {
+  await waitForDOM();
+  
   const loginScreen = document.getElementById('login-screen');
   const appScreen = document.getElementById('app-screen');
   
-  if (loginScreen) loginScreen.style.display = 'none';
-  if (appScreen) appScreen.style.display = 'block';
+  if (!loginScreen || !appScreen) {
+    console.error('❌ Elementos de UI no encontrados');
+    setTimeout(showApp, 100); // Reintentar
+    return;
+  }
+  
+  loginScreen.style.display = 'none';
+  appScreen.style.display = 'block';
   
   console.log('✅ Mostrando pantalla principal');
 }
@@ -47,7 +81,9 @@ function showApp() {
 // ============================================================
 // MANEJO DE LOGIN
 // ============================================================
-async function handleLogin() {
+async function handleLogin(e) {
+  if (e) e.preventDefault();
+  
   const email = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
   
@@ -70,7 +106,9 @@ async function handleLogin() {
 // ============================================================
 // MANEJO DE REGISTRO
 // ============================================================
-async function handleRegister() {
+async function handleRegister(e) {
+  if (e) e.preventDefault();
+  
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
   const determinante = document.getElementById('register-determinante')?.value;
@@ -104,7 +142,8 @@ async function handleRegister() {
     showToast('✅ Registro exitoso, bienvenido a Águila Pro', 'success');
     
     setTimeout(() => {
-      document.getElementById('register-form').reset();
+      const form = document.getElementById('register-form');
+      if (form) form.reset();
       showLoginForm();
     }, 1500);
     
@@ -117,7 +156,9 @@ async function handleRegister() {
 // ============================================================
 // RECUPERAR CONTRASEÑA
 // ============================================================
-async function handleForgotPassword() {
+async function handleForgotPassword(e) {
+  if (e) e.preventDefault();
+  
   const email = document.getElementById('forgot-email')?.value.trim();
   
   if (!email) {
@@ -131,7 +172,8 @@ async function handleForgotPassword() {
     showToast('✅ Enlace enviado a tu email', 'success');
     
     setTimeout(() => {
-      document.getElementById('forgot-email').value = '';
+      const input = document.getElementById('forgot-email');
+      if (input) input.value = '';
       showLoginForm();
     }, 1500);
     
@@ -145,57 +187,70 @@ async function handleForgotPassword() {
 // CAMBIO ENTRE FORMULARIOS
 // ============================================================
 function showLoginForm() {
-  document.getElementById('login-form').classList.remove('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-  document.getElementById('forgot-password-form').classList.add('hidden');
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const forgotForm = document.getElementById('forgot-password-form');
+  
+  if (loginForm) loginForm.classList.remove('hidden');
+  if (registerForm) registerForm.classList.add('hidden');
+  if (forgotForm) forgotForm.classList.add('hidden');
 }
 
 function showRegisterForm() {
-  document.getElementById('login-form').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-  document.getElementById('forgot-password-form').classList.add('hidden');
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const forgotForm = document.getElementById('forgot-password-form');
+  
+  if (loginForm) loginForm.classList.add('hidden');
+  if (registerForm) registerForm.classList.remove('hidden');
+  if (forgotForm) forgotForm.classList.add('hidden');
 }
 
 function showForgotForm() {
-  document.getElementById('login-form').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-  document.getElementById('forgot-password-form').classList.remove('hidden');
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const forgotForm = document.getElementById('forgot-password-form');
+  
+  if (loginForm) loginForm.classList.add('hidden');
+  if (registerForm) registerForm.classList.add('hidden');
+  if (forgotForm) forgotForm.classList.remove('hidden');
 }
 
 // ============================================================
 // CARGAR DATOS DEL USUARIO
 // ============================================================
-function loadUserData(userId) {
-  firebase.database().ref('usuarios/' + userId).once('value')
-    .then((snapshot) => {
-      const userData = snapshot.val();
-      if (userData) {
-        console.log('📦 Datos cargados:', userData.nombrePromotor);
-        
-        // Guardar determinante en localStorage para acceso rápido
-        if (userData.determinante) {
-          localStorage.setItem('aguila_det', userData.determinante);
-        }
-        
-        // Actualizar UI con email
-        const userEmailDisplay = document.getElementById('user-email-display');
-        if (userEmailDisplay) {
-          userEmailDisplay.textContent = userData.email;
-        }
-        
-        // Mostrar app
-        showApp();
-        
-        // Cargar inventario si la función existe
-        if (typeof loadInventory === 'function') {
-          loadInventory();
-        }
+async function loadUserData(userId) {
+  try {
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+    
+    if (userData) {
+      console.log('📦 Datos cargados:', userData.nombrePromotor);
+      
+      // Guardar determinante en localStorage para acceso rápido
+      if (userData.determinante) {
+        localStorage.setItem('aguila_det', userData.determinante);
       }
-    })
-    .catch((error) => {
-      console.error('❌ Error cargando datos:', error);
-      showToast('Error al cargar datos', 'error');
-    });
+      
+      // Actualizar UI con email
+      await waitForDOM();
+      const userEmailDisplay = document.getElementById('user-email-display');
+      if (userEmailDisplay) {
+        userEmailDisplay.textContent = userData.email;
+      }
+      
+      // Mostrar app
+      await showApp();
+      
+      // Cargar inventario si la función existe
+      if (typeof loadInventory === 'function') {
+        setTimeout(() => loadInventory(), 500);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error cargando datos:', error);
+    showToast('Error al cargar datos', 'error');
+  }
 }
 
 // ============================================================
@@ -207,9 +262,10 @@ async function logout() {
     currentUser = null;
     localStorage.removeItem('aguila_det');
     showToast('✅ Sesión cerrada', 'success');
-    showLoginScreen();
+    await showLoginScreen();
     showLoginForm();
-    document.getElementById('login-form').reset();
+    const form = document.getElementById('login-form');
+    if (form) form.reset();
   } catch (error) {
     console.error('❌ Error logout:', error);
     showToast('Error al cerrar sesión', 'error');
@@ -237,15 +293,15 @@ function getErrorMessage(errorCode) {
 // ============================================================
 // LISTENER DE ESTADO DE AUTENTICACIÓN
 // ============================================================
-firebase.auth().onAuthStateChanged((user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
     console.log('✅ Usuario autenticado:', user.email);
-    loadUserData(user.uid);
+    await loadUserData(user.uid);
   } else {
     currentUser = null;
-    console.log('🔐 Sin usuario autenticado');
-    showLoginScreen();
+    console.log('📝 Sin usuario autenticado');
+    await showLoginScreen();
   }
 });
 
@@ -253,56 +309,82 @@ firebase.auth().onAuthStateChanged((user) => {
 // EVENTOS DEL DOM
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  isDOMReady = true;
   console.log('📋 Registrando eventos de autenticación');
   
   // Login form submit
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await handleLogin();
-    });
+    loginForm.addEventListener('submit', handleLogin);
   }
   
   // Botón de login alternativo
-  document.getElementById('btn-login')?.addEventListener('click', handleLogin);
+  const btnLogin = document.getElementById('btn-login');
+  if (btnLogin && btnLogin.type !== 'submit') {
+    btnLogin.addEventListener('click', handleLogin);
+  }
   
   // Register form submit
-  document.getElementById('register-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleRegister();
-  });
+  const registerForm = document.getElementById('register-form');
+  if (registerForm) {
+    registerForm.addEventListener('submit', handleRegister);
+  }
   
   // Forgot password form submit
-  document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleForgotPassword();
-  });
+  const forgotForm = document.getElementById('forgot-password-form');
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', handleForgotPassword);
+  }
   
   // Enlaces de cambio de formulario
-  document.getElementById('show-register')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showRegisterForm();
-  });
+  const showRegisterLink = document.getElementById('show-register');
+  if (showRegisterLink) {
+    showRegisterLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showRegisterForm();
+    });
+  }
   
-  document.getElementById('show-login')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showLoginForm();
-  });
+  const showLoginLink = document.getElementById('show-login');
+  if (showLoginLink) {
+    showLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showLoginForm();
+    });
+  }
   
-  document.getElementById('show-forgot-password')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showForgotForm();
-  });
+  const showForgotLink = document.getElementById('show-forgot-password');
+  if (showForgotLink) {
+    showForgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showForgotForm();
+    });
+  }
   
-  document.getElementById('show-login-from-forgot')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showLoginForm();
-  });
+  const showLoginFromForgotLink = document.getElementById('show-login-from-forgot');
+  if (showLoginFromForgotLink) {
+    showLoginFromForgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showLoginForm();
+    });
+  }
   
   // Botones de logout
-  document.getElementById('btn-logout')?.addEventListener('click', logout);
-  document.getElementById('btn-logout-settings')?.addEventListener('click', logout);
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', logout);
+  }
+  
+  const btnLogoutSettings = document.getElementById('btn-logout-settings');
+  if (btnLogoutSettings) {
+    btnLogoutSettings.addEventListener('click', logout);
+  }
+  
+  // Botones en el sidebar
+  const logoutButtons = document.querySelectorAll('.btn-logout');
+  logoutButtons.forEach(btn => {
+    btn.addEventListener('click', logout);
+  });
 });
 
 // Exponer funciones globalmente

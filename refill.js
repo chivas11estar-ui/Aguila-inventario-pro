@@ -33,8 +33,6 @@
       // Búsqueda directa por ID
       const path = `inventario/${det}`;
       
-      // Primero intentamos buscar si el barcode es la clave directa (optimización)
-      // Pero como suele ser un array o ID generado, mejor filtramos.
       const snapshot = await firebase.database().ref(path)
         .orderByChild('codigoBarras')
         .equalTo(barcode)
@@ -133,22 +131,31 @@
 
   // --- Inicialización ---
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔄 refill.js: Configurando eventos...');
+    
     // Vincular botón Guardar manual si existe
-    const btnSave = document.getElementById('btn-save-refill'); // Asegúrate que este ID exista en tu HTML o agrégalo
+    const btnSave = document.getElementById('btn-save-refill');
     if(btnSave) {
-        btnSave.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.processRefillMovement();
-        });
+      btnSave.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.processRefillMovement();
+      });
+      console.log('✅ Botón de guardar relleno vinculado');
     }
     
     // Listener para Enter en el input de cajas
     const boxesInput = document.getElementById('refill-boxes');
     if(boxesInput) {
-        boxesInput.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') window.processRefillMovement();
-        });
+      boxesInput.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') {
+          e.preventDefault();
+          window.processRefillMovement();
+        }
+      });
+      console.log('✅ Enter en input de cajas configurado');
     }
   });
 
-})();ductForRefill;
+  console.log('✅ refill.js cargado correctamente');
+
+})();
