@@ -1,55 +1,47 @@
 // ============================================================
 // Águila Inventario Pro - System Events
-// Maneja eventos de los botones del sistema
+// Manejo robusto y seguro de eventos del sistema
+// Versión optimizada 8.3
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('⚙️ Configurando eventos del sistema...');
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('⚙️ Inicializando eventos del sistema...');
 
-  // BOTÓN: DIAGNÓSTICO
-  const btnDiagnostico = document.getElementById('btn-diagnostico');
-  if (btnDiagnostico) {
-    btnDiagnostico.addEventListener('click', function(e) {
+  // Utilidad segura para asignar eventos
+  function safeBind(id, actionName, fnName) {
+    const btn = document.getElementById(id);
+    if (!btn) {
+      console.warn(`⚠️ Botón "${id}" no encontrado en el DOM.`);
+      return;
+    }
+
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
-      console.log('🔍 Abriendo diagnóstico...');
-      
-      if (typeof window.diagnosticoFirebase === 'function') {
-        window.diagnosticoFirebase();
+      console.log(`🔧 Acción solicitada: ${actionName}`);
+
+      if (typeof window[fnName] === 'function') {
+        try {
+          window[fnName]();
+        } catch (error) {
+          console.error(`❌ Error ejecutando ${fnName}:`, error);
+          alert(`❌ Ocurrió un error al ejecutar: ${actionName}`);
+        }
       } else {
-        alert('⚠️ Función de diagnóstico no disponible');
+        console.warn(`⚠️ Función "${fnName}" no existe`);
+        alert(`⚠️ La función "${actionName}" no está disponible`);
       }
     });
+
+    console.log(`✅ Evento configurado: ${actionName}`);
   }
 
-  // BOTÓN: ESTADÍSTICAS
-  const btnStats = document.getElementById('btn-stats');
-  if (btnStats) {
-    btnStats.addEventListener('click', function(e) {
-      e.preventDefault();
-      console.log('📊 Mostrando estadísticas...');
-      
-      if (typeof window.showSystemStats === 'function') {
-        window.showSystemStats();
-      } else {
-        alert('⚠️ Función de estadísticas no disponible');
-      }
-    });
-  }
+  // ============================================================
+  // ASIGNACIÓN DE EVENTOS (MEJORADA)
+  // ============================================================
 
-  // BOTÓN: LIMPIAR DATOS
-  const btnClearData = document.getElementById('btn-clear-data');
-  if (btnClearData) {
-    btnClearData.addEventListener('click', function(e) {
-      e.preventDefault();
-      console.log('🗑️ Limpiando datos...');
-      
-      if (typeof window.clearAllData === 'function') {
-        window.clearAllData();
-      } else {
-        alert('⚠️ Función de limpiar datos no disponible');
-      }
-    });
-  }
+  safeBind('btn-diagnostico', 'Ejecutar diagnóstico', 'diagnosticoFirebase');
+  safeBind('btn-stats', 'Mostrar estadísticas del sistema', 'showSystemStats');
+  safeBind('btn-clear-data', 'Limpiar todos los datos locales', 'clearAllData');
 
-  console.log('✅ Eventos del sistema configurados');
+  console.log('✅ Todos los eventos del sistema quedaron configurados correctamente');
 });

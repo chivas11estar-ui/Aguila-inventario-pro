@@ -1,112 +1,113 @@
 // ============================================================
-// Águila Inventario Pro - Inventory Enhanced
-// Buscador + Desplegables por marca
+// Águila Inventario Pro - Inventory Enhanced (Versión PRO 2025)
+// Mejorado: rendimiento, estabilidad, UX y compatibilidad total
 // ============================================================
 
-let expandedBrands = {}; // Controlar qué marcas están expandidas
-
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('🔍 Configurando buscador de inventario...');
-
-  // Crear buscador si no existe
-  const inventoryList = document.getElementById('inventory-list');
-  if (inventoryList && !document.getElementById('inventory-search')) {
-    const searchHTML = `
-      <div style="margin-bottom:20px;">
-        <input 
-          id="inventory-search" 
-          type="text" 
-          placeholder="🔍 Buscar producto, marca o código..." 
-          style="width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;"
-        />
-      </div>
-    `;
-    inventoryList.insertAdjacentHTML('beforebegin', searchHTML);
-
-    // Evento de búsqueda
-    const searchInput = document.getElementById('inventory-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        filterInventory(this.value.toLowerCase());
-      });
-    }
-  }
-
-  console.log('✅ Buscador configurado');
-});
+let expandedBrands = JSON.parse(localStorage.getItem("expandedBrands") || "{}");
 
 // ============================================================
-// FILTRAR INVENTARIO
+// UTILIDAD: Espera (debounce) para búsquedas rápidas
 // ============================================================
-function filterInventory(searchTerm) {
-  const inventoryList = document.getElementById('inventory-list');
-  if (!inventoryList) return;
-
-  const brandSections = inventoryList.querySelectorAll('[data-brand-section]');
-
-  brandSections.forEach(section => {
-    const brand = section.getAttribute('data-brand-section');
-    const products = section.querySelectorAll('[data-product-item]');
-    let visibleCount = 0;
-
-    products.forEach(product => {
-      const productName = product.getAttribute('data-product-name') || '';
-      const productCode = product.getAttribute('data-product-code') || '';
-      
-      const matches = 
-        productName.toLowerCase().includes(searchTerm) ||
-        productCode.toLowerCase().includes(searchTerm) ||
-        brand.toLowerCase().includes(searchTerm);
-
-      if (matches) {
-        product.style.display = 'block';
-        visibleCount++;
-      } else {
-        product.style.display = 'none';
-      }
-    });
-
-    // Mostrar/ocultar sección de marca
-    const brandHeader = section.querySelector('[data-brand-header]');
-    if (visibleCount > 0) {
-      section.style.display = 'block';
-      if (brandHeader) {
-        const countSpan = brandHeader.querySelector('[data-product-count]');
-        if (countSpan) {
-          countSpan.textContent = visibleCount;
-        }
-      }
-    } else {
-      section.style.display = 'none';
-    }
-  });
+function debounce(fn, delay = 250) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
 }
 
 // ============================================================
-// TOGGLE MARCA (EXPANDIR/CONTRAER)
+// CREAR BUSCADOR (solo una vez)
+// ============================================================
+function ensureSearchBar() {
+  const inventoryList = document.getElementById("inventory-list");
+  if (!inventoryList) return;
+
+  // Si ya existe, no volver a crearlo
+  if (document.getElementById("inventory-search")) return;
+
+  const searchHTML = `
+    <div style="margin-bottom:20px;">
+      <input 
+        id="inventory-search" 
+        type="text" 
+        placeholder="🔍 Buscar producto, marca o código..." 
+        style="width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;"
+      />
+    </div>
+  `;
+  inventoryList.insertAdjacentHTML("beforebegin", searchHTML);
+
+  const searchInput = document.getElementById("inventory-search");
+  searchInput.addEventListener(
+    "input",
+    debounce(() => filterInventory(searchInput.value.toLowerCase()), 200)
+  );
+}
+
+// ============================================================
+// FILTRAR INVENTARIO (Versión optimizada)
+// ============================================================
+function filterInventory(searchTerm) {
+  const inventoryList = document.getElementById("inventory-list");
+  if (!inventoryList) return;
+
+  const sections = inventoryList.querySelectorAll("[data-brand-section]");
+  let totalVisible = 0;
+
+  sections.forEach(section => {
+    const brand = (section.dataset.brandSection || "").toLowerCase();
+    const items = section.querySelectorAll("[data-product-item]");
+    let visibleCount = 0;
+
+    items.forEach(item => {
+      const name = item.dataset.productName?.toLowerCase() || "";
+      const code = item.dataset.productCode?.toLowerCase() || "";
+
+      const matches =
+        name.includes(searchTerm) ||
+        code.includes(searchTerm) ||
+        brand.includes(searchTerm);
+
+      item.style.display = matches ? "block" : "none";
+      if (matches) visibleCount++;
+    });
+
+    const header = section.querySelector("[data-brand-header]");
+    if (header) {
+      const countSpan = header.querySelector("[data-product-count]");
+      if (countSpan) countSpan.textContent = visibleCount;
+    }
+
+    section.style.display = visibleCount > 0 ? "block" : "none";
+    if (visibleCount > 0) totalVisible++;
+  });
+
+  if (totalVisible === 0) {
+    showToast("Ningún producto coincide con la búsqueda", "warning");
+  }
+}
+
+// ============================================================
+// EXPANDIR / COLAPSAR MARCAS
 // ============================================================
 function toggleBrand(brand) {
   const section = document.querySelector(`[data-brand-section="${brand}"]`);
   if (!section) return;
 
-  const productsList = section.querySelector('[data-products-list]');
-  const header = section.querySelector('[data-brand-header]');
-  
-  if (!productsList || !header) return;
+  const productsList = section.querySelector("[data-products-list]");
+  if (!productsList) return;
 
-  const isExpanded = expandedBrands[brand] || false;
-  expandedBrands[brand] = !isExpanded;
+  const isExpanded = expandedBrands[brand] ?? true;
+  const newState = !isExpanded;
 
-  if (expandedBrands[brand]) {
-    // Expandir
-    productsList.style.display = 'block';
-    header.style.opacity = '1';
-    console.log('📂 Expandido:', brand);
+  expandedBrands[brand] = newState;
+  localStorage.setItem("expandedBrands", JSON.stringify(expandedBrands));
+
+  if (newState) {
+    productsList.classList.add("expanded");
   } else {
-    // Contraer
-    productsList.style.display = 'none';
-    header.style.opacity = '0.7';
-    console.log('📁 Contraído:', brand);
+    productsList.classList.remove("expanded");
   }
 }
 
@@ -114,34 +115,46 @@ function toggleBrand(brand) {
 // INICIALIZAR DESPLEGABLES
 // ============================================================
 function initCollapsibles() {
-  const brandHeaders = document.querySelectorAll('[data-brand-header]');
-  
-  brandHeaders.forEach(header => {
-    const brand = header.getAttribute('data-brand-name');
-    if (brand) {
-      // Por defecto expandidos
-      expandedBrands[brand] = true;
-      
-      header.style.cursor = 'pointer';
-      header.addEventListener('click', function() {
-        toggleBrand(brand);
-      });
+  const headers = document.querySelectorAll("[data-brand-header]");
+  if (!headers.length) return;
+
+  headers.forEach(header => {
+    const brand = header.dataset.brandName;
+    const section = document.querySelector(`[data-brand-section="${brand}"]`);
+    const productList = section?.querySelector("[data-products-list]");
+
+    if (!brand || !productList) return;
+
+    header.style.cursor = "pointer";
+    header.addEventListener("click", () => toggleBrand(brand));
+
+    // Restaurar estado desde localStorage
+    if (expandedBrands[brand] === false) {
+      productList.classList.remove("expanded");
+    } else {
+      productList.classList.add("expanded");
     }
   });
 
-  console.log('✅ Desplegables inicializados');
+  console.log("✅ Desplegables de inventario listos");
 }
 
-// Monitorear cambios en el inventario
-const observer = new MutationObserver(() => {
-  if (document.querySelector('[data-brand-header]')) {
-    initCollapsibles();
-  }
+// ============================================================
+// OBSERVER - Detecta cuando inventario se actualiza
+// ============================================================
+const invObserver = new MutationObserver(() => {
+  ensureSearchBar();
+  initCollapsibles();
 });
 
-observer.observe(document.getElementById('inventory-list') || document.body, {
-  childList: true,
-  subtree: true
+document.addEventListener("DOMContentLoaded", () => {
+  ensureSearchBar();
+  initCollapsibles();
+
+  invObserver.observe(document.getElementById("inventory-list") || document.body, {
+    childList: true,
+    subtree: true
+  });
 });
 
-console.log('✅ inventory-enhanced.js cargado');
+console.log("✅ inventory-enhanced.js (PRO) listo");
