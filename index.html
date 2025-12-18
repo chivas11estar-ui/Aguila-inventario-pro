@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-MX">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#004aad">
   <title>Águila Inventario Pro</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192x192.png">
 
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192x192.png">
+  
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="custom-styles.css">
 
@@ -22,7 +22,7 @@
     <div class="login-card">
       <div class="brand-logo">🦅</div>
       <h1>Águila Pro</h1>
-      <p>Gestión Inteligente de Inventario</p>
+      <p>Gestión de Inventario</p>
       
       <form id="login-form">
         <div class="input-group">
@@ -33,7 +33,7 @@
         </div>
         <button type="submit" id="btn-login" class="btn-primary-full">Iniciar Sesión</button>
       </form>
-      <div id="login-msg"></div>
+      <div id="login-msg" style="color:red; margin-top:10px;"></div>
     </div>
   </div>
 
@@ -41,7 +41,7 @@
     
     <header class="app-header">
       <button id="btn-menu" class="icon-btn">☰</button>
-      <h1 class="header-title">Águila Inventario</h1>
+      <h1 class="header-title">Inventario</h1>
       <div id="btn-offline-status" class="status-indicator">📡</div>
     </header>
 
@@ -49,8 +49,7 @@
     <aside id="sidebar">
       <div class="sidebar-header">
         <div class="user-profile">
-          <div class="avatar">👤</div>
-          <span id="user-email-display">Cargando...</span>
+          <span id="user-email-display">Usuario</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -72,9 +71,9 @@
       </section>
 
       <section id="tab-agregar" class="tab-content hidden">
-        <h2>Agregar / Editar</h2>
+        <h2>Agregar Producto</h2>
         <div class="scan-area">
-          <button id="btn-scan-add" class="btn-scan-large">📷 Escanear Código</button>
+          <button id="btn-scan-add" class="btn-scan-large">📷 Escanear Nuevo</button>
         </div>
         <form id="add-product-form">
           <input type="text" id="add-barcode" placeholder="Código de Barras" readonly>
@@ -87,48 +86,97 @@
             <option value="Otros">Otros</option>
           </select>
           <div class="row">
-            <input type="number" id="add-boxes" placeholder="Cajas" inputmode="numeric">
-            <input type="number" id="add-pieces" placeholder="Pzas sueltas" inputmode="numeric">
+            <input type="number" id="add-boxes" placeholder="Cajas">
+            <input type="number" id="add-pieces" placeholder="Piezas">
           </div>
-          <button type="submit" class="btn-save">Guardar Producto</button>
+          <button type="submit" class="btn-save">Guardar</button>
         </form>
       </section>
 
       <section id="tab-refill" class="tab-content hidden">
-         <h2>Relleno Diario</h2>
-         <p class="placeholder-text">Módulo de Relleno en construcción...</p>
+         <h2>🔄 Relleno Rápido</h2>
+         <div class="scan-area">
+           <button id="btn-scan-refill" class="btn-scan-large">📷 Escanear para Rellenar</button>
+         </div>
+
+         <div class="card" style="margin-top:15px;">
+            <label>Código:</label>
+            <input type="text" id="refill-barcode" placeholder="Escanea un producto..." readonly>
+            
+            <label>Producto Detectado:</label>
+            <input type="text" id="refill-product-name" disabled style="background:#eee; font-weight:bold;">
+            
+            <label>Stock Actual (Cajas):</label>
+            <input type="text" id="refill-current-stock" disabled style="width:60px;">
+         </div>
+
+         <div class="form-group" style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+            <label style="font-size:1.2em; color:#004aad;">📦 Cajas a AGREGAR:</label>
+            <input type="number" id="refill-boxes" placeholder="0" style="font-size:1.5em; padding:10px; width:100%;">
+            <button id="btn-save-refill" class="btn-save" style="margin-top:10px;">💾 Confirmar Relleno</button>
+         </div>
+      </section>
+
+      <section id="tab-audit" class="tab-content hidden">
+         <h2>📋 Auditoría</h2>
+         
+         <div id="audit-warehouse-section">
+           <p>Escribe el nombre de la bodega para empezar:</p>
+           <input type="text" id="audit-warehouse" placeholder="Ej: Bodega Central">
+           <button onclick="window.saveBodega()" class="btn-primary-full" style="margin-top:10px;">Comenzar Auditoría</button>
+         </div>
+
+         <div id="audit-scan-section" class="hidden" style="display:none;">
+            <h3 id="current-warehouse-display" style="color:#2563eb; border-bottom:2px solid #eee; padding-bottom:5px;"></h3>
+            
+            <div class="scan-area">
+              <button id="btn-scan-audit" class="btn-scan-large">📷 Escanear y Contar</button>
+            </div>
+            
+            <div class="card">
+               <input type="text" id="audit-barcode" placeholder="Código..." readonly>
+               <input type="number" id="audit-count" placeholder="Conteo Real (Cajas)">
+            </div>
+            
+            <button onclick="window.terminarAuditoria()" style="background:#ef4444; color:white; width:100%; padding:12px; margin-top:20px; border:none; border-radius:8px;">Terminar y Salir</button>
+         </div>
       </section>
 
     </main>
 
     <nav class="bottom-nav">
       <button class="nav-item active" data-tab="inventory">
-        <span class="icon">📦</span>
-        <span class="label">Stock</span>
+        <span class="icon">📦</span><span class="label">Stock</span>
       </button>
       <button class="nav-item" data-tab="agregar">
-        <span class="icon">➕</span>
-        <span class="label">Agregar</span>
+        <span class="icon">➕</span><span class="label">Agregar</span>
       </button>
       <button class="nav-item" data-tab="refill">
-        <span class="icon">🔄</span>
-        <span class="label">Relleno</span>
+        <span class="icon">🔄</span><span class="label">Relleno</span>
       </button>
       <button class="nav-item" data-tab="audit">
-        <span class="icon">📋</span>
-        <span class="label">Auditoría</span>
+        <span class="icon">📋</span><span class="label">Auditar</span>
       </button>
     </nav>
   </div>
 
   <div id="app-toast-container"></div>
 
-  <script src="firebase-config.js"></script> <script src="ui.js"></script>              <script src="app.js"></script>             <script src="auth.js"></script>            <script src="inventory.js"></script>       <script>
-    // Inicialización del Service Worker
+  <script src="firebase-config.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+  <script src="auth.js"></script>
+  
+  <script src="inventory.js"></script>
+  <script src="refill.js"></script> <script src="audit.js"></script>
+  <script src="system.js"></script>
+  
+  <script src="scanner-mlkit.js"></script>
+  <script src="scanner-events.js"></script>
+
+  <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(() => console.log('SW Registrado'))
-        .catch(err => console.log('SW Falló', err));
+       navigator.serviceWorker.register('./service-worker.js');
     }
   </script>
 </body>

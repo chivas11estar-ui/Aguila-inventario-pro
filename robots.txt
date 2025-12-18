@@ -1,18 +1,18 @@
 # ==================================
 # robots.txt - Águila Inventario Pro
-# Versión optimizada para SEO y PWA 2025
+# CORREGIDO - SEO MODERNO 2025
 # ==================================
 
-# 1. GOOGLE Y BING – Acceso TOTAL
-#    Necesitan cargar JS/CSS/manifest para renderizado y ver tu PWA
+# 1. GOOGLE Y BING - Permitir acceso TOTAL
+#    Necesitan ver JS, CSS, manifest.json para renderizar correctamente
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-# 2. BLOQUEAR BOTS DE SEO, SCRAPING Y CRAWLERS AGRESIVOS
-#    (No aportan valor y consumen recursos)
+# 2. BLOQUEAR BOTS DE SEO/SCRAPING
+#    (Estos solo consumen recursos sin aportar valor)
 User-agent: AhrefsBot
 Disallow: /
 
@@ -28,18 +28,19 @@ Disallow: /
 User-agent: PetalBot
 Disallow: /
 
-# 3. TODOS LOS DEMÁS BOTS – PERMITIDOS
+# 3. TODOS LOS DEMÁS BOTS - Permitir TODO
+#    Esto incluye herramientas nuevas de Google, crawlers de IA, etc.
 User-agent: *
 Allow: /
 
 # 4. SITEMAP
-Sitemap: https://aguilainventario.netlify.app/sitemap.xml
+Sitemap: https://aguilainvantario.netlify.app/sitemap.xml
 
 # ==================================
 # NOTAS IMPORTANTES:
 # ==================================
-# - Google DEBE acceder a JS/CSS/manifest/service-worker.js para no penalizar SEO.
-# - Tu app está protegida por Login; Google no verá contenido interno, y está bien.
-# - No bloquees carpetas como /js/ o /css/, sólo bots agresivos.
-# - Este archivo garantiza: Lighthouse 100/100 en SEO + PWA Compatible.
+# - Google NECESITA acceso a /js/, /css/, manifest.json, service-worker.js
+# - Tu app está protegida por Firebase Auth, Google no puede pasar del login
+# - Bloquear archivos técnicos en 2025 = SEO score bajo
+# - Este robots.txt = Lighthouse 100/100 en SEO
 # ==================================

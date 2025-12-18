@@ -1,137 +1,109 @@
 // ============================================================
-// Águila Inventario Pro - Service Worker Versión 8.1
-// Optimizado para modo offline real + actualizaciones confiables
+// Águila Inventario Pro - Service Worker
+// Copyright © 2025 José A. G. Betancourt
+// VERSIÓN 7.6 - CORREGIDA Y COMPLETA
 // ============================================================
 
-const CACHE_NAME = "aguila-inventario-v8-1";
-const APP_SHELL = [
+// CAMBIO 1: Nuevo nombre de caché para forzar la actualización
+const CACHE_NAME = "aguila-inventario-v7-7-fixes";
+
+// CAMBIO 2: Lista de archivos COMPLETA
+const urlsToCache = [
   "/",
   "/index.html",
-
-  // CSS
+  
+  // CSS (Ambos archivos)
   "/styles.css",
-  "/custom-styles.css",
-
-  // PWA
+  "/custom-styles.css", // <--- ARCHIVO QUE FALTABA
+  
+  // JSON
   "/manifest.json",
-
-  // Core JS
+  
+  // Scripts Principales
   "/firebase-config.js",
   "/app.js",
   "/auth.js",
   "/ui.js",
-
-  // Features
+  
+  // Scripts de Funcionalidad
   "/inventory.js",
-  "/inventory-enhanced.js",
-  "/refill-enhanced.js",
-  "/analytics.js",
+  "/inventory-enhanced.js", // <--- ARCHIVO QUE FALTABA
+  "/refill.js",
   "/audit.js",
   "/system.js",
-  "/system-events.js",
-
-  // Scanner
+  "/system-events.js", // <--- ARCHIVO QUE FALTABA
+  
+  // Scripts de Escáner
   "/scanner-mlkit.js",
-  "/scanner-events.js",
-
-  // Charts
-  "/charts.js",
-
-  // Icons
+  "/scanner-events.js", // <--- ARCHIVO QUE FALTABA
+  
+  // Iconos
   "/icon-192x192.png",
-  "/icon-512x512.png"
+  "/icon-512x512.png" 
 ];
 
-// ============================================================
-// INSTALL
-// Forzamos instalación + cache limpio
-// ============================================================
+// Instalación
 self.addEventListener("install", (event) => {
-  console.log(`📦 Instalando SW ${CACHE_NAME}`);
-
+  console.log(`✅ Service Worker ${CACHE_NAME} Instalando...`);
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("📦 Guardando archivos...");
-      return cache.addAll(APP_SHELL).catch(err => {
-        console.warn("⚠️ Archivos no cacheados:", err);
+      console.log("📦 Cache abierto. Guardando archivos...");
+      return cache.addAll(urlsToCache).catch(err => {
+        console.warn("⚠️ Algunos archivos no pudieron cachearse:", err);
       });
     })
   );
-
-  self.skipWaiting();
 });
 
-// ============================================================
-// ACTIVATE
-// Eliminamos versiones viejas inmediatamente
-// ============================================================
+// Activación
 self.addEventListener("activate", (event) => {
-  console.log(`🧹 Activando SW ${CACHE_NAME}`);
-
+  console.log(`✅ Service Worker ${CACHE_NAME} Activando...`);
   event.waitUntil(
-    caches.keys().then((keys) =>
+    caches.keys().then((cacheNames) =>
       Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log("🗑 Borrando caché viejo:", key);
-            return caches.delete(key);
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            console.log("🧹 Eliminando caché viejo:", name);
+            return caches.delete(name);
           }
         })
       )
     ).then(() => {
-      console.log("✅ SW listo y controlando clientes");
-      return self.clients.claim();
+      self.clients.claim();
+      console.log("✅ Service Worker activo y controlando clientes");
     })
   );
 });
 
-// ============================================================
-// FETCH Strategy: Cache-First con fallback inteligente
-// ============================================================
+// Estrategia Cache-First
 self.addEventListener("fetch", (event) => {
-  const url = event.request.url;
-
-  // No intervenir en Firebase ni CDNs
-  if (
-    url.includes("firebase") ||
-    url.includes("gstatic") ||
-    url.includes("googleapis") ||
-    url.includes("cdnjs")
-  ) {
+  // No cachear peticiones de Firebase
+  if (event.request.url.includes('firebase') || event.request.url.includes('gstatic')) {
     return event.respondWith(fetch(event.request));
   }
-
-  // Navegación siempre vuelve a index.html (SPA)
-  if (event.request.mode === "navigate") {
-    return event.respondWith(
-      fetch(event.request)
-        .then(resp => resp)
-        .catch(() => caches.match("/index.html"))
-    );
-  }
-
-  // Cache primero para archivos del APP_SHELL
+  
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
-        .then((resp) => {
-          // Clonar respuesta y guardar en cache
-          const respClone = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, respClone);
-          });
-          return resp;
-        })
-        .catch(() =>
-          new Response("⚠️ Recurso no disponible offline", {
-            status: 503,
-            statusText: "Offline Resource Missing",
-          })
-        );
+    caches.match(event.request).then((response) => {
+      // Si está en caché, lo devuelve
+      if (response) {
+        return response;
+      }
+      
+      // Si no, lo busca en la red
+      return fetch(event.request).catch(() => {
+        // Si falla (offline) y es una página, muestra index.html
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        // Para otros recursos, falla
+        return new Response("⚠️ Sin conexión y recurso no disponible", {
+          status: 503,
+          statusText: "Offline"
+        });
+      });
     })
   );
 });
 
-console.log("✅ Service Worker 8.1 cargado correctamente");
+console.log("✅ service-worker.js cargado correctamente");
