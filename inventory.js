@@ -1,6 +1,7 @@
 // ============================================================
-// Águila Inventario Pro - MÓdulo: inventory.js
-// VERSIÓN CORREGIDA - Con preventDefault agregado
+// Águila Inventario Pro - Módulo: inventory.js
+// Copyright © 2025 José A. G. Betancourt
+// VERSIÓN CON EDITAR PRODUCTOS FUNCIONAL
 // ============================================================
 
 let inventoryData = [];
@@ -8,7 +9,7 @@ let filteredInventory = [];
 let currentBrandFilter = 'all';
 let userDeterminante = null;
 let mostrarProductosSinStock = false;
-let currentEditingProduct = null;
+let currentEditingProduct = null; // Para guardar el producto en edición
 
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
@@ -123,7 +124,7 @@ function renderInventoryList() {
     return;
   }
   
-  // Agrupar por código de barras
+  // 1️⃣ AGRUPAR POR CÓDIGO DE BARRAS
   const productosAgrupados = {};
   
   productosConStock.forEach(prod => {
@@ -153,7 +154,7 @@ function renderInventoryList() {
       productosAgrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
   
-  // Agrupar por marca
+  // 2️⃣ AGRUPAR POR MARCA
   const porMarca = {};
   
   Object.values(productosAgrupados).forEach(product => {
@@ -164,10 +165,10 @@ function renderInventoryList() {
     porMarca[marca].push(product);
   });
   
-  // Ordenar marcas
+  // 3️⃣ ORDENAR MARCAS
   const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'].filter(m => porMarca[m]);
   
-  // Renderizar
+  // 4️⃣ RENDERIZAR
   let html = '';
   
   marcasOrdenadas.forEach(marca => {
@@ -234,7 +235,7 @@ function renderInventoryList() {
           ${tieneMuchasBodegas ? `
             <details class="bodega-details" style="margin-top:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;">
               <summary style="cursor:pointer;font-weight:600;color:#2563eb;padding:5px;">
-                🏢 Bodegas (${product.bodegas.length})
+                📍 Bodegas (${product.bodegas.length})
               </summary>
               <ul class="bodega-list" style="list-style:none;padding:10px 0 0 0;margin:0;">
                 ${product.bodegas.map(b => {
@@ -326,7 +327,7 @@ function updateDashboardStats(data) {
 }
 
 // ============================================================
-// EDITAR PRODUCTO
+// EDITAR PRODUCTO - FUNCIÓN COMPLETA
 // ============================================================
 async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
@@ -341,6 +342,7 @@ async function editarProducto(productId) {
   }
   
   try {
+    // Buscar el producto en el array local
     const product = inventoryData.find(p => p.id === productId);
     
     if (!product) {
@@ -350,18 +352,21 @@ async function editarProducto(productId) {
     
     currentEditingProduct = product;
     
-    // Cambiar a la pestaña "Agregar"
+    // Cambiar a la pestaña "Agregar" (la usaremos como editor)
     const addTab = document.getElementById('tab-add');
     const inventoryTab = document.getElementById('tab-inventory');
     
     if (addTab && inventoryTab) {
+      // Ocultar inventario
       inventoryTab.classList.remove('active');
       inventoryTab.classList.add('hidden');
       
+      // Mostrar agregar
       addTab.classList.remove('hidden');
       addTab.classList.add('active');
       
-      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      // Actualizar navegación
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector('[data-tab="add"]')?.classList.add('active');
     }
     
@@ -371,7 +376,7 @@ async function editarProducto(productId) {
       formTitle.textContent = '✏️ Editar Producto';
     }
     
-    // Rellenar el formulario
+    // Rellenar el formulario con los datos del producto
     document.getElementById('add-barcode').value = product.codigoBarras || '';
     document.getElementById('add-product-name').value = product.nombre || '';
     document.getElementById('add-brand').value = product.marca || '';
@@ -380,14 +385,14 @@ async function editarProducto(productId) {
     document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
     document.getElementById('add-boxes').value = product.cajas || '';
     
-    // Cambiar botón submit
+    // Cambiar el texto del botón submit
     const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = '💾 Actualizar Producto';
-      submitBtn.style.background = '#f59e0b';
+      submitBtn.style.background = '#f59e0b'; // Color warning para indicar edición
     }
     
-    // Agregar botón cancelar
+    // Agregar botón cancelar si no existe
     let cancelBtn = document.getElementById('cancel-edit-btn');
     if (!cancelBtn) {
       cancelBtn = document.createElement('button');
@@ -402,6 +407,8 @@ async function editarProducto(productId) {
     }
     
     showToast('✏️ Editando: ' + product.nombre, 'info');
+    
+    // Scroll al top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
   } catch (error) {
@@ -416,24 +423,29 @@ async function editarProducto(productId) {
 function cancelarEdicion() {
   currentEditingProduct = null;
   
+  // Limpiar formulario
   document.getElementById('add-product-form').reset();
   
+  // Restaurar título
   const formTitle = document.querySelector('#tab-add h2');
   if (formTitle) {
     formTitle.textContent = '➕ Agregar Producto';
   }
   
+  // Restaurar botón submit
   const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
   if (submitBtn) {
     submitBtn.textContent = '✅ Guardar Producto';
     submitBtn.style.background = '';
   }
   
+  // Eliminar botón cancelar
   const cancelBtn = document.getElementById('cancel-edit-btn');
   if (cancelBtn) {
     cancelBtn.remove();
   }
   
+  // Volver a inventario
   const addTab = document.getElementById('tab-add');
   const inventoryTab = document.getElementById('tab-inventory');
   
@@ -444,7 +456,7 @@ function cancelarEdicion() {
     inventoryTab.classList.remove('hidden');
     inventoryTab.classList.add('active');
     
-    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector('[data-tab="inventory"]')?.classList.add('active');
   }
   
@@ -453,10 +465,8 @@ function cancelarEdicion() {
 
 // ============================================================
 // AGREGAR O ACTUALIZAR PRODUCTO
-// ✅ CORRECCIÓN 4: e.preventDefault() agregado
 // ============================================================
 async function handleAddProduct(event) {
-  // ✅ CRÍTICO: Prevenir recarga de página
   event.preventDefault();
   
   if (!userDeterminante) {
@@ -576,3 +586,38 @@ window.editarProducto = editarProducto;
 window.cancelarEdicion = cancelarEdicion;
 
 console.log('✅ inventory.js con EDITAR cargado correctamente');
+// ============================================================
+// AUTOFILL PARA AGREGAR (Poner al final de inventory.js)
+// ============================================================
+window.buscarProductoParaAgregar = async function(barcode) {
+  console.log('🔍 Buscando datos para agregar:', barcode);
+  
+  if (!userDeterminante) userDeterminante = await getUserDeterminante();
+  if (!userDeterminante) return;
+
+  try {
+    const snapshot = await firebase.database()
+      .ref('inventario/' + userDeterminante)
+      .orderByChild('codigoBarras')
+      .equalTo(barcode)
+      .once('value');
+
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const key = Object.keys(data)[0];
+      const producto = data[key];
+
+      // Rellenar formulario
+      document.getElementById('add-product-name').value = producto.nombre || '';
+      document.getElementById('add-brand').value = producto.marca || 'Otra';
+      document.getElementById('add-pieces-per-box').value = producto.piezasPorCaja || '';
+      // document.getElementById('add-warehouse').value = producto.ubicacion || ''; // Opcional
+
+      if (typeof showToast === 'function') showToast('✅ Producto encontrado: ' + producto.nombre, 'success');
+    } else {
+      if (typeof showToast === 'function') showToast('🆕 Producto nuevo, completa los datos', 'info');
+    }
+  } catch (error) {
+    console.error('Error autofill:', error);
+  }
+};

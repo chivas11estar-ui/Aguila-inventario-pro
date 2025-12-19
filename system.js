@@ -1,283 +1,380 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: system.js
-// Versión optimizada 9.0 — Rendimiento + Estabilidad
+// Copyright © 2025 José A. G. Betancourt
+// Todos los derechos reservados
+//
+// Lógica de diagnóstico mejorada para proporcionar información
+// más detallada y amigable para el usuario sobre el entorno
+// de la aplicación.
 // ============================================================
 
 // ============================================================
-// UTILIDADES GENERALES
+// DIAGNÓSTICO DE FIREBASE (Lógica Mejorada)
 // ============================================================
-const safeToast = (msg, type = "info") => {
-  if (typeof showToast === "function") showToast(msg, type);
-  else alert(msg);
-};
-
-const safeAlert = (msg) => alert(msg);
 
 // ============================================================
 // DIAGNÓSTICO DE FIREBASE
 // ============================================================
 function diagnosticoFirebase() {
-  console.log("🔍 Iniciando diagnóstico Firebase…");
-
-  const deviceType = (() => {
+  console.log('🔍 Iniciando diagnóstico de Firebase...');
+  
+  // Detectar tipo de dispositivo/navegador
+  const getDeviceType = () => {
     const ua = navigator.userAgent.toLowerCase();
-    const pwa =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      navigator.standalone === true;
-
-    if (pwa) {
-      if (ua.includes("android")) return "PWA instalada (Android)";
-      if (ua.includes("iphone") || ua.includes("ipad"))
-        return "PWA instalada (iOS)";
-      return "PWA instalada (Escritorio)";
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone === true;
+    
+    // Detectar si es PWA instalada
+    if (isStandalone) {
+      if (ua.includes('android')) return 'App Instalada (Android)';
+      if (ua.includes('iphone') || ua.includes('ipad')) return 'App Instalada (iOS)';
+      return 'App Instalada (Escritorio)';
     }
-
-    if (ua.includes("android")) return "Navegador móvil (Android)";
-    if (ua.includes("iphone") || ua.includes("ipad"))
-      return "Navegador móvil (iOS)";
-
-    if (ua.includes("chrome")) return "Chrome escritorio";
-    if (ua.includes("firefox")) return "Firefox escritorio";
-    if (ua.includes("edge")) return "Edge escritorio";
-    if (ua.includes("safari")) return "Safari escritorio";
-
-    return "Navegador desconocido";
-  })();
-
-  const connectionType = (() => {
-    if (!navigator.onLine) return "Sin conexión";
-
-    const net =
-      navigator.connection ||
-      navigator.mozConnection ||
-      navigator.webkitConnection;
-
-    if (!net) return "Wi-Fi o datos móviles";
-
-    const t = net.type || net.effectiveType || "online";
-
-    if (t === "wifi") return "Wi-Fi";
-    if (["cellular", "2g", "3g", "4g"].includes(t)) return "Datos móviles";
-    return "Conexión establecida";
-  })();
-
-  const diag = {
+    
+    // Detectar navegador móvil
+    if (ua.includes('android')) return 'Navegador Móvil (Android)';
+    if (ua.includes('iphone') || ua.includes('ipad')) return 'Navegador Móvil (iOS)';
+    
+    // Escritorio
+    if (ua.includes('chrome')) return 'Chrome (Escritorio)';
+    if (ua.includes('firefox')) return 'Firefox (Escritorio)';
+    if (ua.includes('safari')) return 'Safari (Escritorio)';
+    if (ua.includes('edge')) return 'Edge (Escritorio)';
+    
+    return 'Navegador Web';
+  };
+  
+  // Detectar tipo de conexión de forma segura
+  const getConnectionType = () => {
+    if (!navigator.onLine) return 'Sin Conexión';
+    
+    const connection = navigator.connection || 
+                      navigator.mozConnection || 
+                      navigator.webkitConnection;
+    
+    if (!connection) return 'Wi-Fi o Datos';
+    
+    // Obtener tipo de conexión sin exponer detalles sensibles
+    const type = connection.type || connection.effectiveType;
+    
+    if (type === 'wifi') return 'Wi-Fi';
+    if (type === 'cellular' || type === '4g' || type === '3g' || type === '2g') return 'Datos Móviles';
+    if (type === 'ethernet') return 'Ethernet';
+    if (type === 'bluetooth') return 'Bluetooth';
+    
+    // Velocidad estimada (sin exponer red específica)
+    const effectiveType = connection.effectiveType;
+    if (effectiveType === '4g') return 'Datos Móviles (4G)';
+    if (effectiveType === '3g') return 'Datos Móviles (3G)';
+    if (effectiveType === '2g') return 'Datos Móviles (2G)';
+    if (effectiveType === 'slow-2g') return 'Datos Móviles (Lento)';
+    
+    return 'Conectado';
+  };
+  
+  const diagnostico = {
+    timestamp: new Date().toISOString(),
     firebase: {
-      cargado: typeof firebase === "object",
-      apps: firebase?.apps?.length ?? 0,
-      auth: typeof firebase?.auth === "function",
-      db: typeof firebase?.database === "function",
+      cargado: typeof firebase !== 'undefined',
+      apps: firebase?.apps?.length || 0,
+      auth: typeof firebase?.auth === 'function',
+      database: typeof firebase?.database === 'function'
     },
     usuario: {
       autenticado: !!firebase?.auth()?.currentUser,
-      email: firebase?.auth()?.currentUser?.email ?? "N/A",
-      uid: firebase?.auth()?.currentUser?.uid ?? null,
+      uid: firebase?.auth()?.currentUser?.uid || null,
+      email: firebase?.auth()?.currentUser?.email || null
     },
-    red: {
+    conexion: {
       online: navigator.onLine,
-      tipo: connectionType,
+      tipo: getConnectionType()
     },
-    disp: {
-      tipo: deviceType,
-      idioma: navigator.language,
-    },
+    dispositivo: {
+      tipo: getDeviceType(),
+      idioma: navigator.language
+    }
   };
+  
+  console.log('📋 Diagnóstico completo:', diagnostico);
+  
+  // Mostrar en un alert formateado
+  const mensaje = `
+🔥 Firebase: ${diagnostico.firebase.cargado ? '✅' : '❌'}
+📱 Apps: ${diagnostico.firebase.apps}
+🔐 Auth: ${diagnostico.firebase.auth ? '✅' : '❌'}
+💾 Database: ${diagnostico.firebase.database ? '✅' : '❌'}
 
-  console.log("📋 Diagnóstico completo:", diag);
+👤 Usuario: ${diagnostico.usuario.autenticado ? '✅ Autenticado' : '❌ No autenticado'}
+📧 Email: ${diagnostico.usuario.email || 'N/A'}
 
-  safeAlert(
-    `
-🔥 Firebase: ${diag.firebase.cargado ? "Disponible" : "No cargado"}
-📱 Apps: ${diag.firebase.apps}
-🔐 Auth: ${diag.firebase.auth ? "OK" : "No disponible"}
-💾 Database: ${diag.firebase.db ? "OK" : "No disponible"}
+🌐 Conexión: ${diagnostico.conexion.online ? '✅ Online' : '❌ Offline'}
+📶 Tipo: ${diagnostico.conexion.tipo}
 
-👤 Usuario: ${
-      diag.usuario.autenticado ? "Autenticado" : "No autenticado"
-    }
-📧 Email: ${diag.usuario.email}
-
-🌐 Conexión: ${diag.red.online ? "Online" : "Offline"}
-📶 Tipo: ${diag.red.tipo}
-
-💻 Entorno: ${diag.disp.tipo}
-Idiomas: ${diag.disp.idioma}
-`
-  );
-
-  safeToast("Diagnóstico completado", "info");
+💻 Navegador: ${diagnostico.dispositivo.tipo}
+  `;
+  
+  alert(mensaje);
+  
+  showToast('Diagnóstico completado. Revisa la consola para más detalles.', 'info');
 }
 
 // ============================================================
-// ESTADÍSTICAS DEL SISTEMA (OPTIMIZADAS)
+// ESTADÍSTICAS DEL SISTEMA
 // ============================================================
+// --- INICIO REEMPLAZO: showSystemStats ---
+// Esta función ahora usa el 'determinante' para evitar el error 'permission_denied'
 async function showSystemStats() {
-  console.log("📊 Cargando estadísticas…");
-
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    return safeToast("Usuario no autenticado", "error");
+  console.log('📊 Mostrando estadísticas del sistema...');
+  
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) {
+    showToast('No hay usuario autenticado', 'error');
+    return;
   }
-
+  
   try {
-    const userSnap = await firebase
-      .database()
-      .ref("usuarios/" + user.uid)
-      .once("value");
-    const userData = userSnap.val();
-
-    const det = userData?.determinante;
-    if (!det) return safeToast("Determinante no encontrada", "error");
-
-    const invSnap = await firebase
-      .database()
-      .ref("inventario/" + det)
-      .once("value");
-    const data = invSnap.val();
-
-    if (!data) {
-      return safeAlert(`
-📦 ESTADÍSTICAS DEL INVENTARIO
-⚠️ No hay productos registrados.
-      `);
+    // PASO 1: Obtener el determinante del usuario
+    const userSnapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = userSnapshot.val();
+    const determinante = userData?.determinante;
+    
+    if (!determinante) {
+      showToast('No se encontró información de la tienda', 'error');
+      return;
     }
-
-    const productos = Object.values(data);
-
-    const stats = {
-      total: productos.length,
-      cajas: productos.reduce((a, p) => a + (p.cajas || 0), 0),
-      piezas: productos.reduce(
-        (a, p) => a + (p.cajas || 0) * (p.piezasPorCaja || 0),
-        0
-      ),
-      marcas: new Set(productos.map((p) => p.marca)).size,
-      ubicaciones: new Set(productos.map((p) => p.ubicacion)).size,
-      sinStock: productos.filter((p) => (p.cajas || 0) === 0).length,
-      bajo: productos.filter((p) => (p.cajas || 0) > 0 && p.cajas < 5).length,
-    };
-
-    safeAlert(
-      `
+    
+    console.log('🏪 Cargando estadísticas de tienda:', determinante);
+    
+    // PASO 2: Usar el determinante para consultar el inventario
+    const snapshot = await firebase.database().ref('inventario/' + determinante).once('value');
+    const data = snapshot.val();
+    
+    if (!data) {
+      const mensaje = `
 📦 ESTADÍSTICAS DEL INVENTARIO
 
-Productos únicos: ${stats.total}
-Cajas totales: ${stats.cajas}
-Piezas totales: ${stats.piezas}
+⚠️ El inventario está vacío
 
-Marcas distintas: ${stats.marcas}
-Ubicaciones: ${stats.ubicaciones}
+Agrega productos desde la pestaña "Agregar" para comenzar a ver estadísticas.
+      `;
+      alert(mensaje);
+      return;
+    }
+    
+    const productos = Object.values(data);
+    
+    // Calcular estadísticas (esto ya estaba bien)
+    const stats = {
+      totalProductos: productos.length,
+      totalCajas: productos.reduce((sum, p) => sum + (p.cajas || 0), 0),
+      totalPiezas: productos.reduce((sum, p) => {
+        return sum + ((p.cajas || 0) * (p.piezasPorCaja || 0));
+      }, 0),
+      marcas: [...new Set(productos.map(p => p.marca))].length,
+      ubicaciones: [...new Set(productos.map(p => p.ubicacion))].length,
+      sinStock: productos.filter(p => (p.cajas || 0) === 0).length,
+      stockBajo: productos.filter(p => (p.cajas || 0) > 0 && (p.cajas || 0) < 5).length
+    };
+    
+    const mensaje = `
+📦 ESTADÍSTICAS DEL INVENTARIO
 
-Sin stock: ${stats.sinStock}
-Stock bajo (<5): ${stats.bajo}
-`
-    );
+Productos únicos: ${stats.totalProductos}
+Total de cajas: ${stats.totalCajas}
+Total de piezas: ${stats.totalPiezas}
 
-    console.log("📊 Stats:", stats);
-  } catch (e) {
-    console.error("❌ Error al cargar estadísticas:", e);
-    safeToast("Error cargando estadísticas", "error");
+🏷️ Marcas diferentes: ${stats.marcas}
+📍 Ubicaciones: ${stats.ubicaciones}
+
+⚠️ Sin stock: ${stats.sinStock}
+🟡 Stock bajo (<5): ${stats.stockBajo}
+    `;
+    
+    alert(mensaje);
+    console.log('📊 Estadísticas completas:', stats);
+    
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas:', error);
+    showToast('Error al cargar estadísticas: ' + error.message, 'error');
   }
 }
+// --- FIN REEMPLAZO: showSystemStats ---
 
 // ============================================================
-// LIMPIAR DATOS
+// LIMPIAR DATOS LOCALES
 // ============================================================
 function clearAllData() {
-  if (
-    !confirm(
-      "⚠️ Esto eliminará:\n• Caché\n• LocalStorage\n• Cookies\n\nNo borra tus datos en Firebase.\n¿Continuar?"
-    )
-  )
-    return;
-
+  const confirmacion = confirm(
+    '⚠️ ADVERTENCIA\n\n' +
+    'Esta acción eliminará:\n' +
+    '• Caché del navegador\n' +
+    '• Datos locales guardados\n\n' +
+    'NO eliminará tus datos en Firebase.\n\n' +
+    '¿Continuar?'
+  );
+  
+  if (!confirmacion) return;
+  
+  console.log('🗑️ Limpiando datos locales...');
+  
   try {
+    // Limpiar localStorage
     localStorage.clear();
+    console.log('✅ localStorage limpiado');
+    
+    // Limpiar sessionStorage
     sessionStorage.clear();
-
+    console.log('✅ sessionStorage limpiado');
+    
+    // Limpiar cookies (solo las del dominio actual)
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
         .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
-
-    safeToast("Datos locales eliminados", "success");
-
-    setTimeout(() => location.reload(), 1200);
-  } catch (e) {
-    console.error("❌ Error limpiando datos:", e);
-    safeToast("Error al limpiar datos", "error");
+    console.log('✅ Cookies limpiadas');
+    
+    showToast('Datos locales eliminados correctamente', 'success');
+    
+    // Preguntar si quiere recargar
+    setTimeout(() => {
+      if (confirm('¿Recargar la página para aplicar cambios?')) {
+        location.reload();
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ Error al limpiar datos:', error);
+    showToast('Error al limpiar datos: ' + error.message, 'error');
   }
 }
 
 // ============================================================
-// MONITOREO DE CONEXIÓN
+// ACTUALIZAR ESTADO DE CONEXIÓN
 // ============================================================
 function updateSystemConnectionStatus() {
-  const status = navigator.onLine ? "Conectado" : "Sin conexión";
-  console.log("🌐 Estado:", status);
-
-  const el = document.getElementById("system-connection-status");
-  if (el) {
-    el.textContent = status;
-    el.style.color = navigator.onLine ? "var(--success)" : "var(--error)";
+  const statusElement = document.getElementById('system-connection-status');
+  const headerStatusElement = document.querySelector('.status-indicator');
+  const headerStatusText = document.getElementById('connection-status-text');
+  
+  const isOnline = navigator.onLine;
+  
+  if (statusElement) {
+    statusElement.textContent = isOnline ? 'Conectado ✅' : 'Sin conexión ❌';
+    statusElement.style.color = isOnline ? 'var(--success)' : 'var(--error)';
+    statusElement.style.fontWeight = '700';
   }
-}
-
-function setupConnectionMonitoring() {
-  updateSystemConnectionStatus();
-
-  window.addEventListener("online", () => {
-    updateSystemConnectionStatus();
-    safeToast("Conexión restaurada", "success");
-  });
-
-  window.addEventListener("offline", () => {
-    updateSystemConnectionStatus();
-    safeToast("Sin internet", "warning");
-  });
-
-  setInterval(updateSystemConnectionStatus, 30000);
+  
+  if (headerStatusElement) {
+    headerStatusElement.className = isOnline 
+      ? 'status-indicator status-online' 
+      : 'status-indicator status-error';
+  }
+  
+  if (headerStatusText) {
+    headerStatusText.textContent = isOnline ? 'Conectado' : 'Sin conexión';
+  }
+  
+  console.log('🌐 Estado de conexión:', isOnline ? 'Online' : 'Offline');
 }
 
 // ============================================================
-// SERVICE WORKER
+// ACTUALIZAR ESTADO DE SERVICE WORKER
 // ============================================================
 function updateServiceWorkerStatus() {
-  const el = document.getElementById("system-sw-status");
-  if (!el) return;
-
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (reg) {
-        el.textContent = "Activo";
-        el.style.color = "var(--success)";
-      } else {
-        el.textContent = "No instalado";
-      }
-    });
+  const statusElement = document.getElementById('system-sw-status');
+  
+  if (!statusElement) return;
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration()
+      .then((registration) => {
+        if (registration) {
+          statusElement.textContent = 'Activo ✅';
+          statusElement.style.color = 'var(--success)';
+          statusElement.style.fontWeight = '700';
+        } else {
+          statusElement.textContent = 'No instalado';
+          statusElement.style.color = 'var(--muted)';
+        }
+      })
+      .catch(() => {
+        statusElement.textContent = 'No soportado';
+        statusElement.style.color = 'var(--error)';
+      });
   } else {
-    el.textContent = "No soportado";
+    statusElement.textContent = 'No soportado';
+    statusElement.style.color = 'var(--error)';
   }
+}
+
+// ============================================================
+// ACTUALIZAR OPERACIONES PENDIENTES
+// ============================================================
+function updatePendingOperations() {
+  const statusElement = document.getElementById('system-pending-ops');
+  
+  if (!statusElement) return;
+  
+  // Por ahora siempre es 0, en el futuro se implementará sincronización offline
+  statusElement.textContent = '0';
+  statusElement.style.color = 'var(--success)';
+}
+
+// ============================================================
+// MONITOREAR CONEXIÓN EN TIEMPO REAL
+// ============================================================
+function setupConnectionMonitoring() {
+  console.log('🌐 Configurando monitoreo de conexión...');
+  
+  // Actualizar inmediatamente
+  updateSystemConnectionStatus();
+  
+  // Escuchar cambios de conexión
+  window.addEventListener('online', () => {
+    console.log('✅ Conexión restaurada');
+    updateSystemConnectionStatus();
+    showToast('Conexión restaurada', 'success');
+  });
+  
+  window.addEventListener('offline', () => {
+    console.log('❌ Conexión perdida');
+    updateSystemConnectionStatus();
+    showToast('Sin conexión a internet', 'warning');
+  });
+  
+  // Actualizar estado periódicamente (cada 30 segundos)
+  setInterval(() => {
+    updateSystemConnectionStatus();
+  }, 30000);
 }
 
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
 function initSystemModule() {
-  console.log("⚙️ Inicializando módulo del sistema…");
-
+  console.log('⚙️ Inicializando módulo de sistema...');
+  
+  // Configurar monitoreo de conexión
   setupConnectionMonitoring();
+  
+  // Actualizar estados
   updateServiceWorkerStatus();
-
-  console.log("✅ Módulo del sistema listo.");
+  updatePendingOperations();
+  
+  console.log('✅ Módulo de sistema inicializado');
 }
 
-document.addEventListener("DOMContentLoaded", initSystemModule);
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSystemModule);
+} else {
+  initSystemModule();
+}
 
-// Exponer
+// Exponer funciones globalmente
 window.diagnosticoFirebase = diagnosticoFirebase;
 window.showSystemStats = showSystemStats;
 window.clearAllData = clearAllData;
 
-console.log("✅ system.js cargado correctamente");
+console.log('✅ system.js cargado correctamente');

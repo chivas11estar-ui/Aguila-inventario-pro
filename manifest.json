@@ -3,68 +3,51 @@
   "lang": "es-MX",
   "name": "Águila Inventario Pro",
   "short_name": "Águila Inventario",
-  "description": "Sistema profesional de inventarios con modo offline integrado para promotores de PepsiCo.",
-  "id": "./?source=pwa",
-  "start_url": "./?source=pwa",
-  "scope": "./",
+  "description": "Sistema de inventario profesional con modo offline para promotores de PepsiCo",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "window-controls-overlay"],
   "background_color": "#004aad",
   "theme_color": "#004aad",
   "orientation": "portrait-primary",
-  "prefer_related_applications": false,
-
   "icons": [
     {
-      "src": "./icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-
   "categories": ["business", "productivity", "utilities"],
-
   "screenshots": [
     {
-      "src": "./screenshot1.png",
+      "src": "/screenshot1.png",
       "sizes": "540x720",
       "type": "image/png"
     }
   ],
-
   "shortcuts": [
     {
       "name": "Agregar Producto",
       "short_name": "Agregar",
-      "description": "Registrar un producto escaneado rápidamente",
-      "url": "./?action=add",
-      "icons": [
-        { 
-          "src": "./icon-192x192.png", 
-          "sizes": "96x96", 
-          "type": "image/png" 
-        }
-      ]
+      "description": "Registrar un nuevo producto escaneado",
+      "url": "/?action=add",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Ver Inventario",
       "short_name": "Inventario",
-      "description": "Consultar el inventario por marca, bodega y caducidades",
-      "url": "./?action=inventory",
-      "icons": [
-        { 
-          "src": "./icon-192x192.png", 
-          "sizes": "96x96", 
-          "type": "image/png" 
-        }
-      ]
+      "description": "Ver el inventario por tienda y fecha de caducidad",
+      "url": "/?action=inventory",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "96x96", "type": "image/png" }]
     }
-  ]
+  ],
+  "display_override": ["standalone", "window-controls-overlay"]
 }
