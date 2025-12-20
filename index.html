@@ -492,19 +492,42 @@
   <!-- ============================================================
        TUS ARCHIVOS JS (EN ORDEN CORRECTO)
        ============================================================ -->
-  <script src="firebase-config.js"></script>
-  <script src="ui.js"></script>
-  <script src="scanner-mlkit.js"></script>
-  <script src="scanner-events.js"></script>
-  <script src="inventory.js"></script>
-  <script src="refill-enhanced.js"></script>
-  <script src="audit.js"></script>
-  <script src="system.js"></script>
-  <script src="system-events.js"></script>
-  <script src="auth.js"></script>
-  <script src="app.js"></script>
-  <script src="inventory-enhanced.js"></script>
-  <script src="analytics.js"></script>
+  <!-- ============================================================
+     CORE Y CONFIGURACIÓN
+============================================================ -->
+<script src="firebase-config.js"></script>
+<script src="ui.js"></script>
+
+<!-- ============================================================
+     SISTEMA Y AUTENTICACIÓN
+============================================================ -->
+<script src="auth.js"></script>
+<script src="app.js"></script>
+<script src="system.js"></script>
+<script src="system-events.js"></script>
+
+<!-- ============================================================
+     ESCÁNER
+============================================================ -->
+<script src="scanner-mlkit.js"></script>
+<script src="scanner-events.js"></script>
+
+<!-- ============================================================
+     INVENTARIO (FASE 2.1)
+============================================================ -->
+<script src="inventory.js"></script>
+<script src="inventory-ui.js"></script>
+
+<!-- ============================================================
+     OPERACIÓN
+============================================================ -->
+<script src="refill-enhanced.js"></script>
+<script src="audit.js"></script>
+
+<!-- ============================================================
+     ANALÍTICA (OPCIONAL)
+============================================================ -->
+<script src="analytics.js"></script>
 
   <!-- ============================================================
        SERVICE WORKER
