@@ -1,16 +1,23 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory.js
+// Fase 2 - Módulo 2.1: Inventario Inteligente por Marca
+// LÓGICA PURA - Sin HTML
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN CON EDITAR PRODUCTOS FUNCIONAL
 // ============================================================
 
-let inventoryData = [];
-let filteredInventory = [];
-let currentBrandFilter = 'all';
-let userDeterminante = null;
-let mostrarProductosSinStock = false;
-let currentEditingProduct = null; // Para guardar el producto en edición
+// ============================================================
+// ESTADO GLOBAL DEL INVENTARIO (Fuente única de verdad)
+// ============================================================
+window.INVENTORY_STATE = {
+  productos: [],           // Todos los productos cargados
+  productosFiltrados: [], // Después de aplicar búsqueda
+  marcasExpandidas: {},   // Estado de cada marca { 'Sabritas': true }
+  searchTerm: '',         // Término de búsqueda actual
+  determinante: null,     // ID de la tienda
+  isLoading: false        // Estado de carga
+};
 
+// Configuración de alertas de caducidad por marca
 const BRAND_EXPIRY_CONFIG = {
   'Sabritas': 30,
   'Gamesa': 60,
@@ -20,118 +27,114 @@ const BRAND_EXPIRY_CONFIG = {
   'default': 60
 };
 
-// Obtener determinante del usuario
+// ============================================================
+// OBTENER DETERMINANTE DEL USUARIO
+// ============================================================
 async function getUserDeterminante() {
-    if (userDeterminante) return userDeterminante;
+  if (window.INVENTORY_STATE.determinante) {
+    return window.INVENTORY_STATE.determinante;
+  }
+
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    console.error('Usuario no autenticado');
+    return null;
+  }
+
+  try {
+    const snapshot = await firebase.database()
+      .ref('usuarios/' + user.uid)
+      .once('value');
     
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        console.error('Usuario no autenticado para obtener determinante.');
-        return null;
+    const userData = snapshot.val();
+    if (userData && userData.determinante) {
+      window.INVENTORY_STATE.determinante = userData.determinante;
+      console.log('🔑 Determinante obtenido:', userData.determinante);
+      return userData.determinante;
     }
 
-    try {
-        const userRef = firebase.database().ref('usuarios/' + user.uid);
-        const snapshot = await userRef.once('value');
-        const userData = snapshot.val();
-        
-        if (userData && userData.determinante) {
-            userDeterminante = userData.determinante;
-            console.log('🔑 Determinante de usuario obtenido:', userDeterminante);
-            return userDeterminante;
-        } else {
-            console.error('No se encontró determinante para el usuario:', user.uid);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error al obtener el determinante de Firebase:', error);
-        return null;
-    }
+    console.error('No se encontró determinante para el usuario');
+    return null;
+  } catch (error) {
+    console.error('Error al obtener determinante:', error);
+    return null;
+  }
 }
 
-// Cargar inventario
+// ============================================================
+// CARGAR INVENTARIO DESDE FIREBASE
+// ============================================================
 async function loadInventory() {
-  const listElement = document.getElementById('inventory-list');
-  if (!listElement) {
-    console.warn('⚠️ Elemento inventory-list no encontrado');
-    return;
-  }
+  console.log('📦 Cargando inventario desde Firebase...');
   
-  listElement.innerHTML = '<p style="color:var(--muted);">Conectando con la base de datos...</p>';
+  window.INVENTORY_STATE.isLoading = true;
 
-  userDeterminante = await getUserDeterminante();
-
-  if (!userDeterminante) {
-    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo cargar el inventario. Falla al obtener ID de Tienda.</p>';
+  const determinante = await getUserDeterminante();
+  if (!determinante) {
+    console.error('❌ No se pudo cargar el inventario sin determinante');
     if (typeof showToast === 'function') {
-      showToast('Error: No se encontró el ID de su tienda (Determinante)', 'error');
+      showToast('Error: No se encontró ID de la tienda', 'error');
     }
+    window.INVENTORY_STATE.isLoading = false;
     return;
   }
-  
-  const inventoryRef = firebase.database().ref('inventario/' + userDeterminante);
-  
+
+  const inventoryRef = firebase.database().ref('inventario/' + determinante);
+
+  // Listener en tiempo real
   inventoryRef.on('value', (snapshot) => {
     try {
       const productsObject = snapshot.val();
-      inventoryData = [];
       
       if (productsObject) {
-        inventoryData = Object.keys(productsObject).map(key => ({
+        // Convertir objeto a array
+        window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => ({
           id: key,
           ...productsObject[key]
         }));
-        
-        console.log(`✅ Inventario cargado: ${inventoryData.length} productos.`);
-        
+
+        console.log(`✅ Inventario cargado: ${window.INVENTORY_STATE.productos.length} productos`);
+
+        // Aplicar filtros y renderizar
         applyFiltersAndRender();
-        updateDashboardStats(inventoryData);
-        generateBrandFilters(inventoryData);
-        
+
+        // Cargar estado de marcas desde localStorage
+        loadBrandStates();
+
       } else {
-        inventoryData = [];
-        listElement.innerHTML = '<p style="color:var(--muted);">Aún no hay productos registrados. Use la pestaña "Agregar".</p>';
-        updateDashboardStats([]);
-        generateBrandFilters([]);
+        window.INVENTORY_STATE.productos = [];
+        console.log('⚠️ Inventario vacío');
       }
+
+      window.INVENTORY_STATE.isLoading = false;
+
     } catch (error) {
-      console.error('Error procesando datos del inventario:', error);
-      listElement.innerHTML = '<p style="color:var(--error);">❌ Error al procesar los datos del inventario.</p>';
+      console.error('❌ Error procesando inventario:', error);
+      window.INVENTORY_STATE.isLoading = false;
       if (typeof showToast === 'function') {
-        showToast('Error al procesar el inventario: ' + error.message, 'error');
+        showToast('Error al procesar inventario', 'error');
       }
     }
   }, (error) => {
-    console.error('❌ Error de conexión a Firebase DB:', error);
-    listElement.innerHTML = '<p style="color:var(--error);">❌ No se pudo conectar a Firebase. Verifique su conexión o reinicie la app.</p>';
+    console.error('❌ Error de conexión Firebase:', error);
+    window.INVENTORY_STATE.isLoading = false;
     if (typeof showToast === 'function') {
-      showToast('Fallo en la conexión al servidor: ' + error.message, 'error');
+      showToast('Error de conexión: ' + error.message, 'error');
     }
   });
 }
 
 // ============================================================
-// RENDERIZAR INVENTARIO CON AGRUPACIÓN POR BODEGA
+// AGRUPAR PRODUCTOS POR CÓDIGO DE BARRAS
 // ============================================================
-function renderInventoryList() {
-  const listElement = document.getElementById('inventory-list');
-  if (!listElement) return;
-  
-  const productosConStock = filteredInventory.filter(p => p.cajas > 0);
-  
-  if (productosConStock.length === 0) {
-    listElement.innerHTML = '<p style="color:var(--muted);">✅ Sin productos con stock disponible</p>';
-    return;
-  }
-  
-  // 1️⃣ AGRUPAR POR CÓDIGO DE BARRAS
-  const productosAgrupados = {};
-  
-  productosConStock.forEach(prod => {
+function groupProductsByBarcode(productos) {
+  const agrupados = {};
+
+  productos.forEach(prod => {
     const codigo = prod.codigoBarras || prod.id;
-    
-    if (!productosAgrupados[codigo]) {
-      productosAgrupados[codigo] = {
+
+    if (!agrupados[codigo]) {
+      agrupados[codigo] = {
         nombre: prod.nombre,
         marca: prod.marca || 'Otra',
         codigoBarras: prod.codigoBarras,
@@ -141,242 +144,214 @@ function renderInventoryList() {
         totalPiezas: 0
       };
     }
-    
-    productosAgrupados[codigo].bodegas.push({
+
+    agrupados[codigo].bodegas.push({
       ubicacion: prod.ubicacion,
-      cajas: prod.cajas,
+      cajas: parseInt(prod.cajas) || 0,
       fechaCaducidad: prod.fechaCaducidad,
       id: prod.id
     });
-    
-    productosAgrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
-    productosAgrupados[codigo].totalPiezas = 
-      productosAgrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
+
+    agrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
+    agrupados[codigo].totalPiezas = 
+      agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
-  
-  // 2️⃣ AGRUPAR POR MARCA
+
+  return Object.values(agrupados);
+}
+
+// ============================================================
+// AGRUPAR PRODUCTOS POR MARCA
+// ============================================================
+function groupProductsByBrand(productos) {
   const porMarca = {};
-  
-  Object.values(productosAgrupados).forEach(product => {
-    const marca = product.marca;
+
+  productos.forEach(product => {
+    const marca = product.marca || 'Otra';
     if (!porMarca[marca]) {
       porMarca[marca] = [];
     }
     porMarca[marca].push(product);
   });
-  
-  // 3️⃣ ORDENAR MARCAS
-  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'].filter(m => porMarca[m]);
-  
-  // 4️⃣ RENDERIZAR
-  let html = '';
-  
-  marcasOrdenadas.forEach(marca => {
-    const productos = porMarca[marca].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    
-    html += `
-      <div data-brand-section="${marca}" style="margin-bottom:24px;">
-        <div data-brand-header data-brand-name="${marca}" style="background:linear-gradient(135deg,var(--primary),#003a8a);color:white;padding:12px 16px;border-radius:8px;margin-bottom:12px;font-weight:700;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-          <span>🏷️ ${marca} (<span data-product-count>${productos.length}</span> productos)</span>
-          <span style="font-size:12px;">▼</span>
-        </div>
-        <div data-products-list style="display:block;transition:all 0.3s;">
-    `;
-    
-    productos.forEach(product => {
-      const tieneMuchasBodegas = product.bodegas.length > 1;
-      
-      // Calcular fecha de caducidad más próxima
-      let expiryTag = '';
-      let minDaysToExpiry = Infinity;
-      
-      product.bodegas.forEach(bodega => {
-        if (bodega.fechaCaducidad) {
-          const expiryDate = new Date(bodega.fechaCaducidad);
-          const timeToExpiry = expiryDate.getTime() - new Date().getTime();
-          const daysToExpiry = Math.ceil(timeToExpiry / (1000 * 60 * 60 * 24));
-          
-          if (daysToExpiry < minDaysToExpiry) {
-            minDaysToExpiry = daysToExpiry;
-          }
-        }
-      });
-      
-      const alertThreshold = BRAND_EXPIRY_CONFIG[product.marca] || BRAND_EXPIRY_CONFIG['default'];
-      
-      if (minDaysToExpiry <= 0) {
-        expiryTag = '<span style="color:#ef4444;font-weight:700;font-size:12px;">🔴 VENCIDO</span>';
-      } else if (minDaysToExpiry <= alertThreshold) {
-        expiryTag = `<span style="color:#f59e0b;font-weight:700;font-size:12px;">🟡 VENCE EN ${minDaysToExpiry} DÍAS</span>`;
-      } else if (minDaysToExpiry !== Infinity) {
-        expiryTag = `<span style="color:#10b981;font-weight:700;font-size:12px;">✅ ${minDaysToExpiry} días</span>`;
-      }
 
-      html += `
-        <div data-product-item data-product-name="${product.nombre}" data-product-code="${product.codigoBarras}" class="card" style="background:white;border-left:4px solid var(--primary);margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div style="flex:1;">
-              <h4 style="margin:0 0 8px 0;color:var(--primary);">${product.nombre}</h4>
-              <div style="font-size:13px;color:var(--muted);line-height:1.8;">
-                <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
-                <div>📦 ${product.piezasPorCaja} piezas/caja</div>
-                ${expiryTag ? `<div>📅 ${expiryTag}</div>` : ''}
-              </div>
-            </div>
-            <div style="text-align:right;min-width:100px;">
-              <div style="font-size:32px;font-weight:700;color:var(--success);">${product.totalCajas}</div>
-              <div style="font-size:12px;color:var(--muted);">cajas totales</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-                ${product.totalPiezas} piezas
-              </div>
-            </div>
-          </div>
-          
-          ${tieneMuchasBodegas ? `
-            <details class="bodega-details" style="margin-top:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;">
-              <summary style="cursor:pointer;font-weight:600;color:#2563eb;padding:5px;">
-                📍 Bodegas (${product.bodegas.length})
-              </summary>
-              <ul class="bodega-list" style="list-style:none;padding:10px 0 0 0;margin:0;">
-                ${product.bodegas.map(b => {
-                  const bodegaExpiry = b.fechaCaducidad ? new Date(b.fechaCaducidad) : null;
-                  const bodegaDays = bodegaExpiry ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
-                  
-                  return `
-                    <li style="padding:8px;margin:5px 0;background:#f8fafc;border-left:3px solid #2563eb;border-radius:4px;">
-                      <strong>${b.ubicacion}:</strong> ${b.cajas} cajas
-                      ${bodegaDays !== null ? `<br><small style="color:#64748b;font-size:0.85em;">Cad: ${b.fechaCaducidad} (${bodegaDays} días)</small>` : ''}
-                      <br><button onclick="editarProducto('${b.id}')" style="margin-top:6px;padding:4px 8px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;">✏️ Editar</button>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </details>
-          ` : `
-            <div style="margin-top:10px;font-size:13px;color:#6b7280;">
-              <strong>🏢 Bodega:</strong> ${product.bodegas[0].ubicacion}
-              ${product.bodegas[0].fechaCaducidad ? 
-                `<br><strong>📅 Caducidad:</strong> ${product.bodegas[0].fechaCaducidad}` 
-                : ''}
-            </div>
-          `}
-          
-          <div style="margin-top:12px;">
-            <button onclick="editarProducto('${product.bodegas[0].id}')" style="width:100%;padding:10px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
-              ✏️ Editar Producto
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    
-    html += `
-        </div>
-      </div>
-    `;
+  // Ordenar productos dentro de cada marca
+  Object.keys(porMarca).forEach(marca => {
+    porMarca[marca].sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
-  
-  listElement.innerHTML = html;
-}
 
-// Aplicar filtros
-function applyFiltersAndRender() {
-  const searchInput = document.getElementById('inventory-search');
-  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-  
-  filteredInventory = inventoryData.filter(product => {
-    if (!mostrarProductosSinStock && product.cajas === 0) {
-      return false;
-    }
-    
-    if (currentBrandFilter !== 'all' && product.marca !== currentBrandFilter) {
-      return false;
-    }
-    
-    if (searchTerm.length > 0) {
-      return product.nombre.toLowerCase().includes(searchTerm) ||
-             product.marca.toLowerCase().includes(searchTerm) ||
-             (product.codigoBarras && product.codigoBarras.toLowerCase().includes(searchTerm));
-    }
-    
-    return true;
-  });
-  
-  renderInventoryList();
-}
-
-// Generar filtros de marca
-function generateBrandFilters(data) {
-  const brands = [...new Set(data.map(p => p.marca))];
-  const filterContainer = document.getElementById('brand-filters');
-  if (!filterContainer) return;
-  
-  let filterHTML = `<button class="brand-filter-btn ${currentBrandFilter === 'all' ? 'active' : ''}" data-brand="all" style="padding:8px 16px;border:1px solid var(--border);background:${currentBrandFilter === 'all' ? 'var(--primary)' : 'white'};color:${currentBrandFilter === 'all' ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">Todos</button>`;
-  
-  brands.forEach(brand => {
-    const isActive = currentBrandFilter === brand;
-    filterHTML += `<button class="brand-filter-btn" data-brand="${brand}" style="padding:8px 16px;border:1px solid var(--border);background:${isActive ? 'var(--primary)' : 'white'};color:${isActive ? 'white' : 'var(--text)'};border-radius:8px;cursor:pointer;margin:4px;font-size:12px;">${brand}</button>`;
-  });
-  
-  filterContainer.innerHTML = filterHTML;
-}
-
-// Actualizar estadísticas
-function updateDashboardStats(data) {
-  console.log('📊 Actualizando estadísticas...');
+  return porMarca;
 }
 
 // ============================================================
-// EDITAR PRODUCTO - FUNCIÓN COMPLETA
+// CALCULAR TOTALES POR MARCA
+// ============================================================
+function calculateBrandTotals(productos) {
+  const totalCajas = productos.reduce((sum, p) => sum + p.totalCajas, 0);
+  const totalProductos = productos.length;
+  
+  return { totalCajas, totalProductos };
+}
+
+// ============================================================
+// CALCULAR DÍAS HASTA CADUCIDAD
+// ============================================================
+function calculateExpiryInfo(product, brandConfig) {
+  let minDaysToExpiry = Infinity;
+  let expiryTag = '';
+
+  product.bodegas.forEach(bodega => {
+    if (bodega.fechaCaducidad) {
+      const expiryDate = new Date(bodega.fechaCaducidad);
+      const timeToExpiry = expiryDate.getTime() - new Date().getTime();
+      const daysToExpiry = Math.ceil(timeToExpiry / (1000 * 60 * 60 * 24));
+
+      if (daysToExpiry < minDaysToExpiry) {
+        minDaysToExpiry = daysToExpiry;
+      }
+    }
+  });
+
+  const alertThreshold = brandConfig[product.marca] || brandConfig['default'];
+
+  if (minDaysToExpiry <= 0) {
+    expiryTag = {
+      text: '🔴 VENCIDO',
+      color: '#ef4444',
+      days: minDaysToExpiry
+    };
+  } else if (minDaysToExpiry <= alertThreshold) {
+    expiryTag = {
+      text: `🟡 VENCE EN ${minDaysToExpiry} DÍAS`,
+      color: '#f59e0b',
+      days: minDaysToExpiry
+    };
+  } else if (minDaysToExpiry !== Infinity) {
+    expiryTag = {
+      text: `✅ ${minDaysToExpiry} días`,
+      color: '#10b981',
+      days: minDaysToExpiry
+    };
+  }
+
+  return expiryTag;
+}
+
+// ============================================================
+// APLICAR FILTROS Y RENDERIZAR
+// ============================================================
+function applyFiltersAndRender() {
+  const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
+
+  // Filtrar por búsqueda
+  if (searchTerm.length > 0) {
+    window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
+      return (
+        (p.nombre && p.nombre.toLowerCase().includes(searchTerm)) ||
+        (p.marca && p.marca.toLowerCase().includes(searchTerm)) ||
+        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm))
+      );
+    });
+  } else {
+    window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
+  }
+
+  // Filtrar productos sin stock
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => 
+    (parseInt(p.cajas) || 0) > 0
+  );
+
+  console.log('📊 Productos con stock:', productsWithStock.length);
+
+  // Renderizar (llama a inventory-ui.js)
+  if (typeof window.renderInventoryUI === 'function') {
+    window.renderInventoryUI(productsWithStock);
+  } else {
+    console.warn('⚠️ renderInventoryUI no está disponible');
+  }
+}
+
+// ============================================================
+// ESTABLECER TÉRMINO DE BÚSQUEDA
+// ============================================================
+function setSearchTerm(term) {
+  window.INVENTORY_STATE.searchTerm = term;
+  applyFiltersAndRender();
+}
+
+// ============================================================
+// TOGGLE ESTADO DE MARCA (EXPANDIR/CONTRAER)
+// ============================================================
+function toggleBrandState(brandName) {
+  const currentState = window.INVENTORY_STATE.marcasExpandidas[brandName];
+  window.INVENTORY_STATE.marcasExpandidas[brandName] = !currentState;
+  
+  console.log(`📁 Marca "${brandName}" ${!currentState ? 'expandida' : 'contraída'}`);
+  
+  // Guardar en localStorage
+  saveBrandStates();
+  
+  return window.INVENTORY_STATE.marcasExpandidas[brandName];
+}
+
+// ============================================================
+// GUARDAR ESTADO DE MARCAS EN LOCALSTORAGE
+// ============================================================
+function saveBrandStates() {
+  try {
+    localStorage.setItem(
+      'aguila_marcas_expandidas',
+      JSON.stringify(window.INVENTORY_STATE.marcasExpandidas)
+    );
+    console.log('💾 Estado de marcas guardado');
+  } catch (error) {
+    console.warn('⚠️ No se pudo guardar estado de marcas:', error);
+  }
+}
+
+// ============================================================
+// CARGAR ESTADO DE MARCAS DESDE LOCALSTORAGE
+// ============================================================
+function loadBrandStates() {
+  try {
+    const saved = localStorage.getItem('aguila_marcas_expandidas');
+    if (saved) {
+      window.INVENTORY_STATE.marcasExpandidas = JSON.parse(saved);
+      console.log('📂 Estado de marcas cargado:', window.INVENTORY_STATE.marcasExpandidas);
+    } else {
+      // Por defecto, todas expandidas
+      const marcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'];
+      marcas.forEach(marca => {
+        window.INVENTORY_STATE.marcasExpandidas[marca] = true;
+      });
+      console.log('✅ Estado de marcas inicializado (todas expandidas)');
+    }
+  } catch (error) {
+    console.warn('⚠️ Error al cargar estado de marcas:', error);
+  }
+}
+
+// ============================================================
+// EDITAR PRODUCTO (NAVEGAR A FORM)
 // ============================================================
 async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
+
+  const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
   
-  if (!userDeterminante) {
-    userDeterminante = await getUserDeterminante();
-  }
-  
-  if (!userDeterminante) {
-    showToast('❌ Error: No se encontró información de la tienda', 'error');
+  if (!product) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Producto no encontrado', 'error');
+    }
     return;
   }
-  
-  try {
-    // Buscar el producto en el array local
-    const product = inventoryData.find(p => p.id === productId);
-    
-    if (!product) {
-      showToast('❌ Producto no encontrado', 'error');
-      return;
-    }
-    
-    currentEditingProduct = product;
-    
-    // Cambiar a la pestaña "Agregar" (la usaremos como editor)
-    const addTab = document.getElementById('tab-add');
-    const inventoryTab = document.getElementById('tab-inventory');
-    
-    if (addTab && inventoryTab) {
-      // Ocultar inventario
-      inventoryTab.classList.remove('active');
-      inventoryTab.classList.add('hidden');
-      
-      // Mostrar agregar
-      addTab.classList.remove('hidden');
-      addTab.classList.add('active');
-      
-      // Actualizar navegación
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelector('[data-tab="add"]')?.classList.add('active');
-    }
-    
-    // Cambiar título del formulario
-    const formTitle = document.querySelector('#tab-add h2');
-    if (formTitle) {
-      formTitle.textContent = '✏️ Editar Producto';
-    }
-    
-    // Rellenar el formulario con los datos del producto
+
+  // Cambiar a pestaña "Agregar"
+  if (typeof window.switchTab === 'function') {
+    window.switchTab('add');
+  }
+
+  // Rellenar formulario
+  setTimeout(() => {
     document.getElementById('add-barcode').value = product.codigoBarras || '';
     document.getElementById('add-product-name').value = product.nombre || '';
     document.getElementById('add-brand').value = product.marca || '';
@@ -384,100 +359,42 @@ async function editarProducto(productId) {
     document.getElementById('add-warehouse').value = product.ubicacion || '';
     document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
     document.getElementById('add-boxes').value = product.cajas || '';
-    
-    // Cambiar el texto del botón submit
+
+    // Cambiar título y botón
+    const formTitle = document.querySelector('#tab-add h2');
+    if (formTitle) {
+      formTitle.textContent = '✏️ Editar Producto';
+    }
+
     const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = '💾 Actualizar Producto';
-      submitBtn.style.background = '#f59e0b'; // Color warning para indicar edición
+      submitBtn.style.background = '#f59e0b';
     }
-    
-    // Agregar botón cancelar si no existe
-    let cancelBtn = document.getElementById('cancel-edit-btn');
-    if (!cancelBtn) {
-      cancelBtn = document.createElement('button');
-      cancelBtn.id = 'cancel-edit-btn';
-      cancelBtn.type = 'button';
-      cancelBtn.textContent = '❌ Cancelar';
-      cancelBtn.style.width = '100%';
-      cancelBtn.style.marginTop = '10px';
-      cancelBtn.className = 'error';
-      cancelBtn.onclick = cancelarEdicion;
-      submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
-    }
-    
-    showToast('✏️ Editando: ' + product.nombre, 'info');
-    
-    // Scroll al top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-  } catch (error) {
-    console.error('❌ Error al editar producto:', error);
-    showToast('❌ Error al cargar el producto: ' + error.message, 'error');
-  }
-}
 
-// ============================================================
-// CANCELAR EDICIÓN
-// ============================================================
-function cancelarEdicion() {
-  currentEditingProduct = null;
-  
-  // Limpiar formulario
-  document.getElementById('add-product-form').reset();
-  
-  // Restaurar título
-  const formTitle = document.querySelector('#tab-add h2');
-  if (formTitle) {
-    formTitle.textContent = '➕ Agregar Producto';
-  }
-  
-  // Restaurar botón submit
-  const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.textContent = '✅ Guardar Producto';
-    submitBtn.style.background = '';
-  }
-  
-  // Eliminar botón cancelar
-  const cancelBtn = document.getElementById('cancel-edit-btn');
-  if (cancelBtn) {
-    cancelBtn.remove();
-  }
-  
-  // Volver a inventario
-  const addTab = document.getElementById('tab-add');
-  const inventoryTab = document.getElementById('tab-inventory');
-  
-  if (addTab && inventoryTab) {
-    addTab.classList.remove('active');
-    addTab.classList.add('hidden');
-    
-    inventoryTab.classList.remove('hidden');
-    inventoryTab.classList.add('active');
-    
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('[data-tab="inventory"]')?.classList.add('active');
-  }
-  
-  showToast('✅ Edición cancelada', 'info');
+    // Guardar referencia del producto en edición
+    window.EDITING_PRODUCT_ID = productId;
+
+    if (typeof showToast === 'function') {
+      showToast('✏️ Editando: ' + product.nombre, 'info');
+    }
+  }, 100);
 }
 
 // ============================================================
 // AGREGAR O ACTUALIZAR PRODUCTO
 // ============================================================
 async function handleAddProduct(event) {
-  event.preventDefault();
-  
-  if (!userDeterminante) {
-    userDeterminante = await getUserDeterminante();
-  }
-  
-  if (!userDeterminante) {
-    showToast('❌ Error: No se encontró información de la tienda', 'error');
+  if (event) event.preventDefault();
+
+  const determinante = window.INVENTORY_STATE.determinante;
+  if (!determinante) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Error: No se encontró información de la tienda', 'error');
+    }
     return;
   }
-  
+
   try {
     const formData = {
       codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
@@ -490,72 +407,61 @@ async function handleAddProduct(event) {
       fechaActualizacion: new Date().toISOString(),
       actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
     };
-    
-    // Validar datos obligatorios
+
+    // Validar
     if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
-      showToast('❌ Completa todos los campos correctamente', 'error');
+      if (typeof showToast === 'function') {
+        showToast('❌ Completa todos los campos correctamente', 'error');
+      }
       return;
     }
-    
-    // Si estamos editando
-    if (currentEditingProduct) {
-      console.log('💾 Actualizando producto:', currentEditingProduct.id);
-      
+
+    // Actualizar o crear
+    if (window.EDITING_PRODUCT_ID) {
       await firebase.database()
-        .ref('inventario/' + userDeterminante + '/' + currentEditingProduct.id)
+        .ref('inventario/' + determinante + '/' + window.EDITING_PRODUCT_ID)
         .update(formData);
-      
-      showToast('✅ Producto actualizado correctamente', 'success');
-      currentEditingProduct = null;
-      
+
+      if (typeof showToast === 'function') {
+        showToast('✅ Producto actualizado correctamente', 'success');
+      }
+
+      window.EDITING_PRODUCT_ID = null;
     } else {
-      // Si estamos agregando uno nuevo
-      console.log('💾 Guardando nuevo producto...');
-      
       await firebase.database()
-        .ref('inventario/' + userDeterminante)
+        .ref('inventario/' + determinante)
         .push(formData);
-      
-      showToast('✅ Producto guardado correctamente', 'success');
+
+      if (typeof showToast === 'function') {
+        showToast('✅ Producto guardado correctamente', 'success');
+      }
     }
-    
+
     // Limpiar formulario
     document.getElementById('add-product-form').reset();
-    
+
     // Restaurar interfaz
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) {
       formTitle.textContent = '➕ Agregar Producto';
     }
-    
+
     const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = '✅ Guardar Producto';
       submitBtn.style.background = '';
     }
-    
-    const cancelBtn = document.getElementById('cancel-edit-btn');
-    if (cancelBtn) {
-      cancelBtn.remove();
+
+    // Volver a inventario
+    if (typeof window.switchTab === 'function') {
+      window.switchTab('inventory');
     }
-    
-    // Volver a tab de inventario
-    const inventoryTab = document.getElementById('tab-inventory');
-    const addTab = document.getElementById('tab-add');
-    if (inventoryTab && addTab) {
-      inventoryTab.classList.add('active');
-      inventoryTab.classList.remove('hidden');
-      addTab.classList.remove('active');
-      addTab.classList.add('hidden');
-      
-      const navItems = document.querySelectorAll('[data-tab]');
-      navItems.forEach(nav => nav.classList.remove('active'));
-      document.querySelector('[data-tab="inventory"]')?.classList.add('active');
-    }
-    
+
   } catch (error) {
     console.error('Error al guardar/actualizar producto:', error);
-    showToast('❌ Error: ' + error.message, 'error');
+    if (typeof showToast === 'function') {
+      showToast('❌ Error: ' + error.message, 'error');
+    }
   }
 }
 
@@ -563,14 +469,16 @@ async function handleAddProduct(event) {
 // INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📦 Inicializando módulo de inventario...');
-  
+  console.log('📦 Inicializando módulo de inventario (lógica)...');
+
+  // Configurar formulario de agregar/editar
   const addProductForm = document.getElementById('add-product-form');
   if (addProductForm) {
     addProductForm.addEventListener('submit', handleAddProduct);
-    console.log('✅ Formulario de agregar/editar producto configurado');
+    console.log('✅ Formulario configurado');
   }
-  
+
+  // Cargar inventario cuando el usuario esté autenticado
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, cargando inventario...');
@@ -581,43 +489,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Exponer funciones globalmente
+// ============================================================
+// EXPONER FUNCIONES PÚBLICAS
+// ============================================================
+window.loadInventory = loadInventory;
+window.setSearchTerm = setSearchTerm;
+window.toggleBrandState = toggleBrandState;
 window.editarProducto = editarProducto;
-window.cancelarEdicion = cancelarEdicion;
+window.handleAddProduct = handleAddProduct;
+window.groupProductsByBarcode = groupProductsByBarcode;
+window.groupProductsByBrand = groupProductsByBrand;
+window.calculateBrandTotals = calculateBrandTotals;
+window.calculateExpiryInfo = calculateExpiryInfo;
+window.BRAND_EXPIRY_CONFIG = BRAND_EXPIRY_CONFIG;
 
-console.log('✅ inventory.js con EDITAR cargado correctamente');
-// ============================================================
-// AUTOFILL PARA AGREGAR (Poner al final de inventory.js)
-// ============================================================
-window.buscarProductoParaAgregar = async function(barcode) {
-  console.log('🔍 Buscando datos para agregar:', barcode);
-  
-  if (!userDeterminante) userDeterminante = await getUserDeterminante();
-  if (!userDeterminante) return;
-
-  try {
-    const snapshot = await firebase.database()
-      .ref('inventario/' + userDeterminante)
-      .orderByChild('codigoBarras')
-      .equalTo(barcode)
-      .once('value');
-
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const key = Object.keys(data)[0];
-      const producto = data[key];
-
-      // Rellenar formulario
-      document.getElementById('add-product-name').value = producto.nombre || '';
-      document.getElementById('add-brand').value = producto.marca || 'Otra';
-      document.getElementById('add-pieces-per-box').value = producto.piezasPorCaja || '';
-      // document.getElementById('add-warehouse').value = producto.ubicacion || ''; // Opcional
-
-      if (typeof showToast === 'function') showToast('✅ Producto encontrado: ' + producto.nombre, 'success');
-    } else {
-      if (typeof showToast === 'function') showToast('🆕 Producto nuevo, completa los datos', 'info');
-    }
-  } catch (error) {
-    console.error('Error autofill:', error);
-  }
-};
+console.log('✅ inventory.js (Fase 2 - Lógica Pura) cargado correctamente');
