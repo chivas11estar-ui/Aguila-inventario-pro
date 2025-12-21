@@ -5,7 +5,9 @@
 // VERSIÓN WALMART STYLE - Escanea y actualiza automáticamente
 // ============================================================
 
-let currentAuditWarehouse = null; // ✅ FUENTE ÚNICA DE VERDAD
+window.AUDIT_STATE = window.AUDIT_STATE || {
+  warehouse: null
+};
 let currentAuditProduct = null;
 let todayAuditCount = 0;
 let todayAuditProducts = 0;
@@ -43,13 +45,13 @@ function saveBodega() {
   }
 
   // ✅ FUENTE ÚNICA DE VERDAD
-  currentAuditWarehouse = input.value.trim();
+  window.AUDIT_STATE.warehouse = input.value.trim();
   auditStartTime = new Date();
 
-  console.log('✅ Bodega seleccionada para auditoría:', currentAuditWarehouse);
+  console.log('✅ Bodega seleccionada para auditoría:', window.AUDIT_STATE.warehouse);
 
   if (display) {
-    display.innerHTML = `✅ <strong>Auditando:</strong> ${currentAuditWarehouse}`;
+    display.innerHTML = `✅ <strong>Auditando:</strong> ${window.AUDIT_STATE.warehouse}`;
     display.style.color = '#10b981';
     display.style.fontWeight = '700';
   }
@@ -66,7 +68,7 @@ function saveBodega() {
   todayAuditProducts = 0;
   actualizarResumenAuditoria();
 
-  showToast('📍 Bodega seleccionada: ' + currentAuditWarehouse, 'success');
+  showToast('📍 Bodega seleccionada: ' + window.AUDIT_STATE.warehouse, 'success');
   document.getElementById('audit-barcode').focus();
 }
 
@@ -83,14 +85,14 @@ async function buscarProductoAudit() {
   }
 
   // ✅ VALIDACIÓN ESTRICTA DE BODEGA
-  if (!currentAuditWarehouse) {
-    console.error('❌ currentAuditWarehouse está vacío');
+  if (!window.AUDIT_STATE?.warehouse) {
+    console.error('❌ window.AUDIT_STATE.warehouse está vacío');
     showToast('⚠️ Primero selecciona una bodega', 'warning');
     document.getElementById('audit-warehouse').focus();
     return;
   }
 
-  console.log('🔍 Buscando producto:', barcode, 'en bodega:', currentAuditWarehouse);
+  console.log('🔍 Buscando producto:', barcode, 'en bodega:', window.AUDIT_STATE.warehouse);
 
   if (!userDeterminanteAudit) {
     userDeterminanteAudit = await getUserDeterminanteAudit();
@@ -119,7 +121,7 @@ async function buscarProductoAudit() {
         console.log('📦 Revisando producto:', productData.nombre, 'ubicación:', productData.ubicacion);
         
         // ✅ COMPARACIÓN LIMPIA (sin espacios extras)
-        if (productData.ubicacion && productData.ubicacion.trim() === currentAuditWarehouse.trim()) {
+        if (productData.ubicacion && productData.ubicacion.trim() === window.AUDIT_STATE.warehouse.trim()) {
           foundProduct = productData;
           foundId = productId;
           console.log('✅ Producto encontrado en bodega correcta');
@@ -151,7 +153,7 @@ async function buscarProductoAudit() {
         document.getElementById('audit-marca').style.borderColor = '#10b981';
         document.getElementById('audit-piezas').style.borderColor = '#10b981';
 
-        showToast('✅ Producto encontrado en ' + currentAuditWarehouse, 'success');
+        showToast('✅ Producto encontrado en ' + window.AUDIT_STATE.warehouse, 'success');
         document.getElementById('audit-boxes').focus();
       } else {
         // ⚠️ EXISTE EN OTRA BODEGA
@@ -185,7 +187,7 @@ async function registrarConteo() {
   const boxes = parseInt(boxesInput.value);
 
   // VALIDACIÓN 1: Bodega seleccionada
-  if (!currentAuditWarehouse) {
+  if (!window.AUDIT_STATE.warehouse) {
     showToast('Primero selecciona una bodega', 'warning');
     return false;
   }
@@ -215,7 +217,7 @@ async function registrarConteo() {
     productoNombre: currentAuditProduct.nombre,
     productoCodigo: currentAuditProduct.codigoBarras,
     marca: currentAuditProduct.marca,
-    bodega: currentAuditWarehouse,
+    bodega: window.AUDIT_STATE.warehouse,
     stockRegistrado: registeredStock,
     stockContado: boxes,
     diferencia: difference,
@@ -250,7 +252,7 @@ async function registrarConteo() {
         cajasAntes: registeredStock,
         cajasDespues: boxes,
         cajasCambiadas: Math.abs(difference),
-        ubicacion: currentAuditWarehouse,
+        ubicacion: window.AUDIT_STATE.warehouse,
         motivo: 'Ajuste por auditoría',
         fecha: new Date().toISOString(),
         usuario: firebase.auth().currentUser.email,
@@ -397,7 +399,7 @@ function actualizarResumenAuditoria() {
   document.getElementById('audit-products-count').textContent = todayAuditCount;
 
   const btnTerminar = document.getElementById('finish-audit-btn');
-  if (btnTerminar && currentAuditWarehouse) {
+  if (btnTerminar && window.AUDIT_STATE.warehouse) {
     const diferenciasEncontradas = currentAuditSession.filter(a => a.diferencia !== 0).length;
     btnTerminar.innerHTML = `
       <div style="text-align: center;">
@@ -416,7 +418,7 @@ function actualizarResumenAuditoria() {
 // TERMINAR AUDITORÍA
 // ============================================================
 async function terminarAuditoria() {
-  if (!currentAuditWarehouse) {
+  if (!window.AUDIT_STATE.warehouse) {
     showToast('No hay auditoría activa', 'warning');
     return;
   }
@@ -437,7 +439,7 @@ async function terminarAuditoria() {
     : 'N/A';
 
   let mensaje = `📋 RESUMEN AUDITORÍA\n\n`;
-  mensaje += `📍 Bodega: ${currentAuditWarehouse}\n`;
+  mensaje += `📍 Bodega: ${window.AUDIT_STATE.warehouse}\n`;
   mensaje += `⏱️ Tiempo: ${tiempoTranscurrido}\n`;
   mensaje += `👤 Auditor: ${firebase.auth().currentUser.email}\n\n`;
   mensaje += `✅ Productos: ${todayAuditProducts}\n`;
@@ -460,7 +462,7 @@ async function terminarAuditoria() {
     }
 
     const auditoriaSummary = {
-      bodega: currentAuditWarehouse,
+      bodega: window.AUDIT_STATE.warehouse,
       fechaInicio: auditStartTime.toISOString(),
       fechaFin: new Date().toISOString(),
       auditor: firebase.auth().currentUser.email,
@@ -479,7 +481,7 @@ async function terminarAuditoria() {
     await mostrarEstadisticasProductos();
 
     // LIMPIAR
-    currentAuditWarehouse = null;
+    window.AUDIT_STATE.warehouse = null;
     currentAuditSession = [];
     todayAuditCount = 0;
     todayAuditProducts = 0;
