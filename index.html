@@ -235,32 +235,55 @@
     </div>
   </div>
 
-  <!-- CONTENEDOR DE TOASTS -->
-  <div id="app-toast-container" class="toast-container"></div>
+ <!-- CONTENEDOR DE TOASTS -->
+<div id="app-toast-container" class="toast-container"></div>
 
-  <!-- SCRIPTS EN ORDEN CORRECTO -->
-  <script src="firebase-config.js"></script>
-  <script src="ui.js"></script>
-  <script src="auth.js"></script>
-  <script src="app.js"></script>
-  
-  <script src="inventory.js"></script>
-  <script src="inventory-enhanced.js"></script>
-  <script src="refill.js"></script>
-  <script src="audit.js"></script>
-  <script src="system.js"></script>
-  <script src="system-events.js"></script>
-  
-  <script src="scanner-mlkit.js"></script>
-  <script src="scanner-events.js"></script>
+<!-- ============================================================
+     SCRIPTS EN ORDEN CORRECTO (LIMPIO – SIN LEGACY)
+============================================================ -->
 
-  <!-- SERVICE WORKER -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('✅ Service Worker registrado'))
-        .catch(err => console.log('❌ Error en SW:', err));
-    }
-  </script>
+<!-- Firebase -->
+<script src="firebase-config.js"></script>
+
+<!-- UI base -->
+<script src="ui.js"></script>
+
+<!-- Autenticación -->
+<script src="auth.js"></script>
+
+<!-- App bootstrap -->
+<script src="app.js"></script>
+
+<!-- Escáner -->
+<script src="scanner-mlkit.js"></script>
+<script src="scanner-events.js"></script>
+
+<!-- Inventario -->
+<script src="inventory.js"></script>
+<script src="inventory-ui.js"></script>
+
+<!-- Relleno y Auditoría -->
+<script src="refill-enhanced.js"></script>
+<script src="audit.js"></script>
+
+<!-- Sistema + Perfil -->
+<script src="system.js"></script>
+<script src="system-events.js"></script>
+<script src="profile.js"></script>
+<script src="profile-ui.js"></script>
+
+<!-- Analytics -->
+<script src="analytics.js"></script>
+
+<!-- ============================================================
+     SERVICE WORKER (MODO SEGURO TEMPORAL)
+============================================================ -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('✅ Service Worker registrado'))
+      .catch(err => console.log('❌ Error en SW:', err));
+  }
+</script>
 </body>
 </html>
