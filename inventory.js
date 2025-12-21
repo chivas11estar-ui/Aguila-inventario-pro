@@ -79,7 +79,7 @@ async function loadInventory() {
     return;
   }
 
-  const inventoryRef = firebase.database().ref('inventario/' + determinante);
+  window.inventoryRef = firebase.database().ref('inventario/' + determinante);
 
   // Listener en tiempo real
   inventoryRef.on('value', (snapshot) => {
@@ -504,3 +504,4 @@ window.calculateExpiryInfo = calculateExpiryInfo;
 window.BRAND_EXPIRY_CONFIG = BRAND_EXPIRY_CONFIG;
 
 console.log('✅ inventory.js (Fase 2 - Lógica Pura) cargado correctamente');
+fix: detach inventory listener on logout

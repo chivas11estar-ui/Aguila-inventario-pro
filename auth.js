@@ -166,17 +166,25 @@ function loadUserData(userId) {
 // CORRECCIÓN CLAVE: Recargar página al salir
 async function logout() {
   try {
-    await firebase.auth().signOut();
-    currentUser = null;
-    showToast('✅ Sesión cerrada', 'success');
-    
-    // RECARGAR PÁGINA PARA LIMPIAR "FANTASMAS"
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+    // 🔴 APAGAR LISTENERS ANTES
+    if (window.inventoryRef) {
+      window.inventoryRef.off();
+      window.inventoryRef = null;
+    }
 
-  } catch (error) {
-    console.error('❌ Error logout:', error);
+    if (window.auditRef) {
+      window.auditRef.off();
+      window.auditRef = null;
+    }
+
+    // 🧹 Limpiar estados
+    window.INVENTORY_STATE = {};
+    window.PROFILE_STATE = {};
+
+    await firebase.auth().signOut();
+
+    showToast('Sesión cerrada', 'success');
+  } catch (e) {
     showToast('Error al cerrar sesión', 'error');
   }
 }
