@@ -176,7 +176,7 @@
         </div>
       </div>
 
-      <!-- BOTTOM NAVIGATION (ACTUALIZADO) -->
+      <!-- BOTTOM NAVIGATION -->
       <nav class="bottom-nav">
         <a href="#" class="nav-btn active" data-tab="inventory">
           <span style="font-size:20px;">📦</span>
@@ -272,7 +272,7 @@
           </div>
         </div>
 
-        <!-- TAB: RELLENO (ACTUALIZADO) -->
+        <!-- TAB: RELLENO -->
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
             <h2>🔄 Reabastecimiento Inteligente</h2>
@@ -405,7 +405,7 @@
           </div>
         </div>
 
-        <!-- TAB: ANALYTICS (NUEVO) -->
+        <!-- TAB: ANALYTICS -->
         <div id="tab-analytics" class="tab-content hidden">
           <div class="card">
             <h2>📊 Analytics - Movimientos</h2>
@@ -450,16 +450,13 @@
           </div>
         </div>
 
-        <!-- TAB: SISTEMA -->
+        <!-- TAB: SISTEMA / PERFIL -->
         <div id="tab-system" class="tab-content hidden">
-          <div class="card">
-            <h2>⚙️ Sistema</h2>
-            <p id="user-info" style="font-weight:600;margin:10px 0;">Usuario</p>
-            
-            <button class="primary" id="btn-diagnostico">🔍 Diagnóstico</button>
-            <button class="primary" id="btn-stats">📊 Estadísticas</button>
-            <button class="warning" id="btn-clear-data">🗑️ Limpiar Datos</button>
-            <button class="error" id="btn-logout-settings">🚪 Cerrar Sesión</button>
+          <div id="profile-container">
+            <div style="text-align: center; padding: 40px; color: var(--muted);">
+              <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+              <p>Cargando perfil...</p>
+            </div>
           </div>
         </div>
 
@@ -473,7 +470,7 @@
        FOOTER
        ============================================================ -->
   <footer style="background:var(--card-bg);text-align:center;border-top:2px solid var(--border);margin-top:40px;">
-    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.5</p>
+    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.6</p>
     <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt - Todos los derechos reservados</p>
   </footer>
 
@@ -490,44 +487,47 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
   <!-- ============================================================
-       TUS ARCHIVOS JS (EN ORDEN CORRECTO)
+       CONFIGURACIÓN Y UI BASE
        ============================================================ -->
+  <script src="firebase-config.js"></script>
+  <script src="ui.js"></script>
+
   <!-- ============================================================
-     CORE Y CONFIGURACIÓN
-============================================================ -->
-<script src="firebase-config.js"></script>
-<script src="ui.js"></script>
+       ESCÁNER
+       ============================================================ -->
+  <script src="scanner-mlkit.js"></script>
+  <script src="scanner-events.js"></script>
 
-<!-- ============================================================
-     SISTEMA Y AUTENTICACIÓN
-============================================================ -->
-<script src="auth.js"></script>
-<script src="app.js"></script>
-<script src="system.js"></script>
-<script src="system-events.js"></script>
+  <!-- ============================================================
+       INVENTARIO (FASE 2.1)
+       ============================================================ -->
+  <script src="inventory.js"></script>
+  <script src="inventory-ui.js"></script>
 
-<!-- ============================================================
-     ESCÁNER
-============================================================ -->
-<script src="scanner-mlkit.js"></script>
-<script src="scanner-events.js"></script>
+  <!-- ============================================================
+       OPERACIONES (FASE 1 - ESTABLES)
+       ============================================================ -->
+  <script src="refill-enhanced.js"></script>
+  <script src="audit.js"></script>
 
-<!-- ============================================================
-     INVENTARIO (FASE 2.1)
-============================================================ -->
-<script src="inventory.js"></script>
-<script src="inventory-ui.js"></script>
+  <!-- ============================================================
+       ANALÍTICA (OPCIONAL)
+       ============================================================ -->
+  <script src="analytics.js"></script>
 
-<!-- ============================================================
-     OPERACIÓN
-============================================================ -->
-<script src="refill-enhanced.js"></script>
-<script src="audit.js"></script>
+  <!-- ============================================================
+       SISTEMA Y PERFIL (FASE 2.2)
+       ============================================================ -->
+  <script src="system.js"></script>
+  <script src="system-events.js"></script>
+  <script src="profile.js"></script>
+  <script src="profile-ui.js"></script>
 
-<!-- ============================================================
-     ANALÍTICA (OPCIONAL)
-============================================================ -->
-<script src="analytics.js"></script>
+  <!-- ============================================================
+       AUTENTICACIÓN Y APP
+       ============================================================ -->
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
 
   <!-- ============================================================
        SERVICE WORKER
