@@ -405,48 +405,10 @@
           </div>
         </div>
 
-        <!-- TAB: ANALYTICS -->
+        <!-- TAB: ANALYTICS (CORREGIDO - SOLO CONTAINER) -->
         <div id="tab-analytics" class="tab-content hidden">
-          <div class="card">
-            <h2>📊 Analytics - Movimientos</h2>
-            <p style="color: #6b7280; font-size: 13px;">Visualiza el rendimiento de tu inventario</p>
-            
-            <!-- GRÁFICO SEMANAL -->
-            <div style="margin-top: 30px;">
-              <h3>📈 Movimientos Esta Semana</h3>
-              <div id="weekly-chart-container" style="margin-top: 15px;">
-                <p style="color: var(--muted);">Cargando gráfico...</p>
-              </div>
-              <div id="weekly-total" style="margin-top: 10px; padding: 12px; background: #f0f9ff; border-radius: 8px; color: #004aad; font-weight: 600;"></div>
-            </div>
-            
-            <!-- GRÁFICO MENSUAL -->
-            <div style="margin-top: 40px;">
-              <h3>📊 Tendencia Mensual</h3>
-              <div id="monthly-chart-container" style="margin-top: 15px;">
-                <p style="color: var(--muted);">Cargando gráfico...</p>
-              </div>
-              <div id="monthly-stats" style="margin-top: 15px;"></div>
-            </div>
-            
-            <!-- TOP PRODUCTOS -->
-            <div style="margin-top: 40px;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                  <h3>🥇 Top Productos (Semanal)</h3>
-                  <div id="top-products-weekly" style="margin-top: 15px;">
-                    <p style="color: var(--muted);">Cargando...</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3>🥇 Top Productos (Mensual)</h3>
-                  <div id="top-products-monthly" style="margin-top: 15px;">
-                    <p style="color: var(--muted);">Cargando...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div id="analytics-container">
+            <!-- El JS renderizará aquí -->
           </div>
         </div>
 
@@ -482,9 +444,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ============================================================
-       CHART.JS PARA GRÁFICOS
+       CHART.JS (SOLO UNA VEZ)
        ============================================================ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 
   <!-- ============================================================
        CONFIGURACIÓN Y UI BASE
@@ -511,11 +473,6 @@
   <script src="audit.js"></script>
 
   <!-- ============================================================
-       ANALÍTICA (OPCIONAL)
-       ============================================================ -->
-  <script src="analytics.js"></script>
-
-  <!-- ============================================================
        SISTEMA Y PERFIL (FASE 2.2)
        ============================================================ -->
   <script src="system.js"></script>
@@ -524,7 +481,13 @@
   <script src="profile-ui.js"></script>
 
   <!-- ============================================================
-       AUTENTICACIÓN Y APP
+       ANALYTICS (FASE 2.3) - DESPUÉS DE PROFILE
+       ============================================================ -->
+  <script src="analytics.js"></script>
+  <script src="analytics-ui.js"></script>
+
+  <!-- ============================================================
+       AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
   <script src="auth.js"></script>
   <script src="app.js"></script>
@@ -532,15 +495,15 @@
   <!-- ============================================================
        SERVICE WORKER
        ============================================================ -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('✅ Service Worker registrado'))
-        .catch(err => console.error('⚠️ SW no disponible:', err));
-    });
-  }
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('✅ Service Worker registrado'))
+          .catch(err => console.error('⚠️ SW no disponible:', err));
+      });
+    }
+  </script>
 
   <!-- ============================================================
        SISTEMA DE NAVEGACIÓN MOBILE
