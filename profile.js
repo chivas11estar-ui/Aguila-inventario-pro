@@ -115,37 +115,72 @@ async function loadDailyActivity() {
 
 async function loadWeatherData() {
     const card = document.getElementById('weather-card');
-    let lat = 19.4326, lon = -99.1332; // Default CDMX
+    let lat = 19.4326, lon = -99.1332; // Default
+    let cityName = "Ubicación no detectada";
 
     try {
+        // 1. Obtener coordenadas
         if (navigator.geolocation) {
             const pos = await new Promise((res, rej) => 
-                navigator.geolocation.getCurrentPosition(res, rej, {timeout: 4000}));
+                navigator.geolocation.getCurrentPosition(res, rej, {timeout: 5000}));
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
+            
+            // 2. Intentar obtener el nombre de la ciudad (Reverse Geocoding gratuito)
+            try {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+                const geoData = await geoRes.json();
+                cityName = geoData.address.city || geoData.address.town || geoData.address.village || "Ciudad desconocida";
+            } catch (e) { cityName = "Tu ubicación actual"; }
         }
-    } catch (e) { console.warn("Usando ubicación predeterminada"); }
+    } catch (e) { 
+        cityName = "Ciudad de México (Default)"; 
+        console.warn("Usando ubicación predeterminada"); 
+    }
 
     try {
+        // 3. Obtener clima detallado
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await res.json();
         const w = data.current_weather;
         
+        // Diccionario de estados del clima
+        const weatherStates = {
+            0: "Despejado ☀️", 1: "Mayormente despejado 🌤️", 2: "Parcialmente nublado ⛅", 3: "Nublado ☁️",
+            45: "Niebla 🌫️", 48: "Niebla escarcha 🌫️", 51: "Llovizna ligera 🌧️", 61: "Lluvia 🌧️",
+            71: "Nieve ligera ❄️", 80: "Chubascos 🌦️", 95: "Tormenta eléctrica ⛈️"
+        };
+        const estadoCielo = weatherStates[w.weathercode] || "Desconocido 🌡️";
+
         if (card) {
             card.innerHTML = `
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <span style="font-size:40px;">🌡️</span>
-                    <div style="text-align:left;">
-                        <div style="font-size:28px; font-weight:800; color:var(--primary);">${Math.round(w.temperature)}°C</div>
-                        <div style="font-size:12px; color:var(--muted);">Viento: ${w.windspeed} km/h</div>
+                <div style="text-align:center; width:100%; border: 1px solid #e5e7eb; padding: 15px; border-radius: 12px; background: #f8fafc;">
+                    <div style="font-size:12px; color:var(--muted); font-weight:bold; text-transform:uppercase; margin-bottom:5px;">
+                        📍 ${cityName}
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:15px;">
+                        <span style="font-size:45px;">${estadoCielo.split(' ')[1] || '🌡️'}</span>
+                        <div style="text-align:left;">
+                            <div style="font-size:32px; font-weight:800; color:var(--primary); line-height:1;">
+                                ${Math.round(w.temperature)}°C
+                            </div>
+                            <div style="font-size:14px; color:#4b5563; font-weight:600;">
+                                ${estadoCielo.split(' ')[0]}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb; display:grid; grid-template-columns:1fr 1fr; font-size:11px; color:#6b7280;">
+                        <div>💨 Viento: <strong>${w.windspeed} km/h</strong></div>
+                        <div>🧭 Dir: <strong>${w.winddirection}°</strong></div>
                     </div>
                 </div>
             `;
         }
     } catch (e) {
-        if (card) card.innerHTML = "<small style='color:var(--muted)'>Clima no disponible temporalmente</small>";
+        if (card) card.innerHTML = "<small style='color:var(--muted)'>Error al obtener clima detallado</small>";
     }
 }
+
 
 // Escuchador de pestañas
 document.addEventListener('DOMContentLoaded', () => {
