@@ -1,5 +1,5 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: profile.js (FINAL)
+// Águila Inventario Pro - Módulo: profile.js (FINAL CORREGIDO)
 // ============================================================
 
 let userProfileData = null;
@@ -90,7 +90,7 @@ function renderProfileSkeleton() {
         <div class="card">
             <h3 style="font-size:16px; margin-bottom:10px;">☁️ Clima Local</h3>
             <div id="weather-card" style="min-height:80px; display:flex; align-items:center; justify-content:center;">
-                <div class="spinner-small"></div>
+                <div style="font-size:32px;">⏳</div>
             </div>
         </div>
     `;
@@ -134,23 +134,36 @@ async function loadWeatherData() {
     } catch (e) { cityName = "Los Reyes (Aprox)"; }
 
     try {
-        // Añadimos &apparent_temperature=true para mayor precisión de sensación térmica
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=apparent_temperature`);
         const data = await res.json();
         const w = data.current_weather;
         
-        // Diccionario con símbolos de nubes y estados
+        // CORRECCIÓN: Separar emoji y texto
         const weatherStates = {
-            0: "Despejado ☀️", 
-            1: "Casi despejado 🌤️", 
-            2: "Nubes dispersas ⛅", 
-            3: "Nublado ☁️",
-            45: "Niebla 🌫️", 
-            51: "Llovizna 🌧️", 
-            61: "Lluvia 🌧️",
-            95: "Tormenta ⛈️"
+            0: { emoji: "☀️", text: "Despejado" },
+            1: { emoji: "🌤️", text: "Casi despejado" },
+            2: { emoji: "⛅", text: "Nubes dispersas" },
+            3: { emoji: "☁️", text: "Nublado" },
+            45: { emoji: "🌫️", text: "Niebla" },
+            48: { emoji: "🌫️", text: "Niebla densa" },
+            51: { emoji: "🌧️", text: "Llovizna" },
+            53: { emoji: "🌧️", text: "Llovizna moderada" },
+            55: { emoji: "🌧️", text: "Llovizna intensa" },
+            61: { emoji: "🌧️", text: "Lluvia ligera" },
+            63: { emoji: "🌧️", text: "Lluvia" },
+            65: { emoji: "🌧️", text: "Lluvia intensa" },
+            71: { emoji: "❄️", text: "Nevada ligera" },
+            73: { emoji: "❄️", text: "Nevada" },
+            75: { emoji: "❄️", text: "Nevada intensa" },
+            80: { emoji: "🌧️", text: "Chubascos" },
+            81: { emoji: "🌧️", text: "Chubascos moderados" },
+            82: { emoji: "🌧️", text: "Chubascos intensos" },
+            95: { emoji: "⛈️", text: "Tormenta" },
+            96: { emoji: "⛈️", text: "Tormenta con granizo" },
+            99: { emoji: "⛈️", text: "Tormenta intensa" }
         };
-        const estadoCielo = weatherStates[w.weathercode] || "Clima ☁️";
+        
+        const weatherInfo = weatherStates[w.weathercode] || { emoji: "☁️", text: "Clima desconocido" };
 
         if (card) {
             card.innerHTML = `
@@ -161,31 +174,35 @@ async function loadWeatherData() {
 
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 28px;">${estadoCielo.split(' ')[1] || '☁️'}</span>
+                            <span style="font-size: 32px; line-height: 1;">${weatherInfo.emoji}</span>
                             <div>
                                 <div style="font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1;">
                                     ${Math.round(w.temperature)}°C
                                 </div>
                                 <div style="font-size: 10px; color: #475569; font-weight: 500;">
-                                    ${estadoCielo.split(' ')[0]}
+                                    ${weatherInfo.text}
                                 </div>
                             </div>
                         </div>
 
                         <div style="text-align: right; border-left: 1px solid #cbd5e1; padding-left: 10px;">
                             <div style="font-size: 9px; color: #94a3b8;">VIENTO</div>
-                            <div style="font-size: 11px; font-weight: 700; color: #475569;">${w.windspeed} km/h</div>
+                            <div style="font-size: 11px; font-weight: 700; color: #475569;">${Math.round(w.windspeed)} km/h</div>
                         </div>
                     </div>
                 </div>
             `;
         }
     } catch (e) {
-        if (card) card.innerHTML = "<small style='font-size:10px;'>Clima no disponible</small>";
+        console.error('Error clima:', e);
+        if (card) card.innerHTML = `
+            <div style="text-align:center; padding:15px; color:#94a3b8;">
+                <div style="font-size:32px; margin-bottom:5px;">🌐</div>
+                <small style="font-size:11px;">Clima no disponible</small>
+            </div>
+        `;
     }
 }
-
-
 
 // Escuchador de pestañas
 document.addEventListener('DOMContentLoaded', () => {
@@ -196,3 +213,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+console.log('✅ profile.js cargado correctamente');
