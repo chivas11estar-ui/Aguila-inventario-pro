@@ -1,13 +1,10 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: audit.js
-// Fase 1 – Estabilización
+// Fase 1 – Estabilización + EVENTOS CORREGIDOS
 // Copyright © 2025 José A. G. Betancourt
-// VERSIÓN WALMART STYLE - Escanea y actualiza automáticamente
 // ============================================================
 
-window.AUDIT_STATE = window.AUDIT_STATE || {
-  warehouse: null
-};
+let currentAuditWarehouse = null;
 let currentAuditProduct = null;
 let todayAuditCount = 0;
 let todayAuditProducts = 0;
@@ -44,36 +41,33 @@ function saveBodega() {
     return;
   }
 
-  // ✅ FUENTE ÚNICA DE VERDAD
-  window.AUDIT_STATE.warehouse = input.value.trim();
+  currentAuditWarehouse = input.value.trim();
   auditStartTime = new Date();
 
-  console.log('✅ Bodega seleccionada para auditoría:', window.AUDIT_STATE.warehouse);
+  console.log('✅ Bodega seleccionada para auditoría:', currentAuditWarehouse);
 
   if (display) {
-    display.innerHTML = `✅ <strong>Auditando:</strong> ${window.AUDIT_STATE.warehouse}`;
+    display.innerHTML = `✅ <strong>Auditando:</strong> ${currentAuditWarehouse}`;
     display.style.color = '#10b981';
     display.style.fontWeight = '700';
   }
 
-  // Mostrar botón terminar
   const btnTerminar = document.getElementById('finish-audit-btn');
   if (btnTerminar) {
     btnTerminar.style.display = 'block';
   }
 
-  // Limpiar sesión anterior
   currentAuditSession = [];
   todayAuditCount = 0;
   todayAuditProducts = 0;
   actualizarResumenAuditoria();
 
-  showToast('📍 Bodega seleccionada: ' + window.AUDIT_STATE.warehouse, 'success');
+  showToast('📍 Bodega seleccionada: ' + currentAuditWarehouse, 'success');
   document.getElementById('audit-barcode').focus();
 }
 
 // ============================================================
-// BUSCAR PRODUCTO Y AUTOFILL (WALMART STYLE)
+// BUSCAR PRODUCTO Y AUTOFILL
 // ============================================================
 async function buscarProductoAudit() {
   const input = document.getElementById('audit-barcode');
@@ -84,15 +78,14 @@ async function buscarProductoAudit() {
     return;
   }
 
-  // ✅ VALIDACIÓN ESTRICTA DE BODEGA
-  if (!window.AUDIT_STATE?.warehouse) {
-    console.error('❌ window.AUDIT_STATE.warehouse está vacío');
+  if (!currentAuditWarehouse) {
+    console.error('❌ currentAuditWarehouse está vacío');
     showToast('⚠️ Primero selecciona una bodega', 'warning');
     document.getElementById('audit-warehouse').focus();
     return;
   }
 
-  console.log('🔍 Buscando producto:', barcode, 'en bodega:', window.AUDIT_STATE.warehouse);
+  console.log('🔍 Buscando producto:', barcode, 'en bodega:', currentAuditWarehouse);
 
   if (!userDeterminanteAudit) {
     userDeterminanteAudit = await getUserDeterminanteAudit();
@@ -115,13 +108,11 @@ async function buscarProductoAudit() {
       let foundProduct = null;
       let foundId = null;
 
-      // ✅ BUSCAR EN LA BODEGA ESPECÍFICA (COMPARACIÓN ESTRICTA)
       Object.keys(products).forEach(productId => {
         const productData = products[productId];
         console.log('📦 Revisando producto:', productData.nombre, 'ubicación:', productData.ubicacion);
         
-        // ✅ COMPARACIÓN LIMPIA (sin espacios extras)
-        if (productData.ubicacion && productData.ubicacion.trim() === window.AUDIT_STATE.warehouse.trim()) {
+        if (productData.ubicacion && productData.ubicacion.trim() === currentAuditWarehouse.trim()) {
           foundProduct = productData;
           foundId = productId;
           console.log('✅ Producto encontrado en bodega correcta');
@@ -129,34 +120,28 @@ async function buscarProductoAudit() {
       });
 
       if (foundProduct) {
-        // ✅ PRODUCTO ENCONTRADO EN ESTA BODEGA
         currentAuditProduct = { id: foundId, ...foundProduct };
 
-        // AUTOFILL CAMPOS
         document.getElementById('audit-nombre').value = foundProduct.nombre;
         document.getElementById('audit-marca').value = foundProduct.marca;
         document.getElementById('audit-piezas').value = foundProduct.piezasPorCaja;
 
-        // MOSTRAR STOCK DEL SISTEMA
         document.getElementById('audit-stock-info').style.display = 'block';
         document.getElementById('audit-stock-info').innerHTML = `
           📊 <strong>Stock del Sistema:</strong> ${foundProduct.cajas} cajas
           (${foundProduct.cajas * foundProduct.piezasPorCaja} piezas)
         `;
 
-        // Guardar info para usar al guardar
         document.getElementById('audit-boxes').dataset.productoId = foundId;
         document.getElementById('audit-boxes').dataset.stockSistema = foundProduct.cajas;
 
-        // CAMBIAR ESTILOS A VERDE (ENCONTRADO)
         document.getElementById('audit-nombre').style.borderColor = '#10b981';
         document.getElementById('audit-marca').style.borderColor = '#10b981';
         document.getElementById('audit-piezas').style.borderColor = '#10b981';
 
-        showToast('✅ Producto encontrado en ' + window.AUDIT_STATE.warehouse, 'success');
+        showToast('✅ Producto encontrado en ' + currentAuditWarehouse, 'success');
         document.getElementById('audit-boxes').focus();
       } else {
-        // ⚠️ EXISTE EN OTRA BODEGA
         const otherProduct = Object.values(products)[0];
         const otherLocation = otherProduct.ubicacion || 'otra bodega';
 
@@ -167,7 +152,6 @@ async function buscarProductoAudit() {
         limpiarCamposAudit();
       }
     } else {
-      // ❌ NO EXISTE
       console.warn('❌ Producto no encontrado en el sistema');
       showToast('❌ Producto no registrado en el sistema', 'error');
       currentAuditProduct = null;
@@ -186,20 +170,17 @@ async function registrarConteo() {
   const boxesInput = document.getElementById('audit-boxes');
   const boxes = parseInt(boxesInput.value);
 
-  // VALIDACIÓN 1: Bodega seleccionada
-  if (!window.AUDIT_STATE.warehouse) {
+  if (!currentAuditWarehouse) {
     showToast('Primero selecciona una bodega', 'warning');
     return false;
   }
 
-  // VALIDACIÓN 2: Producto escaneado (¡CRÍTICO!)
   if (!currentAuditProduct || !currentAuditProduct.id) {
     showToast('⚠️ Primero escanea un producto válido', 'warning');
     document.getElementById('audit-barcode').focus();
     return false;
   }
 
-  // VALIDACIÓN 3: Cantidad válida
   if (isNaN(boxes) || boxes < 0) {
     showToast('Ingresa una cantidad válida', 'error');
     return false;
@@ -217,7 +198,7 @@ async function registrarConteo() {
     productoNombre: currentAuditProduct.nombre,
     productoCodigo: currentAuditProduct.codigoBarras,
     marca: currentAuditProduct.marca,
-    bodega: window.AUDIT_STATE.warehouse,
+    bodega: currentAuditWarehouse,
     stockRegistrado: registeredStock,
     stockContado: boxes,
     diferencia: difference,
@@ -226,12 +207,10 @@ async function registrarConteo() {
   };
 
   try {
-    // 1. REGISTRAR EN AUDITORÍAS
     await firebase.database()
       .ref('auditorias/' + userDeterminanteAudit)
       .push(auditData);
 
-    // 2. ACTUALIZAR STOCK AUTOMÁTICAMENTE
     await firebase.database()
       .ref('inventario/' + userDeterminanteAudit + '/' + currentAuditProduct.id)
       .update({
@@ -241,7 +220,6 @@ async function registrarConteo() {
         ultimaAuditoria: new Date().toISOString()
       });
 
-    // 3. GENERAR MOVIMIENTO SI HAY DIFERENCIA
     if (difference !== 0) {
       const movimientoData = {
         tipo: difference > 0 ? 'entrada' : 'salida',
@@ -252,7 +230,7 @@ async function registrarConteo() {
         cajasAntes: registeredStock,
         cajasDespues: boxes,
         cajasCambiadas: Math.abs(difference),
-        ubicacion: window.AUDIT_STATE.warehouse,
+        ubicacion: currentAuditWarehouse,
         motivo: 'Ajuste por auditoría',
         fecha: new Date().toISOString(),
         usuario: firebase.auth().currentUser.email,
@@ -264,32 +242,24 @@ async function registrarConteo() {
         .push(movimientoData);
     }
 
-    // 4. AGREGAR A SESIÓN
     currentAuditSession.push(auditData);
     todayAuditCount += boxes;
     todayAuditProducts++;
 
-    // 5. MOSTRAR CHECKMARK VISUAL
     mostrarCheckmarkAudit(difference);
-
-    // 6. REPRODUCIR SONIDO
     reproducirBeep();
-
-    // 7. VIBRACIÓN HÁPTICA
+    
     if (navigator.vibrate) {
       navigator.vibrate([100, 50, 100]);
     }
 
-    // 8. ACTUALIZAR UI
     actualizarResumenAuditoria();
     agregarHistorial(auditData);
     actualizarListaEscaneados();
 
-    // 9. LIMPIAR Y PREPARAR SIGUIENTE
     limpiarFormularioAudit();
     document.getElementById('audit-barcode').focus();
 
-    // 10. MOSTRAR FEEDBACK
     if (difference === 0) {
       showToast('✅ ' + currentAuditProduct.nombre + ' - OK', 'success');
     } else if (difference > 0) {
@@ -307,7 +277,7 @@ async function registrarConteo() {
 }
 
 // ============================================================
-// MOSTRAR CHECKMARK VISUAL (ANIMACIÓN)
+// MOSTRAR CHECKMARK VISUAL
 // ============================================================
 function mostrarCheckmarkAudit(difference) {
   const checkmark = document.createElement('div');
@@ -399,7 +369,7 @@ function actualizarResumenAuditoria() {
   document.getElementById('audit-products-count').textContent = todayAuditCount;
 
   const btnTerminar = document.getElementById('finish-audit-btn');
-  if (btnTerminar && window.AUDIT_STATE.warehouse) {
+  if (btnTerminar && currentAuditWarehouse) {
     const diferenciasEncontradas = currentAuditSession.filter(a => a.diferencia !== 0).length;
     btnTerminar.innerHTML = `
       <div style="text-align: center;">
@@ -418,7 +388,7 @@ function actualizarResumenAuditoria() {
 // TERMINAR AUDITORÍA
 // ============================================================
 async function terminarAuditoria() {
-  if (!window.AUDIT_STATE.warehouse) {
+  if (!currentAuditWarehouse) {
     showToast('No hay auditoría activa', 'warning');
     return;
   }
@@ -439,7 +409,7 @@ async function terminarAuditoria() {
     : 'N/A';
 
   let mensaje = `📋 RESUMEN AUDITORÍA\n\n`;
-  mensaje += `📍 Bodega: ${window.AUDIT_STATE.warehouse}\n`;
+  mensaje += `📍 Bodega: ${currentAuditWarehouse}\n`;
   mensaje += `⏱️ Tiempo: ${tiempoTranscurrido}\n`;
   mensaje += `👤 Auditor: ${firebase.auth().currentUser.email}\n\n`;
   mensaje += `✅ Productos: ${todayAuditProducts}\n`;
@@ -462,7 +432,7 @@ async function terminarAuditoria() {
     }
 
     const auditoriaSummary = {
-      bodega: window.AUDIT_STATE.warehouse,
+      bodega: currentAuditWarehouse,
       fechaInicio: auditStartTime.toISOString(),
       fechaFin: new Date().toISOString(),
       auditor: firebase.auth().currentUser.email,
@@ -480,14 +450,12 @@ async function terminarAuditoria() {
 
     await mostrarEstadisticasProductos();
 
-    // LIMPIAR
-    window.AUDIT_STATE.warehouse = null;
+    currentAuditWarehouse = null;
     currentAuditSession = [];
     todayAuditCount = 0;
     todayAuditProducts = 0;
     auditStartTime = null;
 
-    // RESETEAR UI
     document.getElementById('audit-warehouse').value = '';
     document.getElementById('current-warehouse-display').innerHTML = '⏸️ Ninguna bodega seleccionada';
     document.getElementById('current-warehouse-display').style.color = '#6b7280';
@@ -621,7 +589,7 @@ function limpiarFormularioAudit() {
 }
 
 // ============================================================
-// LIMPIAR CAMPOS (cuando no se encuentra producto)
+// LIMPIAR CAMPOS
 // ============================================================
 function limpiarCamposAudit() {
   document.getElementById('audit-nombre').value = '';
@@ -662,6 +630,48 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ============================================================
+// CONFIGURAR EVENTOS (CRÍTICO)
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ Configurando eventos de auditoría...');
+
+  // Botón guardar bodega
+  const btnSaveBodega = document.getElementById('save-warehouse-btn');
+  if (btnSaveBodega) {
+    btnSaveBodega.addEventListener('click', saveBodega);
+    console.log('✅ Evento botón bodega configurado');
+  }
+
+  // Formulario de auditoría
+  const auditForm = document.getElementById('audit-form');
+  if (auditForm) {
+    auditForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await registrarConteo();
+    });
+    console.log('✅ Evento formulario auditoría configurado');
+  }
+
+  // Botón terminar auditoría
+  const btnFinish = document.getElementById('finish-audit-btn');
+  if (btnFinish) {
+    btnFinish.addEventListener('click', terminarAuditoria);
+    console.log('✅ Evento botón terminar configurado');
+  }
+
+  // Enter en código de barras
+  const barcodeInput = document.getElementById('audit-barcode');
+  if (barcodeInput) {
+    barcodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        buscarProductoAudit();
+      }
+    });
+  }
+});
+
+// ============================================================
 // EXPONER FUNCIONES GLOBALES
 // ============================================================
 window.saveBodega = saveBodega;
@@ -669,4 +679,4 @@ window.buscarProductoAudit = buscarProductoAudit;
 window.registrarConteo = registrarConteo;
 window.terminarAuditoria = terminarAuditoria;
 
-console.log('✅ audit.js (Fase 1 - Corregido) cargado correctamente');
+console.log('✅ audit.js (Con eventos corregidos) cargado correctamente');
