@@ -4,7 +4,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-static-v1";
+const CACHE_NAME = "aguila-static-v1.1";
 
 // SOLO archivos estáticos reales (NO lógica)
 const STATIC_ASSETS = [
