@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-  <!-- Página Principal -->
+  <!-- Página principal -->
   <url>
     <loc>https://aguilainvantario.netlify.app/</loc>
     <lastmod>2025-01-11</lastmod>
@@ -12,12 +12,60 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Index (explícito) -->
+  <!-- Index explícito -->
   <url>
     <loc>https://aguilainvantario.netlify.app/index.html</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <!-- Manifest (imprescindible para PWAs) -->
+  <url>
+    <loc>https://aguilainvantario.netlify.app/manifest.json</loc>
+    <lastmod>2025-01-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Service Worker -->
+  <url>
+    <loc>https://aguilainvantario.netlify.app/service-worker.js</loc>
+    <lastmod>2025-01-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Rutas críticas de la app (si Google las alcanza) -->
+  <url>
+    <loc>https://aguilainvantario.netlify.app/#/login</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://aguilainvantario.netlify.app/#/inventory</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://aguilainvantario.netlify.app/#/refill</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://aguilainvantario.netlify.app/#/audit</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Well-known (muy recomendado por Google para PWAs) -->
+  <url>
+    <loc>https://aguilainvantario.netlify.app/.well-known/assetlinks.json</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 
 </urlset>

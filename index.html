@@ -278,6 +278,11 @@
             <h2>🔄 Reabastecimiento Inteligente</h2>
             <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
             
+            <div id="refill-mode-selector" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">🔄 Salida (Rellenar Exhibidor)</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">➕ Entrada (Añadir Stock)</button>
+            </div>
+
             <form id="refill-form" style="margin-top: 20px;">
               <div class="form-group">
                 <label for="refill-barcode">Código de Barras</label>
@@ -306,6 +311,11 @@
                 <label for="refill-warehouse">Bodega/Ubicación</label>
                 <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
               </div>
+              
+              <div class="form-group" id="refill-expiry-date-group" style="display: none;">
+                <label for="refill-expiry-date">Fecha de Caducidad</label>
+                <input id="refill-expiry-date" type="date" />
+              </div>
 
               <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
                 <p id="refill-product-name"></p>
@@ -313,7 +323,7 @@
               </div>
 
               <div class="form-group">
-                <label for="refill-boxes">Cantidad de Cajas a Mover</label>
+                <label id="refill-boxes-label" for="refill-boxes">Cantidad de Cajas a Mover</label>
                 <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
               </div>
 
@@ -333,60 +343,77 @@
         <div id="tab-audit" class="tab-content hidden">
           <div class="card">
             <h2>✓ Auditoría</h2>
-            <form id="audit-form" style="margin-top:20px;">
-              <div class="form-group">
-                <label for="audit-warehouse">Bodega a Auditar</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
-                  <button type="button" id="save-warehouse-btn" class="success" style="width:auto;padding:12px 16px;">✓</button>
+
+            <div style="margin: 20px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+              <button id="btn-quick-audit-mode" class="secondary" style="width:100%;">⚡ Activar Modo de Auditoría Rápida</button>
+            </div>
+
+            <div id="audit-normal-form">
+              <form id="audit-form" style="margin-top:20px;">
+                <div class="form-group">
+                  <label for="audit-warehouse">Bodega a Auditar</label>
+                  <div style="display:flex;gap:8px;">
+                    <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
+                    <button type="button" id="save-warehouse-btn" class="success" style="width:auto;padding:12px 16px;">✓</button>
+                  </div>
                 </div>
-              </div>
 
-              <div id="current-warehouse-display" style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
-                Ninguna bodega seleccionada
-              </div>
-
-              <div class="form-group">
-                <label for="audit-barcode">Código de Barras</label>
-                <div style="display:flex;gap:8px;">
-                  <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
-                  <button type="button" id="btn-scan-audit" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                <div id="current-warehouse-display" style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
+                  Ninguna bodega seleccionada
                 </div>
+
+                <div class="form-group">
+                  <label for="audit-barcode">Código de Barras</label>
+                  <div style="display:flex;gap:8px;">
+                    <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
+                    <button type="button" id="btn-scan-audit" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                  </div>
+                </div>
+
+                <div id="audit-stock-info" style="display:none;"></div>
+
+                <div class="form-group">
+                  <label for="audit-nombre">Nombre del Producto</label>
+                  <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-marca">Marca</label>
+                  <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-piezas">Piezas por Caja</label>
+                  <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                </div>
+
+                <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
+                  <p id="audit-product-name"></p>
+                  <p id="audit-product-brand" style="color:var(--muted);"></p>
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-boxes">Cantidad Contada (Cajas)</label>
+                  <input id="audit-boxes" type="number" placeholder="Cantidad física" min="0" />
+                </div>
+
+                <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
+              </form>
+
+              <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;display:none;">
+                🏁 Terminar Auditoría
+              </button>
+            </div>
+
+            <div id="audit-quick-scan-container" class="hidden" style="margin-top:20px;">
+              <h3 style="color: var(--primary);">⚡ Resultados de Auditoría Rápida</h3>
+              <p style="color: #6b7280; font-size: 13px;">Ajusta las cantidades si es necesario y guarda el conteo final.</p>
+              <div id="quick-audit-list" style="margin-top:20px;">
+                <!-- Los productos escaneados aparecerán aquí -->
               </div>
-
-              <div id="audit-stock-info" style="display:none;"></div>
-
-              <div class="form-group">
-                <label for="audit-nombre">Nombre del Producto</label>
-                <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="audit-marca">Marca</label>
-                <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div class="form-group">
-                <label for="audit-piezas">Piezas por Caja</label>
-                <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
-              </div>
-
-              <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
-                <p id="audit-product-name"></p>
-                <p id="audit-product-brand" style="color:var(--muted);"></p>
-              </div>
-
-              <div class="form-group">
-                <label for="audit-boxes">Cantidad Contada (Cajas)</label>
-                <input id="audit-boxes" type="number" placeholder="Cantidad física" min="0" />
-              </div>
-
-              <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
-            </form>
-
-            <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;display:none;">
-              🏁 Terminar Auditoría
-            </button>
+              <button id="btn-save-quick-audit" class="success" style="width:100%; margin-top: 20px;">💾 Guardar Conteo Rápido</button>
+              <button id="btn-cancel-quick-audit" class="secondary" style="width:100%; margin-top: 10px;">❌ Cancelar</button>
+            </div>
 
             <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
@@ -408,7 +435,16 @@
         <!-- TAB: ANALYTICS (CORREGIDO - SOLO CONTAINER) -->
         <div id="tab-analytics" class="tab-content hidden">
           <div id="analytics-container">
-            <!-- El JS renderizará aquí -->
+            <!-- El JS renderizará aquí los gráficos existentes -->
+          </div>
+          
+          <div class="card" style="margin-top: 20px;">
+            <h2>⭐ Top 10 Más Vendidos</h2>
+            <p style="color: #6b7280; font-size: 13px;">Analiza los productos con más movimiento de salida (relleno de estantes).</p>
+            <button id="btn-generate-top-sellers" class="primary" style="width:100%; margin-top:15px;">📊 Generar Reporte</button>
+            <div id="top-sellers-container" style="margin-top: 20px;">
+              <!-- El reporte se renderizará aquí -->
+            </div>
           </div>
         </div>
 

@@ -1,36 +1,29 @@
 // ============================================================
 // Águila Inventario Pro - Scanner Events
-// Configura los botones del escáner
+// Configura los botones del escáner (v2 - compatible con modo continuo)
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('📷 Configurando eventos del escáner...');
+  console.log('📷 Configurando eventos del escáner (v2)...');
 
-  // 1. BOTÓN ESCÁNER EN "AGREGAR" (Con Autofill)
+  // 1. BOTÓN ESCÁNER EN "AGREGAR"
   const btnScanAdd = document.getElementById('btn-scan-add');
   if (btnScanAdd) {
     btnScanAdd.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('📷 Abriendo escáner para AGREGAR...');
-      
       if (typeof window.openScanner === 'function') {
-        window.openScanner((code) => {
-          const input = document.getElementById('add-barcode');
-          if (input) {
-            input.value = code;
-            console.log('✅ Código en agregar:', code);
-            
-            // LLAMADA A LA FUNCIÓN DE BÚSQUEDA
-            if (typeof window.buscarProductoParaAgregar === 'function') {
-               window.buscarProductoParaAgregar(code);
-            } else {
-               console.warn('⚠️ falta la función buscarProductoParaAgregar en inventory.js');
+        window.openScanner({
+          onScan: (code) => {
+            const input = document.getElementById('add-barcode');
+            if (input) {
+              input.value = code;
+              if (typeof window.buscarProductoParaAgregar === 'function') {
+                 window.buscarProductoParaAgregar(code);
+              }
+              if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
             }
-
-            if (typeof showToast === 'function') {
-              showToast('✅ Código detectado', 'success');
-            }
-          }
+          },
+          continuous: false // Modo de escaneo único
         });
       }
     });
@@ -41,46 +34,44 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnScanRefill) {
     btnScanRefill.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('📷 Abriendo escáner para RELLENO...');
-      
       if (typeof window.openScanner === 'function') {
-        window.openScanner((code) => {
-          const input = document.getElementById('refill-barcode');
-          if (input) {
-            input.value = code;
-            
-            if (typeof window.searchProductForRefill === 'function') {
-              window.searchProductForRefill(code);
+        window.openScanner({
+          onScan: (code) => {
+            const input = document.getElementById('refill-barcode');
+            if (input) {
+              input.value = code;
+              if (typeof window.searchProductForRefill === 'function') {
+                window.searchProductForRefill(code);
+              }
             }
-            if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
-          }
+          },
+          continuous: false // Modo de escaneo único
         });
       }
     });
   }
 
-  // 3. BOTÓN ESCÁNER EN "AUDITORÍA"
+  // 3. BOTÓN ESCÁNER EN "AUDITORÍA" (MODO NORMAL)
   const btnScanAudit = document.getElementById('btn-scan-audit');
   if (btnScanAudit) {
     btnScanAudit.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('📷 Abriendo escáner para AUDITORÍA...');
-      
       if (typeof window.openScanner === 'function') {
-        window.openScanner((code) => {
-          const input = document.getElementById('audit-barcode');
-          if (input) {
-            input.value = code;
-            
-            if (typeof window.buscarProductoAudit === 'function') {
-              window.buscarProductoAudit();
+        window.openScanner({
+          onScan: (code) => {
+            const input = document.getElementById('audit-barcode');
+            if (input) {
+              input.value = code;
+              if (typeof window.buscarProductoAudit === 'function') {
+                window.buscarProductoAudit();
+              }
             }
-            if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
-          }
+          },
+          continuous: false // Modo de escaneo único
         });
       }
     });
   }
 
-  console.log('✅ Eventos del escáner configurados correctamente');
+  console.log('✅ Eventos del escáner (v2) configurados correctamente');
 });

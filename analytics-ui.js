@@ -1,6 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: analytics-ui.js
-// Visualización de Analytics
+// Visualización de Analytics (con Top 10)
 // ============================================================
 
 let analyticsChart = null; // Guardar referencia del gráfico
@@ -19,7 +19,6 @@ window.renderAnalyticsUI = function() {
 
     const data = window.ANALYTICS_STATE.resumen;
 
-    // Validar si hay datos
     const hayDatos = window.ANALYTICS_STATE.movimientos.length > 0;
 
     if (!hayDatos) {
@@ -35,7 +34,6 @@ window.renderAnalyticsUI = function() {
         return;
     }
 
-    // Renderizar estructura completa
     container.innerHTML = `
         <!-- KPIs -->
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
@@ -56,7 +54,7 @@ window.renderAnalyticsUI = function() {
         <!-- Top 5 Productos -->
         <div class="card" style="margin-bottom:20px;">
             <h3 style="font-size:14px; margin-bottom:15px; color:var(--primary);">
-                🔥 Top 5 Productos Más Movidos
+                🔥 Top 5 Productos Más Movidos (7 días)
             </h3>
             <div id="top-products-list">
                 ${renderTopProductos(data.topProductos)}
@@ -66,7 +64,7 @@ window.renderAnalyticsUI = function() {
         <!-- Top Marcas -->
         <div class="card" style="margin-bottom:20px;">
             <h3 style="font-size:14px; margin-bottom:15px; color:var(--primary);">
-                🏷️ Marcas Más Movidas
+                🏷️ Marcas Más Movidas (7 días)
             </h3>
             <div id="top-brands-list">
                 ${renderTopMarcas(data.topMarcas)}
@@ -77,11 +75,46 @@ window.renderAnalyticsUI = function() {
         <div style="height:80px;"></div>
     `;
 
-    // Renderizar gráfico (después del DOM)
     setTimeout(() => {
         renderChart(data.historico7Dias);
     }, 100);
 };
+
+// ============================================================
+// RENDERIZAR TOP 10 MÁS VENDIDOS (NUEVA FUNCIÓN)
+// ============================================================
+window.renderTopSellersReport = function(top10Data) {
+    const container = document.getElementById('top-sellers-container');
+    if (!container) return;
+
+    if (!top10Data || top10Data.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color: #6b7280;">No se encontraron datos de ventas.</p>';
+        return;
+    }
+    
+    const medallas = ['🥇', '🥈', '🥉'];
+
+    container.innerHTML = top10Data.map((p, i) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap: 12px;">
+                <span style="font-size: 1.1em; min-width: 30px; text-align: center;">${i < 3 ? medallas[i] : (i + 1)}</span>
+                <div>
+                    <div style="font-size:13px; font-weight:600; color:var(--text);">
+                        ${p.nombre}
+                    </div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:2px;">
+                        ${p.marca}
+                    </div>
+                </div>
+            </div>
+            <div style="font-weight:700; color:#059669; font-size:14px; text-align: right;">
+                ${p.totalPiezas.toLocaleString('es-MX')}
+                <small style="display: block; color: var(--muted); font-weight: 500;">piezas</small>
+            </div>
+        </div>
+    `).join('');
+};
+
 
 // ============================================================
 // RENDERIZAR KPI CARD
@@ -154,30 +187,17 @@ function renderTopMarcas(marcas) {
 // ============================================================
 function renderChart(historico) {
     const canvas = document.getElementById('chartSemanas');
-    if (!canvas) {
-        console.warn('⚠️ Canvas chartSemanas no encontrado');
-        return;
-    }
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-
-    // Destruir gráfico anterior si existe
     if (analyticsChart) {
         analyticsChart.destroy();
         analyticsChart = null;
     }
 
-    // Preparar datos
-    const fechas = Object.keys(historico);
+    const labels = Object.keys(historico).map(f => new Date(f).getDate());
     const valores = Object.values(historico);
 
-    // Formatear labels (solo día del mes)
-    const labels = fechas.map(f => {
-        const d = new Date(f);
-        return d.getDate(); // Solo el día
-    });
-
-    // Crear gráfico
     analyticsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -201,63 +221,22 @@ function renderChart(historico) {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: '#2563eb',
-                    borderWidth: 1,
-                    displayColors: false,
                     callbacks: {
-                        title: function(context) {
-                            const fecha = fechas[context[0].dataIndex];
-                            const d = new Date(fecha);
-                            return d.toLocaleDateString('es-MX', { 
-                                weekday: 'short', 
-                                day: 'numeric', 
-                                month: 'short' 
-                            });
-                        },
-                        label: function(context) {
-                            return `${context.parsed.y} rellenos`;
-                        }
+                        title: (context) => new Date(Object.keys(historico)[context[0].dataIndex]).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }),
+                        label: (context) => `${context.parsed.y} rellenos`
                     }
                 }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        color: '#6b7280',
-                        font: {
-                            size: 11
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#6b7280',
-                        font: {
-                            size: 11
-                        }
-                    },
-                    grid: {
-                        display: false
-                    }
-                }
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#6b7280' }, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+                x: { ticks: { color: '#6b7280' }, grid: { display: false } }
             }
         }
     });
-
-    console.log('✅ Gráfico renderizado');
 }
 
-console.log('✅ analytics-ui.js cargado correctamente');
+console.log('✅ analytics-ui.js (con Top 10) cargado correctamente');
