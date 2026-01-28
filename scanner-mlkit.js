@@ -21,7 +21,7 @@ async function initBarcodeDetector() {
   if (barcodeDetector) return barcodeDetector;
   console.log('🔍 Inicializando ML Kit Barcode Detector...');
   if (!('BarcodeDetector' in window)) {
-    console.warn('⚠️ ML Kit BarcodeDetector no disponible');
+    console.info('ℹ️ ML Kit BarcodeDetector no disponible nativamente (Usando fallback si es necesario)');
     return null;
   }
   try {
@@ -41,18 +41,18 @@ async function initBarcodeDetector() {
 // ============================================================
 async function openScanner(options) {
   console.log('📷 Abriendo escáner ML Kit con opciones:', options);
-  
+
   const { onScan, continuous = false } = options;
 
   if (!onScan || typeof onScan !== 'function') {
     console.error('❌ onScan callback no es una función válida');
     return;
   }
-  
+
   scanOptions = { onScan, continuous };
   lastDetectedCode = null;
   detectionCount = 0;
-  
+
   if (!barcodeDetector) {
     barcodeDetector = await initBarcodeDetector();
     if (!barcodeDetector) {
@@ -60,13 +60,13 @@ async function openScanner(options) {
       return;
     }
   }
-  
+
   const modal = document.getElementById('scanner-modal');
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('active');
   }
-  
+
   try {
     scannerStream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -77,7 +77,7 @@ async function openScanner(options) {
       },
       audio: false
     });
-    
+
     const video = document.getElementById('scanner-video');
     if (video) {
       video.srcObject = scannerStream;
@@ -106,27 +106,27 @@ async function startScanning(video) {
   if (!scannerActive || !barcodeDetector) {
     return;
   }
-  
+
   try {
     const barcodes = await barcodeDetector.detect(video);
-    
+
     if (barcodes && barcodes.length > 0) {
       const code = barcodes[0].rawValue;
-      
+
       if (code && code.length >= 8) {
         if (lastDetectedCode === code) {
           detectionCount++;
-          
+
           if (detectionCount >= 2) { // Confirmación de 2 lecturas
             console.log('✅✅ CÓDIGO CONFIRMADO:', code);
-            
+
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             playBeep();
-            
+
             if (scanOptions.onScan) {
               scanOptions.onScan(code);
             }
-            
+
             if (scanOptions.continuous) {
               // --- MODO CONTINUO ---
               console.log('🔄 Modo continuo: reiniciando para siguiente escaneo');
@@ -135,8 +135,8 @@ async function startScanning(video) {
               // Feedback visual
               const overlay = document.querySelector('.scanner-overlay');
               if (overlay) {
-                  overlay.classList.add('flash-success');
-                  setTimeout(() => overlay.classList.remove('flash-success'), 300);
+                overlay.classList.add('flash-success');
+                setTimeout(() => overlay.classList.remove('flash-success'), 300);
               }
             } else {
               // --- MODO ÚNICO ---
@@ -153,7 +153,7 @@ async function startScanning(video) {
   } catch (error) {
     // Ignorar errores menores de detección que ocurren a veces
   }
-  
+
   animationFrameId = requestAnimationFrame(() => startScanning(video));
 }
 
@@ -182,26 +182,26 @@ function playBeep() {
 function closeScanner() {
   console.log('🔴 Cerrando escáner...');
   scannerActive = false;
-  
+
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
-  
+
   if (scannerStream) {
     scannerStream.getTracks().forEach(track => track.stop());
     scannerStream = null;
   }
-  
+
   const video = document.getElementById('scanner-video');
   if (video) video.srcObject = null;
-  
+
   const modal = document.getElementById('scanner-modal');
   if (modal) {
     modal.classList.remove('active');
     modal.classList.add('hidden');
   }
-  
+
   scanOptions = { onScan: null, continuous: false };
   lastDetectedCode = null;
   detectionCount = 0;
@@ -213,7 +213,7 @@ function closeScanner() {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📷 Inicializando módulo scanner ML Kit (v2-continuo)...');
-  
+
   const closeBtn = document.getElementById('close-scanner');
   if (closeBtn) {
     closeBtn.addEventListener('click', (e) => {
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeScanner();
     });
   }
-  
+
   // Añadir estilos para el feedback visual
   const style = document.createElement('style');
   style.innerHTML = `
@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Pre-inicializar detector
   setTimeout(initBarcodeDetector, 1500);
-  
+
   console.log('✅ Scanner ML Kit (v2-continuo) listo');
 });
 

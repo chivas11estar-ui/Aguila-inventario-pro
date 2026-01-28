@@ -4,34 +4,34 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v1.3";
+const CACHE_NAME = "aguila-pro-v1.4";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
 const APP_SHELL_ASSETS = [
   "/",
   "/index.html",
-  "/styles.css",
-  "/custom-styles.css?v=1.1",
+  "/styles.css?v=1.2",
+  "/custom-styles.css?v=1.2",
   "/manifest.json",
   "/icon-192x192.png",
   "/icon-512x512.png",
-  "/firebase-config.js",
-  "/ui.js",
-  "/scanner-mlkit.js",
-  "/scanner-events.js",
-  "/inventory.js",
-  "/inventory-ui.js",
-  "/refill-enhanced.js",
-  "/audit.js",
-  "/system.js",
-  "/system-events.js",
-  "/profile.js",
-  "/profile-ui.js",
-  "/analytics.js",
-  "/analytics-ui.js",
-  "/phrases.js",
-  "/auth.js",
-  "/app.js"
+  "/firebase-config.js?v=1.2",
+  "/ui.js?v=1.2",
+  "/scanner-mlkit.js?v=1.2",
+  "/scanner-events.js?v=1.2",
+  "/inventory.js?v=1.2",
+  "/inventory-ui.js?v=1.2",
+  "/refill-enhanced.js?v=1.2",
+  "/audit.js?v=1.2",
+  "/system.js?v=1.2",
+  "/system-events.js?v=1.2",
+  "/profile.js?v=1.2",
+  "/profile-ui.js?v=1.2",
+  "/analytics.js?v=1.2",
+  "/analytics-ui.js?v=1.2",
+  "/phrases.js?v=1.2",
+  "/auth.js?v=1.2",
+  "/app.js?v=1.2"
 ];
 
 // ============================================================
@@ -81,10 +81,15 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Ignorar peticiones que no son GET y las de Firebase/APIs externas
-  if (request.method !== "GET" || request.url.includes("firebase") || request.url.includes("googleapis") || request.url.includes("gstatic")) {
+  if (request.method !== "GET" ||
+    request.url.includes("firebase") ||
+    request.url.includes("googleapis") ||
+    request.url.includes("gstatic") ||
+    request.url.includes("open-meteo.com") ||
+    request.url.includes("bigdatacloud.net")) {
     return;
   }
-  
+
   const url = new URL(request.url);
 
   // Aplicar Stale-While-Revalidate para los assets del App Shell
@@ -102,6 +107,8 @@ self.addEventListener("fetch", (event) => {
           }).catch(err => {
             // La red falló, no hay nada que hacer, se usará la caché si existe.
             console.warn(`[SW v${CACHE_NAME}] Fallo de red para ${request.url}`, err);
+            // IMPORTANTE: No devolver nada aquí para que la promesa resuelva con undefined, 
+            // pero el siguiente .then manejará el cachedResponse || fetchedResponsePromise
           });
 
           // Devolver la respuesta de la caché inmediatamente si existe, si no, esperar a la red
@@ -110,11 +117,11 @@ self.addEventListener("fetch", (event) => {
       })
     );
   } else {
-    // Para otros assets (ej. imágenes no cacheadas), usar estrategia Network First
+    // Para otros assets (ej. imágenes no cacheadas), usar estrategia Network First con fallback seguro
     event.respondWith(
       fetch(request).catch(() => {
-        // Opcional: devolver un fallback si la petición a la red falla
-        // Por ejemplo, para una imagen, podrías devolver una imagen placeholder
+        // Devolver una respuesta 404 válida en lugar de undefined para evitar el error "Failed to convert value to Response"
+        return new Response("Offline / Fallo de red", { status: 404, statusText: "Offline" });
       })
     );
   }

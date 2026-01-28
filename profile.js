@@ -145,9 +145,10 @@ async function loadWeatherData() {
             lon = pos.coords.longitude;
 
             try {
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+                // Usamos bigdatacloud.net que es más amigable con CORS y gratis para este uso básico
+                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
                 const geoData = await geoRes.json();
-                cityName = geoData.address.city || geoData.address.town || "Ubicación Actual";
+                cityName = geoData.city || geoData.locality || geoData.principalSubdivision || "Ubicación Actual";
             } catch (e) { cityName = "Tu Tienda"; }
         }
     } catch (e) { cityName = "Ubicación Aprox"; }
