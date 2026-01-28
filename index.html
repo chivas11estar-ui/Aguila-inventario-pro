@@ -168,10 +168,10 @@
       <!-- HEADER APP -->
       <div class="app-header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <div class="app-title">🦅 Águila Inventario Pro</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button class="btn-icon" id="btn-offline-status">📡</button>
+                  <div class="app-title">🦅 Águila Inventario Pro</div>
+                  <p id="motivational-phrase" style="color: var(--muted); font-size: 12px; font-style: italic; text-align: center; flex-grow: 1;"></p>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">          <button class="btn-icon" id="btn-offline-status">📡</button>
           <button class="btn-icon" id="btn-logout">🚪</button>
         </div>
       </div>
@@ -456,6 +456,18 @@
               <p>Cargando perfil...</p>
             </div>
           </div>
+
+          <!-- Administrador de Frases Motivacionales -->
+          <div id="motivational-phrases-manager" class="card">
+            <h3 style="color: var(--primary); margin-bottom: 20px;">💬 Mis Frases Motivacionales</h3>
+            <form id="add-phrase-form" style="display: flex; gap: 8px; margin-bottom: 20px;">
+              <input id="new-phrase-input" type="text" placeholder="Escribe una nueva frase..." style="flex-grow: 1;" required />
+              <button type="submit" class="success" style="width: auto; padding: 12px 16px;">Añadir</button>
+            </form>
+            <div id="phrases-list">
+              <p style="color: var(--muted);">Cargando frases...</p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -521,6 +533,11 @@
        ============================================================ -->
   <script src="analytics.js"></script>
   <script src="analytics-ui.js"></script>
+
+  <!-- ============================================================
+       FRASES MOTIVACIONALES (NUEVO)
+       ============================================================ -->
+  <script src="phrases.js"></script>
 
   <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)

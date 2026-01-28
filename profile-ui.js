@@ -130,7 +130,7 @@ function renderWeatherCard(weather) {
         </button>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         <!-- Temperatura -->
         <div style="text-align: center; padding: 16px; background: #f0f9ff; border-radius: 8px;">
           <div style="font-size: 48px; margin-bottom: 8px;">
@@ -182,7 +182,7 @@ function renderActivityCard(activity) {
         </button>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <!-- Auditorías -->
         <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
           <div style="font-size: 32px; font-weight: 700; color: #10b981;">

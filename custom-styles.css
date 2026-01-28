@@ -313,3 +313,10 @@ html {
     display: none !important;
   }
 }
+
+/* Responsive Grid for Profile Cards */
+@media (max-width: 480px) {
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
