@@ -5,6 +5,7 @@
 
 let userMotivationalPhrases = [];
 let userPhrasesRef = null;
+let currentUserName = 'Campeón'; // Valor por defecto
 
 // ============================================================
 // INICIALIZACIÓN DEL MÓDULO
@@ -15,6 +16,17 @@ function initMotivationalPhrases(userId) {
     console.error('❌ ID de usuario no proporcionado para frases.');
     return;
   }
+
+  // 1. Obtener el nombre del usuario una sola vez
+  firebase.database().ref(`usuarios/${userId}/nombrePromotor`).once('value')
+    .then(snap => {
+      const name = snap.val();
+      if (name) {
+        // Tomar solo el primer nombre para que sea más corto
+        currentUserName = name.split(' ')[0];
+      }
+    });
+
   userPhrasesRef = firebase.database().ref(`usuarios/${userId}/frasesMotivacionales`);
 
   // Listener para cambios en tiempo real
@@ -22,14 +34,14 @@ function initMotivationalPhrases(userId) {
     if (snapshot.exists()) {
       userMotivationalPhrases = Object.entries(snapshot.val()).map(([id, value]) => ({ id, text: value.text }));
     } else {
-      // Si no hay frases, se puede añadir una por defecto
-      userMotivationalPhrases = [{ id: 'default', text: '¡A darlo todo hoy! 🦅' }];
+      // Si no hay frases, se puede añadir una por defecto con el placeholder
+      userMotivationalPhrases = [{ id: 'default', text: '¡A darlo todo hoy, {nombre}! 🦅' }];
     }
     console.log('📚 Frases cargadas:', userMotivationalPhrases.length);
-    
+
     // Si el contenedor de la lista es visible, renderizar
     if (document.getElementById('phrases-list')) {
-        renderPhrasesList();
+      renderPhrasesList();
     }
     // Mostrar una frase al azar en el header
     displayRandomPhrase();
@@ -48,7 +60,11 @@ function displayRandomPhrase() {
   }
   const randomIndex = Math.floor(Math.random() * userMotivationalPhrases.length);
   const randomPhrase = userMotivationalPhrases[randomIndex];
-  phraseContainer.textContent = `"${randomPhrase.text}"`;
+
+  // Reemplazar el placeholder {nombre} por el nombre real
+  const finalText = randomPhrase.text.replace(/{nombre}/g, currentUserName);
+
+  phraseContainer.textContent = `"${finalText}"`;
 }
 
 // ============================================================
@@ -85,33 +101,33 @@ function renderPhrasesList() {
 // AÑADIR UNA NUEVA FRASE
 // ============================================================
 async function addMotivationalPhrase(event) {
-    event.preventDefault();
-    const input = document.getElementById('new-phrase-input');
-    const phraseText = input.value.trim();
+  event.preventDefault();
+  const input = document.getElementById('new-phrase-input');
+  const phraseText = input.value.trim();
 
-    if (!phraseText) {
-        showToast('⚠️ Escribe una frase para añadir.', 'warning');
-        return;
-    }
-    
-    if (!userPhrasesRef) {
-        showToast('❌ Error de conexión. No se pudo guardar la frase.', 'error');
-        return;
-    }
+  if (!phraseText) {
+    showToast('⚠️ Escribe una frase para añadir.', 'warning');
+    return;
+  }
 
-    // Si la única frase es la por defecto, eliminarla antes de añadir la nueva.
-    if (userMotivationalPhrases.length === 1 && userMotivationalPhrases[0].id === 'default') {
-        await userPhrasesRef.set(null);
-    }
-    
-    try {
-        await userPhrasesRef.push({ text: phraseText });
-        showToast('✅ ¡Frase añadida con éxito!', 'success');
-        input.value = '';
-    } catch (error) {
-        console.error('❌ Error añadiendo frase:', error);
-        showToast('❌ No se pudo guardar la frase. Error: ' + error.message, 'error');
-    }
+  if (!userPhrasesRef) {
+    showToast('❌ Error de conexión. No se pudo guardar la frase.', 'error');
+    return;
+  }
+
+  // Si la única frase es la por defecto, eliminarla antes de añadir la nueva.
+  if (userMotivationalPhrases.length === 1 && userMotivationalPhrases[0].id === 'default') {
+    await userPhrasesRef.set(null);
+  }
+
+  try {
+    await userPhrasesRef.push({ text: phraseText });
+    showToast('✅ ¡Frase añadida con éxito!', 'success');
+    input.value = '';
+  } catch (error) {
+    console.error('❌ Error añadiendo frase:', error);
+    showToast('❌ No se pudo guardar la frase. Error: ' + error.message, 'error');
+  }
 }
 
 // ============================================================
@@ -141,14 +157,14 @@ async function deleteMotivationalPhrase(phraseId) {
 // CONFIGURAR EVENT LISTENERS
 // ============================================================
 function setupPhrasesEventListeners() {
-    const form = document.getElementById('add-phrase-form');
-    if (form) {
-        // Asegurarse de no añadir el listener múltiples veces
-        if (!form.dataset.listenerAttached) {
-            form.addEventListener('submit', addMotivationalPhrase);
-            form.dataset.listenerAttached = 'true';
-        }
+  const form = document.getElementById('add-phrase-form');
+  if (form) {
+    // Asegurarse de no añadir el listener múltiples veces
+    if (!form.dataset.listenerAttached) {
+      form.addEventListener('submit', addMotivationalPhrase);
+      form.dataset.listenerAttached = 'true';
     }
+  }
 }
 
 // Exponer la función de eliminación al scope global para el onclick
@@ -156,11 +172,11 @@ window.deleteMotivationalPhrase = deleteMotivationalPhrase;
 
 // Inicialización diferida
 document.addEventListener('DOMContentLoaded', () => {
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            initMotivationalPhrases(user.uid);
-        }
-    });
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      initMotivationalPhrases(user.uid);
+    }
+  });
 });
 
 console.log('✅ phrases.js cargado correctamente');

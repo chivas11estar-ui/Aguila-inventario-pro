@@ -1,217 +1,253 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: profile.js (FINAL CORREGIDO)
+// Águila Inventario Pro - Módulo: profile.js
+// Lógica de Negocio y Gestión de Estado
+// Modificado para integrar con profile-ui.js
 // ============================================================
 
-let userProfileData = null;
-let userDeterminanteProfile = null;
+// Inicializar Estado Global
+window.PROFILE_STATE = {
+    userData: null,
+    preferences: {
+        fraseMotivacional: '¡Hoy será un gran día! 🦅',
+        avatar: '👤',
+        mostrarClima: true,
+        mostrarEstadisticas: true
+    },
+    todayActivity: {
+        auditorias: 0,
+        productosAuditados: 0,
+        rellenos: 0,
+        cajasMovidas: 0
+    },
+    weather: null,
+    isLoading: false
+};
 
-// Inicialización segura
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 async function initProfileModule() {
+    console.log('👤 Inicializando módulo de perfil (Logic)...');
+
+    // Escuchar cambios de autenticación
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
+            console.log('✅ Usuario detectado, iniciando carga de perfil...');
             await loadUserProfile();
+        } else {
+            window.PROFILE_STATE.userData = null;
         }
     });
 }
 
+// ============================================================
+// CARGAR PERFIL DE USUARIO
+// ============================================================
 async function loadUserProfile() {
-    console.log('👤 Cargando perfil...');
     const userId = firebase.auth().currentUser?.uid;
     if (!userId) return;
 
+    window.PROFILE_STATE.isLoading = true;
+    if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+
     try {
         const snapshot = await firebase.database().ref(`usuarios/${userId}`).once('value');
-        userProfileData = snapshot.val();
-        
-        if (!userProfileData) {
-            showToast('⚠️ No se encontró perfil de usuario', 'warning');
+        const data = snapshot.val();
+
+        if (!data) {
+            console.warn('⚠️ No se encontró perfil de usuario');
+            if (typeof showToast === 'function') showToast('Perfil no encontrado', 'warning');
+            window.PROFILE_STATE.isLoading = false;
+            if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
             return;
         }
 
-        userDeterminanteProfile = userProfileData.determinante;
-        
-        // Renderizar la estructura base inmediatamente
-        renderProfileSkeleton();
-        
-        // Cargas en paralelo (no bloqueantes)
-        Promise.all([
-            loadDailyActivity(),
-            loadWeatherData()
-        ]).catch(err => console.error("Error en cargas secundarias:", err));
+        // Actualizar estado
+        window.PROFILE_STATE.userData = data;
+
+        // Cargar preferencias si existen (o usar defaults)
+        if (data.preferences) {
+            window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...data.preferences };
+        }
+
+        window.PROFILE_STATE.isLoading = false;
+        console.log('✅ Perfil cargado en estado global');
+
+        // Renderizar UI principal
+        if (typeof window.renderProfileUI === 'function') {
+            window.renderProfileUI();
+        }
+
+        // Cargar datos secundarios
+        loadDailyActivity();
+        loadWeatherData();
 
     } catch (error) {
-        console.error('❌ Error perfil:', error);
-        showToast('Error de conexión con la base de datos', 'error');
+        console.error('❌ Error cargando perfil:', error);
+        window.PROFILE_STATE.isLoading = false;
+        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
     }
 }
 
-function renderProfileSkeleton() {
-    const container = document.getElementById('profile-container');
-    if (!container) return;
-
-    const frases = [
-        '¡Hoy es un gran día para vender!',
-        '¡Tu esfuerzo se nota en cada pasillo!',
-        '¡El éxito es la suma de pequeños esfuerzos!'
-    ];
-    const frase = frases[Math.floor(Math.random() * frases.length)];
-
-    container.innerHTML = `
-        <div class="card" style="text-align:center; padding:25px; border-top: 5px solid var(--primary);">
-            <div style="font-size:60px; margin-bottom:10px;">👤</div>
-            <h2 style="margin:0; color:var(--primary);">${userProfileData.nombrePromotor || 'Promotor'}</h2>
-            <p style="color:var(--muted); font-size:14px; margin-bottom:15px;">${userProfileData.email || ''}</p>
-            
-            <div style="background:var(--bg); padding:15px; border-radius:12px; margin-top:10px;">
-                <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Tienda Asignada</div>
-                <div style="font-size:16px; font-weight:700;">${userProfileData.nombreTienda || 'N/A'}</div>
-                <div style="font-size:10px; color:var(--muted); opacity:0.7;">ID: ${userDeterminanteProfile || 'N/A'}</div>
-            </div>
-
-            <div style="margin-top:15px; padding:10px; background:#fff9db; border-radius:8px; border:1px dashed #fab005;">
-                <span style="font-size:13px; color:#856404; font-weight:600;">💪 ${frase}</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3 style="font-size:16px; margin-bottom:15px;">📊 Resumen del Día</h3>
-            <div id="daily-activity" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div style="background:var(--bg); padding:15px; border-radius:10px; text-align:center;">
-                    <div id="activity-audits" style="font-size:24px; font-weight:800; color:var(--primary);">...</div>
-                    <div style="font-size:11px; color:var(--muted);">Auditorías</div>
-                </div>
-                <div style="background:var(--bg); padding:15px; border-radius:10px; text-align:center;">
-                    <div id="activity-refills" style="font-size:24px; font-weight:800; color:var(--success);">...</div>
-                    <div style="font-size:11px; color:var(--muted);">Rellenos</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3 style="font-size:16px; margin-bottom:10px;">☁️ Clima Local</h3>
-            <div id="weather-card" style="min-height:80px; display:flex; align-items:center; justify-content:center;">
-                <div style="font-size:32px;">⏳</div>
-            </div>
-        </div>
-    `;
-}
-
+// ============================================================
+// CARGAR ACTIVIDAD DIARIA
+// ============================================================
 async function loadDailyActivity() {
-    if (!userDeterminanteProfile) return;
+    const determinante = window.PROFILE_STATE.userData?.determinante;
+    if (!determinante) return;
+
     const today = new Date().toISOString().split('T')[0];
-    
+
     try {
-        const [audits, movs] = await Promise.all([
-            firebase.database().ref(`auditorias/${userDeterminanteProfile}`).orderByChild('fecha').startAt(today).once('value'),
-            firebase.database().ref(`movimientos/${userDeterminanteProfile}`).orderByChild('fecha').startAt(today).once('value')
+        const [auditsSnap, movsSnap] = await Promise.all([
+            firebase.database().ref(`auditorias/${determinante}`).orderByChild('fecha').startAt(today).once('value'),
+            firebase.database().ref(`movimientos/${determinante}`).orderByChild('fecha').startAt(today).once('value')
         ]);
 
-        document.getElementById('activity-audits').innerText = audits.numChildren() || 0;
-        document.getElementById('activity-refills').innerText = movs.numChildren() || 0;
+        const audits = auditsSnap.val() || {};
+        const movs = movsSnap.val() || {};
+
+        // Calcular totales
+        let totalProductosAuditados = 0;
+        Object.values(audits).forEach(a => totalProductosAuditados += (a.productos ? Object.keys(a.productos).length : 0));
+
+        let totalCajasMovidas = 0;
+        Object.values(movs).forEach(m => totalCajasMovidas += (m.cajas || 0));
+
+        window.PROFILE_STATE.todayActivity = {
+            auditorias: Object.keys(audits).length,
+            productosAuditados: totalProductosAuditados,
+            rellenos: Object.keys(movs).length,
+            cajasMovidas: totalCajasMovidas
+        };
+
+        if (typeof window.updateActivityUI === 'function') {
+            window.updateActivityUI();
+        }
+
     } catch (e) {
         console.error("Error cargando actividad:", e);
     }
 }
 
+// ============================================================
+// CARGAR CLIMA (Lógica Mejorada)
+// ============================================================
 async function loadWeatherData() {
-    const card = document.getElementById('weather-card');
-    let lat = 19.4326, lon = -99.1332; // Default
+    let lat = 19.4326, lon = -99.1332; // CDMX Default
     let cityName = "Detectando...";
 
     try {
         if (navigator.geolocation) {
-            const pos = await new Promise((res, rej) => 
-                navigator.geolocation.getCurrentPosition(res, rej, {timeout: 5000}));
+            const pos = await new Promise((res, rej) =>
+                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
-            
+
             try {
                 const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
                 const geoData = await geoRes.json();
                 cityName = geoData.address.city || geoData.address.town || "Ubicación Actual";
             } catch (e) { cityName = "Tu Tienda"; }
         }
-    } catch (e) { cityName = "Los Reyes (Aprox)"; }
+    } catch (e) { cityName = "Ubicación Aprox"; }
 
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=apparent_temperature`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await res.json();
         const w = data.current_weather;
-        
-        // CORRECCIÓN: Separar emoji y texto
+
         const weatherStates = {
-            0: { emoji: "☀️", text: "Despejado" },
-            1: { emoji: "🌤️", text: "Casi despejado" },
-            2: { emoji: "⛅", text: "Nubes dispersas" },
-            3: { emoji: "☁️", text: "Nublado" },
-            45: { emoji: "🌫️", text: "Niebla" },
-            48: { emoji: "🌫️", text: "Niebla densa" },
-            51: { emoji: "🌧️", text: "Llovizna" },
-            53: { emoji: "🌧️", text: "Llovizna moderada" },
-            55: { emoji: "🌧️", text: "Llovizna intensa" },
-            61: { emoji: "🌧️", text: "Lluvia ligera" },
-            63: { emoji: "🌧️", text: "Lluvia" },
-            65: { emoji: "🌧️", text: "Lluvia intensa" },
-            71: { emoji: "❄️", text: "Nevada ligera" },
-            73: { emoji: "❄️", text: "Nevada" },
-            75: { emoji: "❄️", text: "Nevada intensa" },
-            80: { emoji: "🌧️", text: "Chubascos" },
-            81: { emoji: "🌧️", text: "Chubascos moderados" },
-            82: { emoji: "🌧️", text: "Chubascos intensos" },
-            95: { emoji: "⛈️", text: "Tormenta" },
-            96: { emoji: "⛈️", text: "Tormenta con granizo" },
-            99: { emoji: "⛈️", text: "Tormenta intensa" }
+            0: { icon: "☀️", condition: "Despejado" },
+            1: { icon: "🌤️", condition: "Mayormente despejado" },
+            2: { icon: "⛅", condition: "Parcialmente nublado" },
+            3: { icon: "☁️", condition: "Nublado" },
+            45: { icon: "🌫️", condition: "Niebla" },
+            51: { icon: "🌧️", condition: "Llovizna" },
+            61: { icon: "🌧️", condition: "Lluvia" },
+            71: { icon: "❄️", condition: "Nieve" },
+            95: { icon: "⛈️", condition: "Tormenta" }
         };
-        
-        const weatherInfo = weatherStates[w.weathercode] || { emoji: "☁️", text: "Clima desconocido" };
 
-        if (card) {
-            card.innerHTML = `
-                <div style="width:100%; padding: 12px; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0;">
-                    <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-                        📍 <span>${cityName}</span>
-                    </div>
+        const info = weatherStates[w.weathercode] || { icon: "qm", condition: "Desconocido" };
 
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 32px; line-height: 1;">${weatherInfo.emoji}</span>
-                            <div>
-                                <div style="font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1;">
-                                    ${Math.round(w.temperature)}°C
-                                </div>
-                                <div style="font-size: 10px; color: #475569; font-weight: 500;">
-                                    ${weatherInfo.text}
-                                </div>
-                            </div>
-                        </div>
+        window.PROFILE_STATE.weather = {
+            temperature: Math.round(w.temperature),
+            windSpeed: Math.round(w.windspeed),
+            humidity: 60, // API simple no da humedad, ponemos default
+            condition: info.condition,
+            icon: info.icon,
+            city: cityName,
+            error: false
+        };
 
-                        <div style="text-align: right; border-left: 1px solid #cbd5e1; padding-left: 10px;">
-                            <div style="font-size: 9px; color: #94a3b8;">VIENTO</div>
-                            <div style="font-size: 11px; font-weight: 700; color: #475569;">${Math.round(w.windspeed)} km/h</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        if (typeof window.updateWeatherUI === 'function') {
+            window.updateWeatherUI();
         }
+
     } catch (e) {
         console.error('Error clima:', e);
-        if (card) card.innerHTML = `
-            <div style="text-align:center; padding:15px; color:#94a3b8;">
-                <div style="font-size:32px; margin-bottom:5px;">🌐</div>
-                <small style="font-size:11px;">Clima no disponible</small>
-            </div>
-        `;
+        window.PROFILE_STATE.weather = { error: true };
+        if (typeof window.updateWeatherUI === 'function') {
+            window.updateWeatherUI();
+        }
     }
 }
 
-// Escuchador de pestañas
-document.addEventListener('DOMContentLoaded', () => {
-    initProfileModule();
-    document.querySelectorAll('[data-tab]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if(btn.dataset.tab === 'profile') loadUserProfile();
-        });
-    });
-});
+// ============================================================
+// FUNCIONES PÚBLICAS PARA ACTUALIZAR DATOS
+// ============================================================
+async function updateUserData(newData) {
+    const userId = firebase.auth().currentUser?.uid;
+    if (!userId) return false;
 
-console.log('✅ profile.js cargado correctamente');
+    try {
+        await firebase.database().ref(`usuarios/${userId}`).update(newData);
+
+        // Actualizar estado local
+        window.PROFILE_STATE.userData = { ...window.PROFILE_STATE.userData, ...newData };
+
+        if (typeof showToast === 'function') showToast('✅ Datos actualizados', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error actualizando usuario:', error);
+        if (typeof showToast === 'function') showToast('Error al actualizar', 'error');
+        return false;
+    }
+}
+
+async function saveUserPreferences(newPrefs) {
+    const userId = firebase.auth().currentUser?.uid;
+    if (!userId) return false;
+
+    try {
+        await firebase.database().ref(`usuarios/${userId}/preferences`).update(newPrefs);
+
+        // Actualizar estado local
+        window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...newPrefs };
+
+        if (typeof showToast === 'function') showToast('✅ Preferencias guardadas', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error guardando preferencias:', error);
+        return false;
+    }
+}
+
+// ============================================================
+// EXPORTAR FUNCIONES
+// ============================================================
+window.loadUserProfile = loadUserProfile;
+window.refreshWeather = loadWeatherData;
+window.refreshActivity = loadDailyActivity;
+window.updateUserData = updateUserData;
+window.saveUserPreferences = saveUserPreferences;
+
+// Inicializar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProfileModule);
+} else {
+    initProfileModule();
+}
+
+console.log('✅ profile.js (Logic) cargado - Integrado con profile-ui.js');
