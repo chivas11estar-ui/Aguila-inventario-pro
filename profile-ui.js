@@ -49,17 +49,8 @@ function renderProfileUI() {
     <!-- Clima -->
     ${renderWeatherCard(weather)}
 
-    <!-- Actividad del Día -->
-    ${renderActivityCard(todayActivity)}
-
-    <!-- Información de la Cuenta -->
-    ${renderAccountInfo(userData)}
-
-    <!-- Preferencias -->
+    <!-- Preferencias (Solo Frase) -->
     ${renderPreferences(preferences)}
-
-    <!-- Botones de Acción -->
-    ${renderActionButtons()}
   `;
 
   container.innerHTML = html;
@@ -257,12 +248,12 @@ function renderActivityMessage(activity) {
 // RENDERIZAR INFORMACIÓN DE LA CUENTA
 // ============================================================
 function renderAccountInfo(userData) {
-  const fechaRegistro = userData.fechaRegistro 
-    ? new Date(userData.fechaRegistro).toLocaleDateString('es-MX', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      })
+  const fechaRegistro = userData.fechaRegistro
+    ? new Date(userData.fechaRegistro).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
     : 'No disponible';
 
   return `
@@ -349,32 +340,8 @@ function renderPreferences(preferences) {
           </small>
         </div>
 
-        <div style="margin-bottom: 16px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input 
-              type="checkbox" 
-              id="profile-mostrar-clima"
-              ${preferences.mostrarClima !== false ? 'checked' : ''}
-              style="width: 18px; height: 18px; cursor: pointer;"
-            />
-            <span style="font-weight: 600; font-size: 14px;">Mostrar información del clima</span>
-          </label>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input 
-              type="checkbox" 
-              id="profile-mostrar-stats"
-              ${preferences.mostrarEstadisticas !== false ? 'checked' : ''}
-              style="width: 18px; height: 18px; cursor: pointer;"
-            />
-            <span style="font-weight: 600; font-size: 14px;">Mostrar estadísticas de actividad</span>
-          </label>
-        </div>
-
         <button type="submit" class="success" style="width: 100%; margin-top: 16px;">
-          ✅ Guardar Preferencias
+          ✅ Guardar Frase
         </button>
       </form>
     </div>
@@ -505,7 +472,7 @@ function updateWeatherUI() {
   if (!weather || weather.error) return;
 
   weatherCard.outerHTML = renderWeatherCard(weather).trim();
-  
+
   console.log('✅ UI del clima actualizada');
 }
 
@@ -520,7 +487,7 @@ function updateActivityUI() {
   if (!activity) return;
 
   activityCard.outerHTML = renderActivityCard(activity).trim();
-  
+
   console.log('✅ UI de actividad actualizada');
 }
 
