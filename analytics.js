@@ -14,7 +14,8 @@ window.ANALYTICS_STATE = {
         productosDistintos: 0,
         topProductos: [],
         topMarcas: [],
-        historico7Dias: {}
+        historico7Dias: {},
+        dailyAveragePiecesPerProduct: [] // Nueva propiedad para el promedio por producto
     }
 };
 
@@ -100,12 +101,14 @@ function procesarMetricas(fechaHoy) {
     const audits = window.ANALYTICS_STATE.auditorias;
     const res = window.ANALYTICS_STATE.resumen;
 
+    // Métricas de Hoy
     const movsHoy = movs.filter(m => m.fecha && m.fecha.startsWith(fechaHoy.split('T')[0]));
     res.totalRellenosHoy = movsHoy.length;
     res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.cajasMovidas) || 0), 0);
     res.auditoriasHoy = audits.filter(a => a.fecha && a.fecha.startsWith(fechaHoy.split('T')[0])).length;
     res.productosDistintos = new Set(movsHoy.map(m => m.productoNombre).filter(Boolean)).size;
 
+    // Top 5 Productos (basado en cajas en 7 días)
     const conteoProd = {};
     movs.forEach(m => {
         if(m.tipo !== 'salida') return;
@@ -118,6 +121,7 @@ function procesarMetricas(fechaHoy) {
     });
     res.topProductos = Object.values(conteoProd).sort((a, b) => b.total - a.total).slice(0, 5);
 
+    // Top 5 Marcas (basado en cajas en 7 días)
     const conteoMarcas = {};
     movs.forEach(m => {
         if(m.tipo !== 'salida') return;
@@ -127,6 +131,7 @@ function procesarMetricas(fechaHoy) {
     });
     res.topMarcas = Object.entries(conteoMarcas).map(([marca, total]) => ({ marca, total })).sort((a, b) => b.total - a.total).slice(0, 5);
 
+    // Histórico de Rellenos (7 días)
     res.historico7Dias = {};
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
@@ -135,7 +140,29 @@ function procesarMetricas(fechaHoy) {
         const movimientosDia = movs.filter(m => m.fecha && m.fecha.startsWith(fechaStr) && m.tipo === 'salida');
         res.historico7Dias[fechaStr] = movimientosDia.length;
     }
-}
+
+    // Nuevo: Promedio Diario de Piezas POR PRODUCTO (7 días)
+    const refillMovements = movs.filter(m => m.tipo === 'salida');
+    const piecesPerProduct = {};
+
+    refillMovements.forEach(m => {
+        const productName = m.productoNombre || 'Desconocido';
+        const pieces = parseInt(m.piezasMovidas) || 0;
+        if (!piecesPerProduct[productName]) {
+            piecesPerProduct[productName] = 0;
+        }
+        piecesPerProduct[productName] += pieces;
+    });
+
+    const dailyAveragePiecesPerProduct = Object.keys(piecesPerProduct).map(productName => {
+        return {
+            nombre: productName,
+            dailyAverage: Math.round(piecesPerProduct[productName] / 7)
+        };
+    }).sort((a, b) => b.dailyAverage - a.dailyAverage); // Ordenar por promedio diario más alto
+
+    res.dailyAveragePiecesPerProduct = dailyAveragePiecesPerProduct;
+    console.log(`📊 Promedio diario de piezas POR PRODUCTO calculado:`, res.dailyAveragePiecesPerProduct);
 
 // ============================================================
 // LÓGICA TOP 10 MÁS VENDIDOS (HISTÓRICO COMPLETO)

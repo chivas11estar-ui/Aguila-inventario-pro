@@ -400,7 +400,7 @@
                 <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
               </form>
 
-              <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;display:none;">
+              <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;">
                 🏁 Terminar Auditoría
               </button>
             </div>
@@ -436,6 +436,13 @@
         <div id="tab-analytics" class="tab-content hidden">
           <div id="analytics-container">
             <!-- El JS renderizará aquí los gráficos existentes -->
+          </div>
+
+          <div class="card" style="margin-top: 20px;">
+            <h2>📊 Promedio de Relleno (Últimos 7 Días)</h2>
+            <div id="daily-average-refill-container" style="text-align: center; padding: 20px;">
+                <p style="color: var(--muted);">Calculando...</p>
+            </div>
           </div>
           
           <div class="card" style="margin-top: 20px;">

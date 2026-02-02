@@ -75,6 +75,23 @@ window.renderAnalyticsUI = function() {
         <div style="height:80px;"></div>
     `;
 
+    // NEW: Render Daily Average Per Product
+    const avgContainer = document.getElementById('daily-average-refill-container');
+    if (avgContainer) {
+        const averages = window.ANALYTICS_STATE.resumen.dailyAveragePiecesPerProduct;
+
+        if (averages && averages.length > 0) {
+            avgContainer.innerHTML = averages.map(item => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+                    <span style="font-size:14px; color:var(--text);">${item.nombre}</span>
+                    <span style="font-size:16px; font-weight:700; color:var(--primary);">${item.dailyAverage.toLocaleString('es-MX')} piezas/día</span>
+                </div>
+            `).join('');
+        } else {
+            avgContainer.innerHTML = '<p style="color: var(--muted); text-align:center;">No hay datos de relleno en los últimos 7 días.</p>';
+        }
+    }
+
     setTimeout(() => {
         renderChart(data.historico7Dias);
     }, 100);

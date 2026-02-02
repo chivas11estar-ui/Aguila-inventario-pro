@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         registrarConteo();
     };
+    // Add event listener for the "Terminar Auditoría" button
+    document.getElementById('finish-audit-btn').onclick = finishNormalAudit;
     // Quick Audit Mode Listeners
     document.getElementById('btn-quick-audit-mode').onclick = toggleQuickAuditMode;
     document.getElementById('btn-save-quick-audit').onclick = saveQuickAudit;
@@ -241,6 +243,7 @@ function saveBodega() {
     display.style.cssText = "background:#e0f2fe; color:#0369a1; padding:15px; border-radius:10px; border-left:5px solid #0ea5e9; margin-bottom:15px; font-size:14px;";
     input.disabled = true;
     document.getElementById('save-warehouse-btn').style.display = 'none';
+    document.getElementById('finish-audit-btn').style.display = 'block'; // Make finish audit button visible
     showToast('Bodega fijada. ¡Buen trabajo!', 'success');
     setTimeout(() => document.getElementById('audit-barcode').focus(), 300);
 }
@@ -316,5 +319,31 @@ function limpiarCamposAudit(todo) {
     document.getElementById('audit-stock-info').style.display = 'none';
     document.getElementById('audit-barcode').focus();
 }
+
+// ============================================================
+// NEW: Finish Normal Audit
+// ============================================================
+function finishNormalAudit() {
+    console.log('🏁 Terminando Auditoría Normal');
+    currentAuditWarehouse = null;
+    currentAuditProduct = null;
+
+    const warehouseInput = document.getElementById('audit-warehouse');
+    const saveWarehouseBtn = document.getElementById('save-warehouse-btn');
+    const warehouseDisplay = document.getElementById('current-warehouse-display');
+    const finishAuditBtn = document.getElementById('finish-audit-btn');
+
+    warehouseInput.value = '';
+    warehouseInput.disabled = false;
+    saveWarehouseBtn.style.display = 'block';
+    warehouseDisplay.innerHTML = 'Ninguna bodega seleccionada';
+    warehouseDisplay.style.cssText = "padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;";
+    
+    limpiarCamposAudit(true); // Clear product-related fields
+
+    showToast('✅ Auditoría Normal finalizada. Puedes empezar una nueva.', 'success');
+    finishAuditBtn.style.display = 'none'; // Hide the button after finishing
+}
+
 // Expose functions to be called from inline event handlers
 window.updateQuickAuditItemQuantity = updateQuickAuditItemQuantity;
