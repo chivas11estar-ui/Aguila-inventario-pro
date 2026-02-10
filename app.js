@@ -75,7 +75,14 @@ function switchTab(tabName) {
     if (typeof window.loadProfile === 'function') {
       window.loadProfile();
     } else {
-      console.warn('⚠️ window.loadProfile no está definido. Asegúrate de que profile.js se cargue correctamente.');
+      console.warn('⚠️ window.loadProfile no está definido. Intentando de nuevo en breve...');
+      setTimeout(() => {
+          if (typeof window.loadProfile === 'function') {
+              window.loadProfile();
+          } else {
+              console.error('❌ Fallo persistente: window.loadProfile sigue sin estar definido.');
+          }
+      }, 500); // Retry after 500ms
     }
   }
   
