@@ -25,6 +25,15 @@ window.PROFILE_STATE = {
 };
 
 // ============================================================
+// EXPORTAR FUNCIONES (EARLY EXPOSURE)
+// ============================================================
+window.loadUserProfile = loadUserProfile;
+window.refreshWeather = window.fetchWeatherData;
+window.refreshActivity = loadDailyActivity;
+window.updateUserData = updateUserData;
+window.saveUserPreferences = saveUserPreferences;
+
+// ============================================================
 // GESTIÓN DE TEMA (CLARO/OSCURO)
 // ============================================================
 function applyTheme() {
@@ -187,14 +196,7 @@ async function saveUserPreferences(newPrefs) {
     }
 }
 
-// ============================================================
-// EXPORTAR FUNCIONES
-// ============================================================
-window.loadUserProfile = loadUserProfile;
-window.refreshWeather = window.fetchWeatherData;
-window.refreshActivity = loadDailyActivity;
-window.updateUserData = updateUserData;
-window.saveUserPreferences = saveUserPreferences;
+
 
 // Inicializar
 if (document.readyState === 'loading') {
