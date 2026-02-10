@@ -43,7 +43,7 @@ async function initAnalytics() {
         window.ANALYTICS_STATE.determinante = userData.determinante;
         console.log('✅ Analytics: Determinante cargado:', window.ANALYTICS_STATE.determinante);
         
-        await fetchAnalyticsData();
+        await window.loadStats(); // Ahora llama a la función loadStats expuesta globalmente
 
     } catch (error) {
         console.error('❌ Error en initAnalytics:', error);
@@ -52,11 +52,30 @@ async function initAnalytics() {
 }
 
 // ============================================================
-// CARGAR DATOS DE FIREBASE (7 DÍAS)
+// CARGAR DATOS DE FIREBASE (7 DÍAS) - Renombrado y expuesto como window.loadStats
 // ============================================================
-async function fetchAnalyticsData() {
+window.loadStats = async function() { // Expuesto globalmente como loadStats
+    console.log("📊 Cargando estadísticas..."); // Log de inicio de carga
     const det = window.ANALYTICS_STATE.determinante;
-    if (!det) return;
+    if (!det) {
+        console.warn('⚠️ loadStats: Determinante no disponible, no se pueden cargar las estadísticas.');
+        // Intentar obtener el determinante si no está cargado (útil si la función se llama directamente sin pasar por initAnalytics)
+        const userId = firebase.auth().currentUser?.uid;
+        if (userId) {
+             const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
+             const userData = userSnap.val();
+             if (userData && userData.determinante) {
+                 window.ANALYTICS_STATE.determinante = userData.determinante;
+                 console.log('✅ loadStats: Determinante recuperado:', window.ANALYTICS_STATE.determinante);
+             } else {
+                 showToast('Error: Determinante no disponible para cargar estadísticas', 'error');
+                 return;
+             }
+        } else {
+             showToast('Error: Usuario no autenticado y determinante no disponible', 'error');
+             return;
+        }
+    }
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -163,6 +182,7 @@ function procesarMetricas(fechaHoy) {
 
     res.dailyAveragePiecesPerProduct = dailyAveragePiecesPerProduct;
     console.log(`📊 Promedio diario de piezas POR PRODUCTO calculado:`, res.dailyAveragePiecesPerProduct);
+} // <--- Corregido: Agregado el corchete de cierre que faltaba aquí
 
 // ============================================================
 // LÓGICA TOP 10 MÁS VENDIDOS (HISTÓRICO COMPLETO)
@@ -233,10 +253,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Listener para el botón de la pestaña analytics (ahora llama a window.loadStats)
     document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.dataset.tab === 'analytics' && window.ANALYTICS_STATE.determinante) {
-                fetchAnalyticsData();
+                window.loadStats(); 
             }
         });
     });
@@ -248,9 +269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Exponer funciones
-window.reloadAnalytics = async function() { await fetchAnalyticsData(); };
+// Exponer funciones globalmente (solo las necesarias)
+window.reloadAnalytics = async function() { await window.loadStats(); };
 window.initAnalytics = initAnalytics;
-window.fetchAnalyticsData = fetchAnalyticsData;
+// Ya no es necesario exponer fetchAnalyticsData directamente, ya que se ha renombrado a window.loadStats
+// window.fetchAnalyticsData = fetchAnalyticsData; 
 
 console.log('✅ analytics.js (con Top 10) cargado correctamente');
