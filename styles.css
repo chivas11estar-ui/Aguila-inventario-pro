@@ -54,6 +54,14 @@
   --spacing-md: 16px;
   --spacing-lg: 20px;
   --spacing-xl: 24px;
+
+  /* Z-index system */
+  --z-header: 1000;
+  --z-nav: 1500;
+  --z-sidebar: 2000;
+  --z-modal: 3000;
+  --z-toast: 4000;
+
 }
 
 /* ============================================
@@ -289,7 +297,7 @@ button:active {
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: 1000; /* Aumentado z-index para asegurar que esté por encima de casi todo */
+  z-index: var(--z-header); /* Aumentado z-index para asegurar que esté por encima de casi todo */
   border-bottom: 1px solid var(--border); /* Borde más sutil */
 }
 
@@ -339,7 +347,7 @@ button:active {
   height: 100vh;
   background: var(--card-bg); /* Usando variable */
   box-shadow: var(--shadow-md); /* Usando variable de sombra */
-  z-index: 2000; /* Aumentado z-index para asegurar que esté por encima del header */
+  z-index: var(--z-sidebar); /* Aumentado z-index para asegurar que esté por encima del header */
   transition: left 0.3s ease-out; /* Transición con ease-out */
   padding-top: calc(var(--spacing-lg) * 2 + 1px); /* Ajuste dinámico si el header tiene altura fija */
   overflow-y: auto;
@@ -416,7 +424,7 @@ button:active {
   width: 100%;
   height: 100vh;
   background: rgba(0, 0, 0, 0.9); /* Fondo ligeramente menos opaco */
-  z-index: 3000; /* Z-index muy alto para modales */
+  z-index: var(--z-modal); /* Z-index muy alto para modales */
   align-items: center;
   justify-content: center;
   padding: var(--spacing-lg); /* Usando variable de espaciado */
@@ -512,7 +520,7 @@ button:active {
   position: fixed;
   top: var(--spacing-lg); /* Usando variable de espaciado */
   right: var(--spacing-lg); /* Usando variable de espaciado */
-  z-index: 4000; /* Z-index muy alto para toasts */
+  z-index: var(--z-toast); /* Z-index muy alto para toasts */
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm); /* Usando variable de espaciado */
@@ -673,7 +681,7 @@ button:active {
   background: var(--card-bg); /* Usando variable */
   box-shadow: var(--shadow-md); /* Usando variable de sombra */
   border-top: 1px solid var(--border); /* Borde más sutil */
-  z-index: 1500; /* Z-index para que esté por encima del contenido principal */
+  z-index: var(--z-nav); /* Z-index para que esté por encima del contenido principal */
 }
 
 .nav-btn {
@@ -724,3 +732,142 @@ footer {
   font-size: 0.875rem; /* Tamaño de fuente para el footer */
   text-align: center;
 }
+/* ============================================
+   PRODUCT CARDS - Nuevas clases para eliminar inline styles
+   ============================================ */
+
+.product-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.product-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.product-card.expired {
+  border-left-color: var(--error);
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.05), var(--card-bg));
+}
+
+.product-card.warning {
+  border-left-color: var(--warning);
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.05), var(--card-bg));
+}
+
+.product-card.fresh {
+  border-left-color: var(--success);
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.product-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.product-stock {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.days-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.days-badge.expired {
+  background: var(--error);
+  color: white;
+}
+
+.days-badge.warning {
+  background: var(--warning);
+  color: white;
+}
+
+.days-badge.fresh {
+  background: var(--success);
+  color: white;
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.product-info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.brand-header {
+  background: var(--primary-light);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.brand-header:hover {
+  background: rgba(0, 74, 173, 0.15);
+}
+
+.brand-header.collapsed {
+  margin-bottom: 0;
+}
+
+.brand-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+.brand-count {
+  font-size: 0.875rem;
+  color: var(--primary);
+  opacity: 0.8;
+}
+
+/* ============================================
+   UTILITY CLASSES - Text & Colors
+   ============================================ */
+
+.text-primary { color: var(--primary); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-error { color: var(--error); }
+.text-muted { color: var(--muted); }
+
+.bg-primary-light { background: var(--primary-light); }
+.bg-success-light { background: rgba(16, 185, 129, 0.1); }
+.bg-warning-light { background: rgba(245, 158, 11, 0.1); }
+.bg-error-light { background: rgba(239, 68, 68, 0.1); }
