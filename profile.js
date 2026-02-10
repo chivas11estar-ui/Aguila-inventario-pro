@@ -11,7 +11,8 @@ window.PROFILE_STATE = {
         fraseMotivacional: '¡Hoy será un gran día! 🦅',
         avatar: '👤',
         mostrarClima: true,
-        mostrarEstadisticas: true
+        mostrarEstadisticas: true,
+        darkMode: false // Default to light mode
     },
     todayActivity: {
         auditorias: 0,
@@ -22,6 +23,18 @@ window.PROFILE_STATE = {
     weather: null,
     isLoading: false
 };
+
+// ============================================================
+// GESTIÓN DE TEMA (CLARO/OSCURO)
+// ============================================================
+function applyTheme() {
+    const htmlElement = document.documentElement;
+    if (window.PROFILE_STATE.preferences.darkMode) {
+        htmlElement.classList.add('dark');
+    } else {
+        htmlElement.classList.remove('dark');
+    }
+}
 
 // ============================================================
 // INICIALIZACIÓN
@@ -69,6 +82,7 @@ async function loadUserProfile() {
         if (data.preferences) {
             window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...data.preferences };
         }
+        applyTheme(); // Apply theme based on loaded preferences
 
         window.PROFILE_STATE.isLoading = false;
         console.log('✅ Perfil cargado en estado global');
@@ -80,7 +94,7 @@ async function loadUserProfile() {
 
         // Cargar datos secundarios
         loadDailyActivity();
-        loadWeatherData();
+        window.fetchWeatherData();
 
     } catch (error) {
         console.error('❌ Error cargando perfil:', error);
@@ -130,70 +144,7 @@ async function loadDailyActivity() {
     }
 }
 
-// ============================================================
-// CARGAR CLIMA (Lógica Mejorada)
-// ============================================================
-async function loadWeatherData() {
-    let lat = 19.4326, lon = -99.1332; // CDMX Default
-    let cityName = "Detectando...";
 
-    try {
-        if (navigator.geolocation) {
-            const pos = await new Promise((res, rej) =>
-                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
-            lat = pos.coords.latitude;
-            lon = pos.coords.longitude;
-
-            try {
-                // Usamos bigdatacloud.net que es más amigable con CORS y gratis para este uso básico
-                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
-                const geoData = await geoRes.json();
-                cityName = geoData.city || geoData.locality || geoData.principalSubdivision || "Ubicación Actual";
-            } catch (e) { cityName = "Tu Tienda"; }
-        }
-    } catch (e) { cityName = "Ubicación Aprox"; }
-
-    try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-        const data = await res.json();
-        const w = data.current_weather;
-
-        const weatherStates = {
-            0: { icon: "☀️", condition: "Despejado" },
-            1: { icon: "🌤️", condition: "Mayormente despejado" },
-            2: { icon: "⛅", condition: "Parcialmente nublado" },
-            3: { icon: "☁️", condition: "Nublado" },
-            45: { icon: "🌫️", condition: "Niebla" },
-            51: { icon: "🌧️", condition: "Llovizna" },
-            61: { icon: "🌧️", condition: "Lluvia" },
-            71: { icon: "❄️", condition: "Nieve" },
-            95: { icon: "⛈️", condition: "Tormenta" }
-        };
-
-        const info = weatherStates[w.weathercode] || { icon: "qm", condition: "Desconocido" };
-
-        window.PROFILE_STATE.weather = {
-            temperature: Math.round(w.temperature),
-            windSpeed: Math.round(w.windspeed),
-            humidity: 60, // API simple no da humedad, ponemos default
-            condition: info.condition,
-            icon: info.icon,
-            city: cityName,
-            error: false
-        };
-
-        if (typeof window.updateWeatherUI === 'function') {
-            window.updateWeatherUI();
-        }
-
-    } catch (e) {
-        console.error('Error clima:', e);
-        window.PROFILE_STATE.weather = { error: true };
-        if (typeof window.updateWeatherUI === 'function') {
-            window.updateWeatherUI();
-        }
-    }
-}
 
 // ============================================================
 // FUNCIONES PÚBLICAS PARA ACTUALIZAR DATOS
@@ -226,6 +177,7 @@ async function saveUserPreferences(newPrefs) {
 
         // Actualizar estado local
         window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...newPrefs };
+        applyTheme(); // Apply theme immediately after saving preference
 
         if (typeof showToast === 'function') showToast('✅ Preferencias guardadas', 'success');
         return true;
@@ -239,7 +191,7 @@ async function saveUserPreferences(newPrefs) {
 // EXPORTAR FUNCIONES
 // ============================================================
 window.loadUserProfile = loadUserProfile;
-window.refreshWeather = loadWeatherData;
+window.refreshWeather = window.fetchWeatherData;
 window.refreshActivity = loadDailyActivity;
 window.updateUserData = updateUserData;
 window.saveUserPreferences = saveUserPreferences;
@@ -249,6 +201,7 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initProfileModule);
 } else {
     initProfileModule();
+    applyTheme(); // Apply theme immediately if DOM is already loaded
 }
 
 console.log('✅ profile.js (Logic) cargado - Integrado con profile-ui.js');

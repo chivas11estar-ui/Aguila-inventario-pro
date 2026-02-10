@@ -1,7 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: profile-ui.js
 // Fase 2.2 - Perfil del Promotor
-// RENDER UI - Solo HTML
+// RENDER UI - Con nuevo diseño Tailwind
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
@@ -11,17 +11,17 @@
 function renderProfileUI() {
   const container = document.getElementById('profile-container');
   if (!container) {
-    console.warn('⚠️ Elemento profile-container no encontrado');
+    console.warn('⚠️ Elemento profile-container no encontrado en el DOM para renderizar el perfil.');
     return;
   }
 
-  const { userData, preferences, todayActivity, weather, isLoading } = window.PROFILE_STATE;
+  const { userData, preferences, weather, isLoading } = window.PROFILE_STATE;
 
   if (isLoading) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: var(--muted);">
-        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-        <p>Cargando perfil...</p>
+      <div class="text-center p-10 text-slate-500 dark:text-slate-400">
+        <div class="material-icons-round text-6xl mb-4 animate-pulse">hourglass_empty</div>
+        <p class="text-lg">Cargando perfil...</p>
       </div>
     `;
     return;
@@ -29,11 +29,11 @@ function renderProfileUI() {
 
   if (!userData) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: var(--error);">
-        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
-        <p>No se pudo cargar el perfil</p>
-        <button onclick="window.loadUserProfile()" class="primary" style="margin-top: 16px;">
-          Reintentar
+      <div class="text-center p-10 text-red-500">
+        <div class="material-icons-round text-6xl mb-4">error_outline</div>
+        <p class="text-lg">No se pudo cargar el perfil del usuario.</p>
+        <button onclick="window.loadUserProfile()" class="bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full mt-6 transition-all active:scale-95 shadow-lg shadow-primary/20">
+          <span class="material-icons-round mr-2">refresh</span>Reintentar
         </button>
       </div>
     `;
@@ -42,47 +42,57 @@ function renderProfileUI() {
 
   console.log('🎨 Renderizando perfil de:', userData.nombrePromotor);
 
+  // El diseño del header/nav de la app global ya existe en index.html y app.js
+  // Solo se renderiza el contenido <main> del diseño
   const html = `
-    <!-- Header del Perfil -->
-    ${renderProfileHeader(userData)}
-
-    <!-- Clima -->
-    ${renderWeatherCard(weather)}
-
-    <!-- Preferencias (Solo Frase) -->
-    ${renderPreferences(preferences)}
+    <main class="p-5 space-y-6 max-w-md mx-auto">
+      ${renderProfileHeader(userData, preferences)}
+      ${preferences.mostrarClima ? renderWeatherCard(weather) : ''}
+      ${renderPreferencesCard(preferences)}
+      ${renderMotivationalPhrasesCard()}
+      ${renderProfileFooter()}
+    </main>
   `;
 
   container.innerHTML = html;
 
-  // Configurar eventos
+  // Configurar eventos para los nuevos elementos del DOM
   setupProfileEvents();
 
-  console.log('✅ Perfil renderizado');
+  console.log('✅ Perfil renderizado con nuevo diseño.');
 }
 
 // ============================================================
-// RENDERIZAR HEADER DEL PERFIL
+// RENDERIZAR SECCIÓN SUPERIOR DEL PERFIL
 // ============================================================
-function renderProfileHeader(userData) {
+function renderProfileHeader(userData, preferences) {
+  const defaultAvatar = `<span class="material-icons-round text-6xl">person</span>`;
+  const userAvatar = preferences.avatar ? `<span class="text-6xl">${preferences.avatar}</span>` : defaultAvatar;
+
   return `
-    <div class="card" style="text-align: center; background: linear-gradient(135deg, var(--primary), #003a8a); color: white; padding: 24px;">
-      <div style="font-size: 64px; margin-bottom: 12px;">
-        ${userData.preferences?.avatar || '👤'}
+    <section class="profile-gradient rounded-3xl p-8 text-center text-white ios-shadow relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+      <div class="relative z-10">
+        <div class="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-white/30">
+          ${userAvatar}
+        </div>
+        <h2 class="text-2xl font-bold mb-1">${userData.nombrePromotor || 'Promotor'}</h2>
+        <div class="space-y-2 opacity-90 text-sm font-light">
+          <div class="flex items-center justify-center gap-2">
+            <span class="material-icons-round text-sm">alternate_email</span>
+            <span>${userData.email || 'N/A'}</span>
+          </div>
+          <div class="flex items-center justify-center gap-2">
+            <span class="material-icons-round text-sm">store</span>
+            <span>${userData.nombreTienda || 'Sin tienda asignada'}</span>
+          </div>
+        </div>
+        <div class="mt-6 inline-flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full text-xs font-medium border border-white/10">
+          <span class="material-icons-round text-sm text-yellow-400">vpn_key</span>
+          <span>Determinante: <span class="font-bold">${userData.determinante || 'N/A'}</span></span>
+        </div>
       </div>
-      <h2 style="margin: 0 0 8px 0; color: white;">
-        ${userData.nombrePromotor || 'Promotor'}
-      </h2>
-      <p style="margin: 0; opacity: 0.9; font-size: 14px;">
-        📧 ${userData.email}
-      </p>
-      <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">
-        🏪 ${userData.nombreTienda || 'Sin tienda asignada'}
-      </p>
-      <div style="margin-top: 16px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 12px;">
-        🔑 Determinante: <strong>${userData.determinante}</strong>
-      </div>
-    </div>
+    </section>
   `;
 }
 
@@ -92,403 +102,254 @@ function renderProfileHeader(userData) {
 function renderWeatherCard(weather) {
   if (!weather || weather.error) {
     return `
-      <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="margin: 0; color: var(--primary);">☁️ Clima</h3>
-          <button 
-            onclick="window.refreshWeather()"
-            style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;"
-          >
-            🔄 Actualizar
+      <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-2">
+            <span class="material-icons-round text-primary">cloud_off</span>
+            <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
+          </div>
+          <button id="refresh-weather-btn" class="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary transition-transform active:scale-95">
+            <span class="material-icons-round text-sm">refresh</span>
           </button>
         </div>
-        <p style="color: var(--muted); margin-top: 12px;">
-          Clima no disponible
-        </p>
-      </div>
+        <div class="text-center py-6 text-slate-500 dark:text-slate-400">
+          <span class="material-icons-round text-5xl mb-2">cloud_off</span>
+          <p>No se pudo cargar el clima.</p>
+        </div>
+      </section>
     `;
   }
 
   return `
-    <div class="card" id="weather-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; color: var(--primary);">☁️ Clima Actual</h3>
-        <button 
-          onclick="window.refreshWeather()"
-          style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;"
-        >
-          🔄
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-2">
+          <span class="material-icons-round text-primary">cloud</span>
+          <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
+        </div>
+        <button id="refresh-weather-btn" class="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary transition-transform active:scale-95">
+          <span class="material-icons-round text-sm">refresh</span>
         </button>
       </div>
-
-      <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <!-- Temperatura -->
-        <div style="text-align: center; padding: 16px; background: #f0f9ff; border-radius: 8px;">
-          <div style="font-size: 48px; margin-bottom: 8px;">
-            ${weather.icon}
+      <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
+        <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+        <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mt-6">
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+            <span class="material-icons-round text-xl">opacity</span>
           </div>
-          <div style="font-size: 32px; font-weight: 700; color: var(--primary);">
-            ${weather.temperature}°C
-          </div>
-          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            ${weather.condition}
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Humedad</p>
+            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${weather.humidity || 'N/A'}%</p>
           </div>
         </div>
-
-        <!-- Otros datos -->
-        <div style="display: flex; flex-direction: column; justify-content: center; gap: 12px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">💧</span>
-            <div>
-              <div style="font-weight: 600; font-size: 14px;">Humedad</div>
-              <div style="font-size: 12px; color: var(--muted);">${weather.humidity}%</div>
-            </div>
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
+          <div class="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-500">
+            <span class="material-icons-round text-xl">air</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">💨</span>
-            <div>
-              <div style="font-weight: 600; font-size: 14px;">Viento</div>
-              <div style="font-size: 12px; color: var(--muted);">${weather.windSpeed} km/h</div>
-            </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Viento</p>
+            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${weather.windSpeed || 'N/A'} km/h</p>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   `;
 }
 
 // ============================================================
-// RENDERIZAR TARJETA DE ACTIVIDAD
+// RENDERIZAR TARJETA DE PREFERENCIAS
 // ============================================================
-function renderActivityCard(activity) {
+function renderPreferencesCard(preferences) {
   return `
-    <div class="card" id="activity-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; color: var(--primary);">📊 Actividad de Hoy</h3>
-        <button 
-          onclick="window.refreshActivity()"
-          style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;"
-        >
-          🔄
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="material-icons-round text-primary">settings</span>
+        <h3 class="font-bold text-slate-800 dark:text-white">Preferencias</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label for="profile-frase" class="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 ml-1">Frase Motivacional</label>
+          <div class="relative">
+            <input id="profile-frase" class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-4 px-4 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Escribe tu frase aquí..." type="text" value="${preferences.fraseMotivacional || ''}"/>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 ml-1 italic flex items-center gap-1">
+            <span class="material-icons-round text-[14px]">info</span>
+            Aparecerá en tu perfil y dashboard principal
+          </p>
+        </div>
+        <div class="flex items-center justify-between">
+          <label for="dark-mode-toggle" class="text-sm font-semibold text-slate-600 dark:text-slate-400">Modo Oscuro</label>
+          <input type="checkbox" id="dark-mode-toggle" class="toggle toggle-primary" ${preferences.darkMode ? 'checked' : ''}>
+        </div>
+        <button id="save-phrase-btn" class="w-full bg-secondary hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-secondary/20">
+          <span class="material-icons-round">check_circle</span>
+          Guardar Frase
         </button>
       </div>
+    </section>
+  `;
+}
 
-      <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <!-- Auditorías -->
-        <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
-          <div style="font-size: 32px; font-weight: 700; color: #10b981;">
-            ${activity.auditorias}
-          </div>
-          <div style="font-size: 12px; color: #065f46; font-weight: 600;">
-            Auditorías
-          </div>
-          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-            ${activity.productosAuditados} productos
-          </div>
-        </div>
-
-        <!-- Rellenos -->
-        <div style="padding: 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-          <div style="font-size: 32px; font-weight: 700; color: #2563eb;">
-            ${activity.rellenos}
-          </div>
-          <div style="font-size: 12px; color: #1e40af; font-weight: 600;">
-            Rellenos
-          </div>
-          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-            ${activity.cajasMovidas} cajas
-          </div>
-        </div>
+// ============================================================
+// RENDERIZAR TARJETA DE FRASES MOTIVACIONALES (NUEVA SECCIÓN)
+// ============================================================
+function renderMotivationalPhrasesCard() {
+  // Esta sección se conectará a phrases.js para mostrar y añadir frases dinámicamente.
+  // Por ahora, se renderiza el esqueleto de la UI.
+  return `
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="material-icons-round text-primary">chat</span>
+        <h3 class="font-bold text-slate-800 dark:text-white">Mis Frases Motivacionales</h3>
       </div>
-
-      ${renderActivityMessage(activity)}
-    </div>
-  `;
-}
-
-// ============================================================
-// RENDERIZAR MENSAJE DE ACTIVIDAD
-// ============================================================
-function renderActivityMessage(activity) {
-  const totalActividad = activity.auditorias + activity.rellenos;
-
-  let mensaje = '';
-  let color = '';
-  let icon = '';
-
-  if (totalActividad === 0) {
-    mensaje = 'Aún no hay actividad hoy. ¡Es hora de comenzar!';
-    color = '#f59e0b';
-    icon = '⏰';
-  } else if (totalActividad < 5) {
-    mensaje = '¡Buen comienzo! Sigue así.';
-    color = '#10b981';
-    icon = '💪';
-  } else if (totalActividad < 10) {
-    mensaje = '¡Excelente trabajo! Vas muy bien.';
-    color = '#10b981';
-    icon = '🔥';
-  } else {
-    mensaje = '¡Increíble! Eres un promotor estrella.';
-    color = '#10b981';
-    icon = '⭐';
-  }
-
-  return `
-    <div style="margin-top: 16px; padding: 12px; background: ${color}15; border-left: 4px solid ${color}; border-radius: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; color: ${color}; font-weight: 600; font-size: 13px;">
-        <span style="font-size: 20px;">${icon}</span>
-        ${mensaje}
-      </div>
-    </div>
-  `;
-}
-
-// ============================================================
-// RENDERIZAR INFORMACIÓN DE LA CUENTA
-// ============================================================
-function renderAccountInfo(userData) {
-  const fechaRegistro = userData.fechaRegistro
-    ? new Date(userData.fechaRegistro).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-    : 'No disponible';
-
-  return `
-    <div class="card">
-      <h3 style="margin: 0 0 16px 0; color: var(--primary);">📋 Información de la Cuenta</h3>
-
-      <form id="profile-info-form">
-        <div class="form-group">
-          <label for="profile-nombre">Nombre del Promotor</label>
-          <input 
-            id="profile-nombre" 
-            type="text" 
-            value="${userData.nombrePromotor || ''}"
-            placeholder="Ej: Juan Pérez"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="profile-tienda">Nombre de la Tienda</label>
-          <input 
-            id="profile-tienda" 
-            type="text" 
-            value="${userData.nombreTienda || ''}"
-            placeholder="Ej: Oxxo Centro"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Email</label>
-          <input 
-            type="email" 
-            value="${userData.email}"
-            disabled
-            style="background: #f8fafc; cursor: not-allowed;"
-          />
-          <small style="color: var(--muted); font-size: 11px;">El email no se puede cambiar</small>
-        </div>
-
-        <div class="form-group">
-          <label>Determinante (ID de Tienda)</label>
-          <input 
-            type="text" 
-            value="${userData.determinante}"
-            disabled
-            style="background: #f8fafc; cursor: not-allowed;"
-          />
-          <small style="color: var(--muted); font-size: 11px;">Asignado automáticamente</small>
-        </div>
-
-        <div style="padding: 12px; background: var(--bg); border-radius: 8px; margin-top: 16px;">
-          <small style="color: var(--muted); font-size: 12px;">
-            📅 Miembro desde: <strong>${fechaRegistro}</strong>
-          </small>
-        </div>
-
-        <button type="submit" class="primary" style="width: 100%; margin-top: 16px;">
-          💾 Guardar Cambios
-        </button>
-      </form>
-    </div>
-  `;
-}
-
-// ============================================================
-// RENDERIZAR PREFERENCIAS
-// ============================================================
-function renderPreferences(preferences) {
-  return `
-    <div class="card">
-      <h3 style="margin: 0 0 16px 0; color: var(--primary);">⚙️ Preferencias</h3>
-
-      <form id="profile-preferences-form">
-        <div class="form-group">
-          <label for="profile-frase">Frase Motivacional</label>
-          <input 
-            id="profile-frase" 
-            type="text" 
-            value="${preferences.fraseMotivacional || '¡Hoy será un gran día! 🦅'}"
-            placeholder="Escribe tu frase motivacional"
-            maxlength="100"
-          />
-          <small style="color: var(--muted); font-size: 11px;">
-            Aparecerá en tu perfil y dashboard
-          </small>
-        </div>
-
-        <button type="submit" class="success" style="width: 100%; margin-top: 16px;">
-          ✅ Guardar Frase
-        </button>
-      </form>
-    </div>
-  `;
-}
-
-// ============================================================
-// RENDERIZAR BOTONES DE ACCIÓN
-// ============================================================
-function renderActionButtons() {
-  return `
-    <div class="card">
-      <h3 style="margin: 0 0 16px 0; color: var(--primary);">🛠️ Acciones</h3>
-
-      <div style="display: grid; gap: 12px;">
-        <button 
-          onclick="window.loadUserProfile()"
-          class="primary"
-          style="width: 100%;"
-        >
-          🔄 Refrescar Perfil
-        </button>
-
-        <button 
-          onclick="if(typeof window.diagnosticoFirebase === 'function') window.diagnosticoFirebase()"
-          class="primary"
-          style="width: 100%;"
-        >
-          🔍 Diagnóstico del Sistema
-        </button>
-
-        <button 
-          onclick="if(typeof window.showSystemStats === 'function') window.showSystemStats()"
-          class="primary"
-          style="width: 100%;"
-        >
-          📊 Ver Estadísticas Completas
-        </button>
-
-        <button 
-          onclick="if(typeof window.clearAllData === 'function') window.clearAllData()"
-          class="warning"
-          style="width: 100%;"
-        >
-          🗑️ Limpiar Datos Locales
-        </button>
-
-        <button 
-          onclick="if(typeof window.logout === 'function') window.logout()"
-          class="error"
-          style="width: 100%;"
-        >
-          🚪 Cerrar Sesión
+      <div class="flex gap-2 mb-6">
+        <input id="new-custom-phrase-input" class="flex-1 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-3 px-4 text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" placeholder="Escribe una nueva frase..." type="text"/>
+        <button id="add-custom-phrase-btn" class="bg-secondary text-white px-5 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all active:scale-95 shadow-md shadow-secondary/10">
+          Añadir
         </button>
       </div>
-    </div>
+      <div id="custom-phrases-list" class="py-12 flex flex-col items-center text-center px-4 border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-2xl">
+        <div class="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-300">
+          <span class="material-icons-round text-3xl">format_quote</span>
+        </div>
+        <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed max-w-[200px]">Aún no has añadido frases personalizadas.</p>
+      </div>
+    </section>
   `;
 }
+
+// ============================================================
+// RENDERIZAR FOOTER DEL PERFIL (si es parte del diseño de main)
+// ============================================================
+function renderProfileFooter() {
+  return `
+    <footer class="text-center py-4">
+      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v7.6</p>
+    </footer>
+  `;
+}
+
 
 // ============================================================
 // CONFIGURAR EVENTOS DEL PERFIL
 // ============================================================
 function setupProfileEvents() {
-  console.log('🎯 Configurando eventos del perfil...');
+  console.log('🎯 Configurando eventos del perfil para el nuevo diseño...');
 
-  // Formulario de información
-  const infoForm = document.getElementById('profile-info-form');
-  if (infoForm) {
-    infoForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // Evento para refrescar el clima
+  const refreshWeatherBtn = document.getElementById('refresh-weather-btn');
+  if (refreshWeatherBtn) {
+    refreshWeatherBtn.addEventListener('click', () => {
+      console.log('🔄 Refrescando clima...');
+      if (typeof window.refreshWeather === 'function') {
+        window.refreshWeather();
+      } else {
+        console.warn('⚠️ window.refreshWeather no está definido.');
+      }
+    });
+  }
 
-      const nombre = document.getElementById('profile-nombre')?.value.trim();
-      const tienda = document.getElementById('profile-tienda')?.value.trim();
+  // Evento para guardar frase motivacional
+  const savePhraseBtn = document.getElementById('save-phrase-btn');
+  if (savePhraseBtn) {
+    savePhraseBtn.addEventListener('click', async () => {
+      const phraseInput = document.getElementById('profile-frase');
+      if (phraseInput && typeof window.saveUserPreferences === 'function') {
+        const newPhrase = phraseInput.value.trim();
+        console.log('💾 Guardando frase:', newPhrase);
+        await window.saveUserPreferences({ fraseMotivacional: newPhrase });
+      } else {
+        console.warn('⚠️ No se encontró el input de frase o window.saveUserPreferences no está definido.');
+      }
+    });
+  }
 
-      if (!nombre || !tienda) {
-        if (typeof showToast === 'function') {
-          showToast('⚠️ Completa todos los campos', 'warning');
+  // Eventos para frases motivacionales personalizadas (Añadir)
+  const addCustomPhraseBtn = document.getElementById('add-custom-phrase-btn');
+  if (addCustomPhraseBtn) {
+    addCustomPhraseBtn.addEventListener('click', async () => {
+      const newCustomPhraseInput = document.getElementById('new-custom-phrase-input');
+      if (newCustomPhraseInput && typeof window.addMotivationalPhrase === 'function') {
+        const phraseText = newCustomPhraseInput.value.trim();
+        if (phraseText) {
+          console.log('➕ Añadiendo frase personalizada:', phraseText);
+          await window.addMotivationalPhrase(phraseText);
+          newCustomPhraseInput.value = ''; // Limpiar input
+          // Aquí idealmente se debería re-renderizar la lista de frases
+          if (typeof window.renderMotivationalPhrasesList === 'function') {
+            window.renderMotivationalPhrasesList(); // Necesitará ser implementada en phrases.js/profile-ui.js
+          }
+        } else {
+          showToast('Escribe una frase para añadir.', 'warning');
         }
-        return;
-      }
-
-      const success = await window.updateUserData({
-        nombrePromotor: nombre,
-        nombreTienda: tienda
-      });
-
-      if (success) {
-        // Re-renderizar para mostrar cambios
-        renderProfileUI();
+      } else {
+        console.warn('⚠️ No se encontró el input de frase o window.addMotivationalPhrase no está definido.');
       }
     });
   }
 
-  // Formulario de preferencias
-  const prefsForm = document.getElementById('profile-preferences-form');
-  if (prefsForm) {
-    prefsForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const frase = document.getElementById('profile-frase')?.value.trim();
-      const mostrarClima = document.getElementById('profile-mostrar-clima')?.checked;
-      const mostrarStats = document.getElementById('profile-mostrar-stats')?.checked;
-
-      const success = await window.saveUserPreferences({
-        fraseMotivacional: frase,
-        mostrarClima: mostrarClima,
-        mostrarEstadisticas: mostrarStats
-      });
-
-      if (success) {
-        // Re-renderizar para reflejar cambios
-        renderProfileUI();
-      }
+  // Evento para el toggle de Modo Oscuro
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  if (darkModeToggle && typeof window.saveUserPreferences === 'function') {
+    darkModeToggle.addEventListener('change', async (e) => {
+      const isDarkMode = e.target.checked;
+      console.log('🌓 Cambiando modo oscuro a:', isDarkMode);
+      await window.saveUserPreferences({ darkMode: isDarkMode });
     });
   }
 
-  console.log('✅ Eventos del perfil configurados');
+
+  console.log('✅ Eventos del perfil configurados para el nuevo diseño.');
 }
 
 // ============================================================
-// ACTUALIZAR SOLO EL CLIMA (SIN RE-RENDERIZAR TODO)
+// ACTUALIZAR SOLO EL CLIMA (SIN RE-RENDERIZAR TODO EL PERFIL)
 // ============================================================
 function updateWeatherUI() {
-  const weatherCard = document.getElementById('weather-card');
-  if (!weatherCard) return;
+  const weatherContainer = document.querySelector('section.bg-white > div.bg-slate-50.dark\\:bg-slate-900\\/50'); // Selector más específico
+  if (!weatherContainer) {
+    console.warn('⚠️ Contenedor de clima no encontrado para actualizar la UI.');
+    return;
+  }
+  
+  const { weather } = window.PROFILE_STATE;
 
-  const weather = window.PROFILE_STATE.weather;
-  if (!weather || weather.error) return;
+  if (!weather || weather.error) {
+    weatherContainer.innerHTML = `
+      <span class="material-icons-round text-6xl text-slate-400 mb-2">cloud_off</span>
+      <p class="text-lg text-slate-500 dark:text-slate-400">Clima no disponible</p>
+    `;
+    return;
+  }
 
-  weatherCard.outerHTML = renderWeatherCard(weather).trim();
+  weatherContainer.innerHTML = `
+    <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+    <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
+    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+  `;
+
+  // Actualizar Humedad y Viento
+  const humidityElement = weatherContainer.closest('section').querySelector('p.text-sm.font-bold.text-slate-700.dark\\:text-slate-200');
+  if (humidityElement) humidityElement.textContent = `${weather.humidity || 'N/A'}%`;
+  
+  const windElement = humidityElement.closest('.grid').querySelectorAll('p.text-sm.font-bold.text-slate-700.dark\\:text-slate-200')[1];
+  if (windElement) windElement.textContent = `${weather.windSpeed || 'N/A'} km/h`;
+
 
   console.log('✅ UI del clima actualizada');
 }
 
 // ============================================================
-// ACTUALIZAR SOLO LA ACTIVIDAD (SIN RE-RENDERIZAR TODO)
+// ACTUALIZAR SOLO LA ACTIVIDAD (NO NECESARIA CON ESTE DISEÑO, PERO SE MANTIENE EL STUB)
 // ============================================================
 function updateActivityUI() {
-  const activityCard = document.getElementById('activity-card');
-  if (!activityCard) return;
-
-  const activity = window.PROFILE_STATE.todayActivity;
-  if (!activity) return;
-
-  activityCard.outerHTML = renderActivityCard(activity).trim();
-
-  console.log('✅ UI de actividad actualizada');
+  console.log('ℹ️ updateActivityUI llamado, pero el diseño actual no tiene una sección de actividad dinámica.');
+  // El diseño proporcionado no tiene una sección de "Actividad de Hoy" como la anterior.
+  // Si se necesita en el futuro, se deberá añadir la sección y su lógica de actualización aquí.
 }
 
 // ============================================================
@@ -497,18 +358,9 @@ function updateActivityUI() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🎨 Inicializando módulo de perfil (UI)...');
 
-  // Renderizar cuando se cambie a la pestaña de sistema
-  document.querySelectorAll('[data-tab="system"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      setTimeout(() => {
-        if (window.PROFILE_STATE.userData) {
-          renderProfileUI();
-        } else {
-          window.loadUserProfile();
-        }
-      }, 100);
-    });
-  });
+  // El renderizado inicial ahora se gestiona a través de app.js switchTab y window.loadProfile
+  // Este listener se mantiene solo por si hay alguna otra inicialización de UI necesaria
+  // antes de que se llame window.loadProfile.
 });
 
 // ============================================================
@@ -516,6 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 window.renderProfileUI = renderProfileUI;
 window.updateWeatherUI = updateWeatherUI;
-window.updateActivityUI = updateActivityUI;
+window.updateActivityUI = updateActivityUI; // Mantenido por compatibilidad, pero su funcionalidad es limitada con el nuevo diseño
 
-console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente');
+console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente con nuevo diseño');

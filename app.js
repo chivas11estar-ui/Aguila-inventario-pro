@@ -70,6 +70,13 @@ function switchTab(tabName) {
     if (typeof window.loadAuditUI === 'function') {
       window.loadAuditUI();
     }
+  } else if (tabName === 'system') { // Added for Profile/System tab
+    console.log('✅ Navegando a: system (Perfil)');
+    if (typeof window.loadProfile === 'function') {
+      window.loadProfile();
+    } else {
+      console.warn('⚠️ window.loadProfile no está definido. Asegúrate de que profile.js se cargue correctamente.');
+    }
   }
   
   // Cerrar sidebar en mobile
