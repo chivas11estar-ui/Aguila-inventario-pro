@@ -47,8 +47,8 @@ window.fetchWeatherData = async function() {
     // a menos que el error sea de denegación de permiso.
     if (geolocationError && cityName === "Permiso Denegado") {
         window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Permiso de ubicación denegado." };
-        if (typeof window.updateWeatherUI === 'function') {
-            window.updateWeatherUI();
+        if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
+            window.renderProfileUI(); // Changed from updateWeatherUI
         }
         return; // Exit early if permission denied
     }
@@ -64,8 +64,8 @@ window.fetchWeatherData = async function() {
         if (data.error) {
             console.error('❌ Error de la API Open-Meteo:', data.reason);
             window.PROFILE_STATE.weather = { error: true, city: cityName, message: data.reason || "Error al obtener datos del clima." };
-            if (typeof window.updateWeatherUI === 'function') {
-                window.updateWeatherUI();
+            if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
+                window.renderProfileUI(); // Changed from updateWeatherUI
             }
             return;
         }
@@ -77,8 +77,8 @@ window.fetchWeatherData = async function() {
         if (!w || !h || !h.time || !h.relative_humidity_2m || !h.windspeed_10m) {
              console.error('❌ Datos incompletos de la API Open-Meteo.');
              window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Datos del clima incompletos." };
-            if (typeof window.updateWeatherUI === 'function') {
-                window.updateWeatherUI();
+            if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
+                window.renderProfileUI(); // Changed from updateWeatherUI
             }
             return;
         }
@@ -104,7 +104,7 @@ window.fetchWeatherData = async function() {
             67: { icon: "🌨️", condition: "Lluvia helada intensa" },
             71: { icon: "❄️", condition: "Nevada ligera" },
             73: { icon: "❄️", condition: "Nevada moderada" },
-75: { icon: "❄️", condition: "Nevada intensa" },
+            75: { icon: "❄️", condition: "Nevada intensa" },
             77: { icon: "🌨️", condition: "Granizo" },
             80: { icon: "🌧️", condition: "Chubascos ligeros" },
             81: { icon: "🌧️", condition: "Chubascos moderados" },
@@ -128,15 +128,15 @@ window.fetchWeatherData = async function() {
             error: false
         };
 
-        if (typeof window.updateWeatherUI === 'function') {
-            window.updateWeatherUI();
+        if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
+            window.renderProfileUI(); // Changed from updateWeatherUI
         }
 
     } catch (e) {
         console.error('❌ Error al obtener datos del clima de Open-Meteo:', e);
         window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Error de red o API." };
-        if (typeof window.updateWeatherUI === 'function') {
-            window.updateWeatherUI();
+        if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
+            window.renderProfileUI(); // Changed from updateWeatherUI
         }
     }
 };
