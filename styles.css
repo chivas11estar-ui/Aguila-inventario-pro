@@ -1,6 +1,6 @@
 /* ============================================================
    Águila Inventario Pro - Módulo: styles.css
-   Versión 7.2 | Copyright © 2025 José A. G. Betancourt
+   Versión 7.1 | Copyright © 2025 José A. G. Betancourt
    Sistema de Inventario Profesional con Modo Offline
    ============================================================ */
 
@@ -61,111 +61,65 @@
   --z-sidebar: 2000;
   --z-modal: 3000;
   --z-toast: 4000;
-
+  --z-footer: 90;
 }
 
 /* ============================================
-   Reset general y estilos base
+   Reset general
    ============================================ */
-*, *::before, *::after { /* Añadido ::before y ::after para un reset más completo */
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html {
-  /* Mejoras para un tamaño de fuente base más flexible y accesibilidad */
-  font-size: 16px; /* Base para unidades rem */
-  -webkit-text-size-adjust: 100%; /* Previene el ajuste de texto en iOS */
-  scroll-behavior: smooth; /* Desplazamiento suave para anclas */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  width: 100%;
-  min-height: 100vh; /* Usar min-height para asegurar que el body ocupe al menos el 100% del viewport */
-  font-family:
-    system-ui, /* Fuentes del sistema para un rendimiento óptimo */
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    'Noto Sans',
-    'Liberation Sans',
-    sans-serif,
-    'Apple Color Emoji',
-    'Segoe UI Emoji',
-    'Segoe UI Symbol',
-    'Noto Color Emoji';
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.5; /* Ligeramente ajustado para mejor legibilidad */
-  -webkit-font-smoothing: antialiased; /* Mejor renderizado de fuentes en WebKit */
-  -moz-osx-font-smoothing: grayscale; /* Mejor renderizado de fuentes en Firefox (macOS) */
-}
-
-/* Asegurar que las imágenes no desborden sus contenedores */
-img {
-  max-width: 100%;
-  height: auto;
-  display: block; /* Elimina el espacio extra debajo de las imágenes */
-}
-
-/* Estilos para enlaces por defecto */
-a {
-  color: var(--primary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--primary-dark);
-  text-decoration: underline;
+  line-height: 1.6;
 }
 
 /* ============================================
    FORM STYLES
    ============================================ */
 .form-group {
-  margin-bottom: var(--spacing-md); /* Usando variable de espaciado */
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: var(--spacing-sm); /* Usando variable de espaciado */
+  margin-bottom: var(--spacing-sm);
   font-weight: 600;
   color: var(--text);
-  font-size: 0.875rem; /* Usando rem para escalabilidad */
+  font-size: 0.875rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem 1rem; /* Usando rem para padding */
-  border: 1px solid var(--border); /* Borde más sutil por defecto */
-  border-radius: var(--radius-md); /* Usando variable de radio */
-  font-size: 0.875rem; /* Usando rem para escalabilidad */
+  padding: 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
   font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease; /* Transiciones más específicas */
-  color: var(--text); /* Asegurar color de texto consistente */
-  background-color: var(--card-bg); /* Asegurar color de fondo consistente */
+  transition: all 0.3s;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  outline: none; /* Eliminamos el outline por defecto del navegador */
+  outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 74, 173, 0.2); /* Sombra de enfoque ligeramente más suave */
-}
-
-/* Estilos para placeholders */
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: var(--muted);
-  opacity: 0.7; /* Ligeramente más tenue */
+  box-shadow: 0 0 0 3px rgba(0,74,173,0.1);
 }
 
 /* ============================================
@@ -173,19 +127,18 @@ a:hover {
    ============================================ */
 .card {
   background: var(--card-bg);
-  border-radius: var(--radius-lg); /* Usando variable de radio */
-  padding: var(--spacing-lg); /* Usando variable de espaciado */
-  margin-bottom: var(--spacing-lg); /* Usando variable de espaciado */
-  box-shadow: var(--shadow-sm); /* Usando variable de sombra */
-  border: 1px solid var(--border); /* Borde más sutil */
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
 }
 
 .card h2,
 .card h3 {
   color: var(--primary);
-  margin-bottom: var(--spacing-md); /* Usando variable de espaciado */
-  font-size: 1.125rem; /* Usando rem para escalabilidad */
-  font-weight: 700; /* Asegurar consistencia */
+  margin-bottom: var(--spacing-md);
+  font-size: 1.125rem;
 }
 
 /* ============================================
@@ -194,28 +147,16 @@ a:hover {
 button {
   font-family: inherit;
   border: none;
-  border-radius: var(--radius-md); /* Usando variable de radio */
-  padding: 0.75rem 1.25rem; /* Usando rem para padding */
-  font-size: 0.875rem; /* Usando rem para escalabilidad */
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; /* Transiciones más específicas */
-  /* margin-right y margin-bottom se gestionarán mejor con flexbox gap o utilidades */
-  display: inline-flex; /* Para alinear contenido si hay iconos */
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs); /* Espacio entre texto e icono si lo hubiera */
+  transition: all 0.3s;
+  margin-right: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
-/* Contenedor para grupos de botones */
-.button-group {
-  display: flex;
-  flex-wrap: wrap; /* Para que los botones se envuelvan en pantallas pequeñas */
-  gap: var(--spacing-sm); /* Espacio entre botones */
-  margin-top: var(--spacing-md); /* Espacio superior si es necesario */
-}
-
-/* Estilos de variantes de botones */
 .primary {
   background: var(--primary);
   color: white;
@@ -233,7 +174,7 @@ button {
 }
 
 .success:hover {
-  background: var(--success-dark); /* Usando variable */
+  background: var(--success-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-success-hover);
 }
@@ -244,7 +185,7 @@ button {
 }
 
 .warning:hover {
-  background: var(--warning-dark); /* Usando variable */
+  background: var(--warning-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-warning-hover);
 }
@@ -255,85 +196,54 @@ button {
 }
 
 .error:hover {
-  background: var(--error-dark); /* Usando variable */
+  background: var(--error-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-error-hover);
 }
 
-/* Estado de enfoque (accesibilidad) */
-button:focus-visible { /* Pseudo-clase para un enfoque más inteligente */
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
 button:active {
   transform: translateY(0);
-  box-shadow: none; /* Eliminar sombra al hacer click */
-}
-
-/* Botones de contorno (opcional, pero común en diseños profesionales) */
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--primary);
-  color: var(--primary);
-}
-
-.btn-outline:hover {
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: none;
 }
 
 /* ============================================
    APP HEADER
    ============================================ */
 .app-header {
-  background: var(--card-bg); /* Usando variable */
-  padding: var(--spacing-md) var(--spacing-lg); /* Usando variables de espaciado */
-  box-shadow: var(--shadow-sm); /* Usando variable de sombra */
+  background: var(--card-bg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: var(--z-header); /* Aumentado z-index para asegurar que esté por encima de casi todo */
-  border-bottom: 1px solid var(--border); /* Borde más sutil */
+  z-index: var(--z-header);
+  border-bottom: 1px solid var(--border);
 }
 
 .app-title {
-  font-size: 1.125rem; /* Usando rem */
+  font-size: 1.125rem;
   color: var(--primary);
   font-weight: 700;
 }
 
 .user-name {
-  font-size: 0.875rem; /* Usando rem */
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
 .btn-icon {
   background: none;
   border: none;
-  font-size: 1.5rem; /* Usando rem */
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: var(--spacing-sm); /* Usando variable de espaciado */
-  border-radius: var(--radius-md); /* Usando variable de radio */
-  transition: background-color 0.2s ease, color 0.2s ease; /* Transiciones más específicas */
-  color: var(--text); /* Color por defecto para el icono */
-  display: inline-flex; /* Para centrar el icono */
-  align-items: center;
-  justify-content: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  transition: all 0.3s;
 }
 
 .btn-icon:hover {
   background: var(--bg);
-  color: var(--primary); /* Cambiar color del icono al hacer hover */
-}
-
-.btn-icon:focus-visible { /* Estado de enfoque para accesibilidad */
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
 }
 
 /* ============================================
@@ -345,13 +255,12 @@ button:active {
   top: 0;
   width: 280px;
   height: 100vh;
-  background: var(--card-bg); /* Usando variable */
-  box-shadow: var(--shadow-md); /* Usando variable de sombra */
-  z-index: var(--z-sidebar); /* Aumentado z-index para asegurar que esté por encima del header */
-  transition: left 0.3s ease-out; /* Transición con ease-out */
-  padding-top: calc(var(--spacing-lg) * 2 + 1px); /* Ajuste dinámico si el header tiene altura fija */
+  background: var(--card-bg);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-sidebar);
+  transition: left 0.3s;
+  padding-top: calc(70px + var(--spacing-lg));
   overflow-y: auto;
-  border-right: 1px solid var(--border); /* Borde sutil */
 }
 
 .sidebar.active {
@@ -361,11 +270,11 @@ button:active {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm); /* Usando variable de espaciado */
-  padding: var(--spacing-md) var(--spacing-lg); /* Usando variables de espaciado */
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
   color: var(--text);
   text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease; /* Transiciones más específicas */
+  transition: all 0.3s;
   border: none;
   background: none;
   width: 100%;
@@ -375,7 +284,6 @@ button:active {
 
 .nav-item:hover {
   background: var(--bg);
-  color: var(--primary-dark); /* Ligeramente más oscuro al hover */
 }
 
 .nav-item.active {
@@ -385,24 +293,19 @@ button:active {
   font-weight: 600;
 }
 
-.nav-item:focus-visible { /* Estado de enfoque para accesibilidad */
-  outline: 2px solid var(--primary);
-  outline-offset: -2px; /* Para que el outline esté dentro del elemento */
-}
-
 .nav-icon {
-  font-size: 1.5rem; /* Usando rem */
+  font-size: 1.5rem;
 }
 
 /* ============================================
    MAIN CONTENT
    ============================================ */
 .main-content {
-  padding: var(--spacing-lg); /* Usando variable de espaciado */
+  padding: var(--spacing-lg);
   max-width: 1200px;
   margin: 0 auto;
-  /* margin-left: 0; se elimina si el sidebar no está siempre visible o se maneja con JS */
-  padding-bottom: calc(65px + var(--spacing-lg)); /* Ajuste dinámico para el bottom-nav */
+  margin-left: 0;
+  padding-bottom: calc(100px + var(--spacing-lg));
 }
 
 .tab-content {
@@ -423,13 +326,12 @@ button:active {
   left: 0;
   width: 100%;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.9); /* Fondo ligeramente menos opaco */
-  z-index: var(--z-modal); /* Z-index muy alto para modales */
+  background: rgba(0,0,0,0.95);
+  z-index: var(--z-modal);
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg); /* Usando variable de espaciado */
+  padding: var(--spacing-lg);
   flex-direction: column;
-  backdrop-filter: blur(5px); /* Efecto de desenfoque moderno (opcional) */
 }
 
 .scanner-modal.active {
@@ -437,13 +339,13 @@ button:active {
 }
 
 .scanner-container {
-  background: var(--card-bg); /* Usando variable */
-  border-radius: var(--radius-xl); /* Usando variable de radio */
+  background: var(--card-bg);
+  border-radius: var(--radius-xl);
   padding: 0;
   max-width: 500px;
   width: 100%;
   overflow: hidden;
-  box-shadow: var(--shadow-xl); /* Usando variable de sombra */
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   height: 80vh;
@@ -479,38 +381,27 @@ button:active {
   width: 250px;
   height: 150px;
   border: 3px solid var(--success);
-  border-radius: var(--radius-lg); /* Usando variable de radio */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
 }
 
 .scanner-instruction {
   color: white;
-  margin-top: var(--spacing-lg); /* Usando variable de espaciado */
-  font-size: 0.875rem; /* Usando rem */
+  margin-top: var(--spacing-lg);
+  font-size: 0.875rem;
   text-align: center;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5); /* Sombra de texto para mejor legibilidad */
 }
 
 .scanner-close-btn {
   width: 100%;
-  padding: var(--spacing-md); /* Usando variable de espaciado */
+  padding: var(--spacing-md);
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl); /* Bordes redondeados solo abajo */
-  font-size: 1rem; /* Usando rem */
+  border-radius: 0;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.scanner-close-btn:hover {
-  background: var(--primary-dark);
-}
-
-.scanner-close-btn:focus-visible {
-  outline: 2px solid white;
-  outline-offset: -2px;
 }
 
 /* ============================================
@@ -518,24 +409,22 @@ button:active {
    ============================================ */
 .toast-container {
   position: fixed;
-  top: var(--spacing-lg); /* Usando variable de espaciado */
-  right: var(--spacing-lg); /* Usando variable de espaciado */
-  z-index: var(--z-toast); /* Z-index muy alto para toasts */
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm); /* Usando variable de espaciado */
-  max-width: 320px; /* Ligeramente más ancho para mejor contenido */
+  gap: var(--spacing-sm);
+  max-width: 320px;
 }
 
 .toast {
-  background: var(--card-bg); /* Usando variable */
-  padding: var(--spacing-md); /* Usando variable de espaciado */
-  border-radius: var(--radius-md); /* Usando variable de radio */
-  box-shadow: var(--shadow-md); /* Usando variable de sombra */
+  background: var(--card-bg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   border-left: 4px solid var(--primary);
-  animation: slideIn 0.3s ease-out forwards; /* Añadido forwards para que se quede al final de la animación */
-  color: var(--text); /* Asegurar color de texto */
-  font-size: 0.9375rem; /* Tamaño de fuente ligeramente ajustado */
+  animation: slideIn 0.3s ease-out;
 }
 
 .toast.success {
@@ -552,7 +441,7 @@ button:active {
 
 @keyframes slideIn {
   from {
-    transform: translateX(100%); /* Desde fuera de la pantalla */
+    transform: translateX(400px);
     opacity: 0;
   }
   to {
@@ -568,101 +457,58 @@ button:active {
   display: none !important;
 }
 
-.sr-only { /* Para elementos que solo deben ser leídos por lectores de pantalla */
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
 .flex {
   display: flex;
 }
 
-.flex-col { /* Añadido para flex-direction: column */
-  flex-direction: column;
-}
-
-.items-center { /* Añadido para align-items: center */
-  align-items: center;
-}
-
-.justify-center { /* Añadido para justify-content: center */
-  justify-content: center;
-}
-
-.flex-center { /* Combinación de items-center y justify-center */
+.flex-center {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .gap-2 {
-  gap: var(--spacing-sm); /* Usando variable */
+  gap: var(--spacing-sm);
 }
 
 .gap-4 {
-  gap: var(--spacing-md); /* Usando variable */
+  gap: var(--spacing-md);
 }
 
 .mt-4 {
-  margin-top: var(--spacing-md); /* Usando variable */
+  margin-top: var(--spacing-md);
 }
 
 .mb-4 {
-  margin-bottom: var(--spacing-md); /* Usando variable */
-}
-
-.text-center {
-  text-align: center;
+  margin-bottom: var(--spacing-md);
 }
 
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  html {
-    font-size: 15px; /* Ligeramente más pequeño en móviles para optimizar espacio */
-  }
-
   .app-title {
-    font-size: 1rem; /* Usando rem */
+    font-size: 1rem;
   }
 
   .main-content {
-    padding: var(--spacing-md); /* Usando variable */
-    padding-bottom: calc(65px + var(--spacing-md)); /* Ajuste dinámico para el bottom-nav */
+    padding: var(--spacing-md);
+    padding-bottom: calc(100px + var(--spacing-md));
   }
 
   .sidebar {
     width: 100%;
     left: -100%;
-    padding-top: calc(var(--spacing-md) * 2 + 1px); /* Ajuste dinámico para el header en móvil */
   }
 
-  /* Los botones ya no necesitan width: 100% si están en un button-group con flex-wrap */
-  /* Si no están en un button-group, se puede aplicar una utilidad como .btn-block */
-  .btn-block { /* Nueva utilidad para botones de ancho completo */
+  button {
     width: 100%;
     margin-right: 0;
     margin-bottom: var(--spacing-sm);
   }
 
   .card {
-    padding: var(--spacing-md); /* Usando variable */
-  }
-
-  .toast-container {
-    top: auto;
-    bottom: var(--spacing-lg);
-    left: var(--spacing-lg);
-    right: var(--spacing-lg);
-    max-width: calc(100% - var(--spacing-lg) * 2); /* Ajuste para ancho completo en móvil */
+    padding: var(--spacing-md);
   }
 }
 
@@ -677,11 +523,11 @@ button:active {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 65px; /* Mantener altura fija para consistencia */
-  background: var(--card-bg); /* Usando variable */
-  box-shadow: var(--shadow-md); /* Usando variable de sombra */
-  border-top: 1px solid var(--border); /* Borde más sutil */
-  z-index: var(--z-nav); /* Z-index para que esté por encima del contenido principal */
+  height: 65px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-md);
+  border-top: 1px solid var(--border);
+  z-index: var(--z-nav);
 }
 
 .nav-btn {
@@ -691,19 +537,17 @@ button:active {
   justify-content: center;
   text-decoration: none;
   color: var(--muted);
-  font-size: 0.6875rem; /* Usando rem, ligeramente más pequeño para móviles */
+  font-size: 0.6875rem;
   font-weight: 600;
-  padding: var(--spacing-sm) var(--spacing-xs); /* Usando variables de espaciado */
-  border-radius: var(--radius-md); /* Usando variable de radio */
-  transition: background-color 0.2s ease, color 0.2s ease; /* Transiciones más específicas */
+  padding: var(--spacing-sm) var(--spacing-xs);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
   width: 100%;
   height: 100%;
-  flex-shrink: 0; /* Evitar que los botones se encojan demasiado */
 }
 
 .nav-btn span {
   pointer-events: none;
-  margin-top: 2px; /* Pequeño ajuste para separar icono y texto */
 }
 
 .nav-btn:hover {
@@ -716,22 +560,15 @@ button:active {
   background: var(--primary-light);
 }
 
-.nav-btn:focus-visible { /* Estado de enfoque para accesibilidad */
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
-}
-
 /* ============================================
    FOOTER - ARREGLO DEFINITIVO DE ESPECIFICIDAD
    ============================================ */
 footer {
-  padding: var(--spacing-lg); /* Usando variable de espaciado */
-  padding-bottom: calc(65px + var(--spacing-lg)); /* Ajuste dinámico para el bottom-nav */
-  z-index: 90; /* Z-index más bajo que el bottom-nav */
-  color: var(--muted); /* Color de texto para el footer */
-  font-size: 0.875rem; /* Tamaño de fuente para el footer */
-  text-align: center;
+  padding: var(--spacing-lg);
+  padding-bottom: calc(85px + var(--spacing-lg));
+  z-index: var(--z-footer);
 }
+
 /* ============================================
    PRODUCT CARDS - Nuevas clases para eliminar inline styles
    ============================================ */
