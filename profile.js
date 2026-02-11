@@ -2,6 +2,7 @@
 // Águila Inventario Pro - Módulo: profile.js
 // Lógica de Negocio y Gestión de Estado
 // Modificado para integrar con profile-ui.js
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 // Inicializar Estado Global
@@ -119,7 +120,7 @@ async function loadDailyActivity() {
     const determinante = window.PROFILE_STATE.userData?.determinante;
     if (!determinante) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString(); // Fecha en zona horaria local
 
     try {
         const [auditsSnap, movsSnap] = await Promise.all([

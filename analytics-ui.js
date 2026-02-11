@@ -1,6 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: analytics-ui.js
 // Visualización de Analytics (con Top 10)
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 let analyticsChart = null; // Guardar referencia del gráfico

@@ -1,6 +1,7 @@
 /* ============================================================
    Águila Inventario Pro - app.js v7.1
    Lógica principal de la aplicación
+   Copyright © 2025 José A. G. Betancourt
    ============================================================ */
 
 let isOnline = navigator.onLine;
@@ -33,23 +34,23 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.classList.remove('active');
   });
-  
+
   // Mostrar el tab seleccionado
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) {
     tab.classList.add('active');
   }
-  
+
   // Actualizar nav items
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
   });
-  
+
   const activeItem = document.querySelector(`[data-tab="${tabName}"]`);
   if (activeItem) {
     activeItem.classList.add('active');
   }
-  
+
   // Llama a la función de carga específica según la pestaña
   if (tabName === 'analytics') {
     console.log('✅ Navegando a: analytics');
@@ -77,15 +78,15 @@ function switchTab(tabName) {
     } else {
       console.warn('⚠️ window.loadProfile no está definido. Intentando de nuevo en breve...');
       setTimeout(() => {
-          if (typeof window.loadProfile === 'function') {
-              window.loadProfile();
-          } else {
-              console.error('❌ Fallo persistente: window.loadProfile sigue sin estar definido.');
-          }
+        if (typeof window.loadProfile === 'function') {
+          window.loadProfile();
+        } else {
+          console.error('❌ Fallo persistente: window.loadProfile sigue sin estar definido.');
+        }
       }, 500); // Retry after 500ms
     }
   }
-  
+
   // Cerrar sidebar en mobile
   const sidebar = document.getElementById('sidebar');
   if (sidebar) {
@@ -152,7 +153,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     switchTab('inventory');
   }
-  
+
   // Esc para cerrar scanner
   if (e.key === 'Escape') {
     const modal = document.getElementById('scanner-modal');

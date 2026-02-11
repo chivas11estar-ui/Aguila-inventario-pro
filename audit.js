@@ -1,5 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: audit.js (v2 - Quick Audit)
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 // --- STATE MANAGEMENT ---
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-quick-audit-mode').onclick = toggleQuickAuditMode;
     document.getElementById('btn-save-quick-audit').onclick = saveQuickAudit;
     document.getElementById('btn-cancel-quick-audit').onclick = endQuickAudit;
-    
+
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
             const userId = user.uid;
@@ -163,7 +164,7 @@ async function saveQuickAudit() {
     for (const item of quickAuditItems) {
         const snap = await firebase.database().ref(`inventario/${userDeterminanteAudit}`)
             .orderByChild('codigoBarras').equalTo(item.codigoBarras).once('value');
-        
+
         if (snap.exists()) {
             const batches = snap.val();
             const batchIds = Object.keys(batches);
@@ -178,26 +179,26 @@ async function saveQuickAudit() {
                 // Consolidar stock en el primer batch, zerar los demás
                 batchIds.forEach((id, index) => {
                     updates[`inventario/${userDeterminanteAudit}/${id}/cajas`] = (index === 0) ? item.quantity : 0;
-                    updates[`inventario/${userDeterminanteAudit}/${id}/ultimaAuditoria`] = new Date().toISOString();
+                    updates[`inventario/${userDeterminanteAudit}/${id}/ultimaAuditoria`] = getLocalISOString();
                 });
-                
+
                 auditLog.push({
                     producto: item.nombre,
                     bodega: currentAuditWarehouse,
                     esperado: systemStock,
                     contado: item.quantity,
                     diferencia: diferencia,
-                    fecha: new Date().toISOString(),
+                    fecha: getLocalISOString(),
                     usuario: firebase.auth().currentUser.email,
                     modo: 'rapido'
                 });
             }
         }
     }
-    
+
     try {
         await firebase.database().ref().update(updates);
-        for(const log of auditLog) {
+        for (const log of auditLog) {
             await firebase.database().ref(`auditorias/${userDeterminanteAudit}`).push(log);
         }
         showToast('✅ Auditoría Rápida guardada con éxito!', 'success');
@@ -291,7 +292,7 @@ async function registrarConteo() {
         const diferencia = cajasContadas - currentAuditProduct.cajas;
         await firebase.database().ref(`inventario/${userDeterminanteAudit}/${currentAuditProduct.id}`).update({
             cajas: cajasContadas,
-            ultimaAuditoria: new Date().toISOString()
+            ultimaAuditoria: getLocalISOString()
         });
         await firebase.database().ref(`auditorias/${userDeterminanteAudit}`).push({
             producto: currentAuditProduct.nombre,
@@ -299,7 +300,7 @@ async function registrarConteo() {
             esperado: currentAuditProduct.cajas,
             contado: cajasContadas,
             diferencia: diferencia,
-            fecha: new Date().toISOString(),
+            fecha: getLocalISOString(),
             usuario: firebase.auth().currentUser.email,
             modo: 'normal'
         });
@@ -338,7 +339,7 @@ function finishNormalAudit() {
     saveWarehouseBtn.style.display = 'block';
     warehouseDisplay.innerHTML = 'Ninguna bodega seleccionada';
     warehouseDisplay.style.cssText = "padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;";
-    
+
     limpiarCamposAudit(true); // Clear product-related fields
 
     showToast('✅ Auditoría Normal finalizada. Puedes empezar una nueva.', 'success');

@@ -1,15 +1,16 @@
 // ============================================================
 // Águila Inventario Pro - Scanner Events
 // Configura los botones del escáner (v2 - compatible con modo continuo)
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   console.log('📷 Configurando eventos del escáner (v2)...');
 
   // 1. BOTÓN ESCÁNER EN "AGREGAR"
   const btnScanAdd = document.getElementById('btn-scan-add');
   if (btnScanAdd) {
-    btnScanAdd.addEventListener('click', function(e) {
+    btnScanAdd.addEventListener('click', function (e) {
       e.preventDefault();
       if (typeof window.openScanner === 'function') {
         window.openScanner({
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (input) {
               input.value = code;
               if (typeof window.buscarProductoParaAgregar === 'function') {
-                 window.buscarProductoParaAgregar(code);
+                window.buscarProductoParaAgregar(code);
               }
               if (typeof showToast === 'function') showToast('✅ Código detectado', 'success');
             }
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 2. BOTÓN ESCÁNER EN "RELLENO"
   const btnScanRefill = document.getElementById('btn-scan-refill');
   if (btnScanRefill) {
-    btnScanRefill.addEventListener('click', function(e) {
+    btnScanRefill.addEventListener('click', function (e) {
       e.preventDefault();
       if (typeof window.openScanner === 'function') {
         window.openScanner({
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 3. BOTÓN ESCÁNER EN "AUDITORÍA" (MODO NORMAL)
   const btnScanAudit = document.getElementById('btn-scan-audit');
   if (btnScanAudit) {
-    btnScanAudit.addEventListener('click', function(e) {
+    btnScanAudit.addEventListener('click', function (e) {
       e.preventDefault();
       if (typeof window.openScanner === 'function') {
         window.openScanner({

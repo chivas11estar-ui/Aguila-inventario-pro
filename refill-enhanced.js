@@ -51,7 +51,7 @@ function setRefillMode(mode) {
     btnExit.style.opacity = 1;
     btnEntry.classList.replace('primary', 'secondary');
     btnEntry.style.opacity = 0.6;
-    
+
     expiryGroup.style.display = 'none';
     warehouseInput.readOnly = true;
     warehouseInput.style.background = '#f8fafc';
@@ -59,7 +59,7 @@ function setRefillMode(mode) {
     submitBtn.textContent = '✅ Registrar Movimiento';
     submitBtn.classList.replace('success', 'primary');
   }
-  
+
   // Re-evaluar el producto actual con el nuevo modo
   if (currentRefillProduct) {
     searchProductForRefill(currentRefillProduct.codigoBarras);
@@ -169,7 +169,7 @@ async function searchProductForRefill(barcode) {
           </div>
         </div>
       `;
-      
+
       showToast(`✅ ${currentRefillProduct.nombre} - ${totalCajas} cajas en sistema`, 'success');
       document.getElementById('refill-boxes').focus();
 
@@ -179,12 +179,12 @@ async function searchProductForRefill(barcode) {
         codigoBarras: barcode.trim(),
         existe: false
       };
-      
+
       // En modo salida, un producto no existente no puede ser rellenado.
       if (refillMode === 'exit') {
-          showToast('❌ Producto no existe. No se puede hacer una salida. Cambia a modo "Entrada" para agregarlo.', 'error');
-          limpiarFormularioRefill();
-          return;
+        showToast('❌ Producto no existe. No se puede hacer una salida. Cambia a modo "Entrada" para agregarlo.', 'error');
+        limpiarFormularioRefill();
+        return;
       }
 
       // En modo entrada, se permite la creación
@@ -195,7 +195,7 @@ async function searchProductForRefill(barcode) {
       document.getElementById('refill-piezas').style.background = '#fff';
       document.getElementById('refill-warehouse').readOnly = false;
       document.getElementById('refill-warehouse').style.background = '#fff';
-      
+
       showToast('🆕 Producto nuevo. Completa los datos para la ENTRADA.', 'info');
       document.getElementById('refill-nombre').focus();
     }
@@ -243,7 +243,7 @@ async function handleRefillEntry() {
     ubicacion: document.getElementById('refill-warehouse').value.trim(),
     fechaCaducidad: document.getElementById('refill-expiry-date').value,
     cajas: cajasAAgregar,
-    fechaActualizacion: new Date().toISOString(),
+    fechaActualizacion: getLocalISOString(),
     actualizadoPor: firebase.auth().currentUser.email,
   };
 
@@ -263,7 +263,7 @@ async function handleRefillEntry() {
       productoCodigo: newProductData.codigoBarras,
       cajasMovidas: newProductData.cajas,
       piezasMovidas: newProductData.cajas * newProductData.piezasPorCaja,
-      fecha: newProductData.fechaActualizacion,
+      fecha: getLocalISOString(),
       realizadoPor: newProductData.actualizadoPor,
       motivo: 'Recepción de mercancía',
     };
@@ -296,7 +296,7 @@ async function handleRefillExit() {
     showToast('❌ Ingresa una cantidad de cajas válida', 'error');
     return;
   }
-  
+
   // MODIFICACIÓN CRÍTICA: Permitir inventario negativo.
   // Se elimina el bloqueo de 'stock insuficiente' para adaptarse al flujo de trabajo real del promotor.
   // El promotor rellena desde stock físico no registrado y la auditoría corrige después.
@@ -306,7 +306,7 @@ async function handleRefillExit() {
 
   try {
     const updates = {};
-    const timestamp = new Date().toISOString();
+    const timestamp = getLocalISOString();
     const usuario = firebase.auth().currentUser.email;
     let cajasRestantes = cajasAMover;
 
@@ -316,7 +316,7 @@ async function handleRefillExit() {
       if (cajasRestantes <= 0) break;
       const cajasEnLote = parseInt(lote.cajas) || 0;
       if (cajasEnLote === 0) continue;
-      
+
       const cajasADescontar = Math.min(cajasRestantes, cajasEnLote);
       const nuevasCajas = cajasEnLote - cajasADescontar;
 
@@ -330,14 +330,14 @@ async function handleRefillExit() {
     // Si aún quedan cajas por mover (el stock del sistema era menor al movido),
     // se le resta al primer lote, llevándolo a negativo.
     if (cajasRestantes > 0) {
-        const primerLoteId = lotesOrdenados[0].id;
-        const cajasActualesPrimerLote = parseInt(lotesOrdenados[0].cajas) || 0;
-        // La lógica anterior ya puso los lotes existentes a 0 o menos, pero para asegurar,
-        // tomamos el valor del primer lote y le restamos lo que falta.
-        // El total ya habrá sido descontado, aquí forzamos el negativo en el primer lote disponible.
-        const idDelLoteARestar = lotesOrdenados[0].id;
-        const stockFinalNegativo = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`).once('value')).val() - cajasRestantes;
-        updates[`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`] = stockFinalNegativo;
+      const primerLoteId = lotesOrdenados[0].id;
+      const cajasActualesPrimerLote = parseInt(lotesOrdenados[0].cajas) || 0;
+      // La lógica anterior ya puso los lotes existentes a 0 o menos, pero para asegurar,
+      // tomamos el valor del primer lote y le restamos lo que falta.
+      // El total ya habrá sido descontado, aquí forzamos el negativo en el primer lote disponible.
+      const idDelLoteARestar = lotesOrdenados[0].id;
+      const stockFinalNegativo = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`).once('value')).val() - cajasRestantes;
+      updates[`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`] = stockFinalNegativo;
     }
 
 
@@ -355,7 +355,7 @@ async function handleRefillExit() {
       motivo: 'Relleno de exhibidor',
     };
     updates[`movimientos/${userDeterminanteRefill}/${Date.now()}`] = movimientoData;
-    
+
     await firebase.database().ref().update(updates);
 
     todayRefillCount += cajasAMover;
@@ -393,7 +393,7 @@ function limpiarFormularioRefill() {
 
   document.getElementById('refill-product-info').style.display = 'none';
   currentRefillProduct = null;
-  
+
   // Asegurarse de que el modo por defecto (salida) esté visualmente activo
   setRefillMode('exit');
 }
@@ -402,14 +402,14 @@ function limpiarFormularioRefill() {
 // ACTUALIZAR CONTADORES UI
 // ============================================================
 function updateTodayMovementsUI() {
-    const counterElement = document.getElementById('total-movements');
-    if (counterElement) {
-        counterElement.innerHTML = `
+  const counterElement = document.getElementById('total-movements');
+  if (counterElement) {
+    counterElement.innerHTML = `
           <div style="font-size:24px;font-weight:700;color:#10b981;">${todayRefillCount}</div>
           <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
           <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${todayPiecesCount} piezas</div>
         `;
-    }
+  }
 }
 
 // ============================================================
@@ -422,8 +422,8 @@ async function loadTodayMovements() {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  const movRef = firebase.database().ref('movimientos/' + userDeterminanteRefill).orderByChild('fecha').startAt(hoy.toISOString());
-  
+  const movRef = firebase.database().ref('movimientos/' + userDeterminanteRefill).orderByChild('fecha').startAt(getLocalDayStart(hoy));
+
   movRef.on('value', (snapshot) => {
     if (snapshot.exists()) {
       const movimientos = Object.values(snapshot.val()).filter(m => m.tipo === 'salida');

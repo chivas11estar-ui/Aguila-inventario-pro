@@ -1,9 +1,10 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: weather.js
 // Lógica para obtener datos de clima y geolocalización
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-window.fetchWeatherData = async function() {
+window.fetchWeatherData = async function () {
     let lat = 19.4326, lon = -99.1332; // CDMX Default
     let cityName = "Detectando...";
     let geolocationError = false;
@@ -72,11 +73,11 @@ window.fetchWeatherData = async function() {
 
         const w = data.current_weather;
         const h = data.hourly;
-        
+
         // Ensure w and h are defined and contain expected properties
         if (!w || !h || !h.time || !h.relative_humidity_2m || !h.windspeed_10m) {
-             console.error('❌ Datos incompletos de la API Open-Meteo.');
-             window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Datos del clima incompletos." };
+            console.error('❌ Datos incompletos de la API Open-Meteo.');
+            window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Datos del clima incompletos." };
             if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
                 window.renderProfileUI(); // Changed from updateWeatherUI
             }

@@ -1,6 +1,7 @@
 /* ============================================================
    Águila Inventario Pro - auth.js
    CORREGIDO: Recarga al salir + Limpieza de espacios
+   Copyright © 2025 José A. G. Betancourt
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
@@ -89,7 +90,7 @@ async function handleRegister() {
       nombrePromotor: promoterName,
       nombreTienda: storeName,
       determinante: determinante, // Ya va sin espacios
-      fechaRegistro: new Date().toISOString()
+      fechaRegistro: getLocalISOString()
     });
 
     console.log('✅ Registro exitoso');

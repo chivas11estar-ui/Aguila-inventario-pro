@@ -40,7 +40,7 @@ async function getUserDeterminante() {
     const snapshot = await firebase.database()
       .ref('usuarios/' + user.uid)
       .once('value');
-    
+
     const userData = snapshot.val();
     if (userData && userData.determinante) {
       window.INVENTORY_STATE.determinante = userData.determinante;
@@ -61,7 +61,7 @@ async function getUserDeterminante() {
 // ============================================================
 async function loadInventory() {
   console.log('📦 Cargando inventario desde Firebase...');
-  
+
   window.INVENTORY_STATE.isLoading = true;
 
   const determinante = await getUserDeterminante();
@@ -79,7 +79,7 @@ async function loadInventory() {
   inventoryRef.on('value', (snapshot) => {
     try {
       const productsObject = snapshot.val();
-      
+
       if (productsObject) {
         window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => ({
           id: key,
@@ -94,7 +94,7 @@ async function loadInventory() {
       } else {
         window.INVENTORY_STATE.productos = [];
         console.log('⚠️ Inventario vacío');
-        
+
         // Renderizar mensaje de vacío
         if (typeof window.renderInventoryUI === 'function') {
           window.renderInventoryUI([]);
@@ -148,7 +148,7 @@ function groupProductsByBarcode(productos) {
     });
 
     agrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
-    agrupados[codigo].totalPiezas = 
+    agrupados[codigo].totalPiezas =
       agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
 
@@ -182,7 +182,7 @@ function groupProductsByBrand(productos) {
 function calculateBrandTotals(productos) {
   const totalCajas = productos.reduce((sum, p) => sum + p.totalCajas, 0);
   const totalProductos = productos.length;
-  
+
   return { totalCajas, totalProductos };
 }
 
@@ -248,7 +248,7 @@ function applyFiltersAndRender() {
     window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
   }
 
-  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => 
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p =>
     (parseInt(p.cajas) || 0) > 0
   );
 
@@ -275,11 +275,11 @@ function setSearchTerm(term) {
 function toggleBrandState(brandName) {
   const currentState = window.INVENTORY_STATE.marcasExpandidas[brandName];
   window.INVENTORY_STATE.marcasExpandidas[brandName] = !currentState;
-  
+
   console.log(`📁 Marca "${brandName}" ${!currentState ? 'expandida' : 'contraída'}`);
-  
+
   saveBrandStates();
-  
+
   return window.INVENTORY_STATE.marcasExpandidas[brandName];
 }
 
@@ -326,7 +326,7 @@ async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
 
   const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
-  
+
   if (!product) {
     if (typeof showToast === 'function') {
       showToast('❌ Producto no encontrado', 'error');
@@ -389,7 +389,7 @@ async function handleAddProduct(event) {
       ubicacion: document.getElementById('add-warehouse')?.value.trim() || '',
       fechaCaducidad: document.getElementById('add-expiry-date')?.value || '',
       cajas: parseInt(document.getElementById('add-boxes')?.value || 0),
-      fechaActualizacion: new Date().toISOString(),
+      fechaActualizacion: getLocalISOString(),
       actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
     };
 
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, cargando inventario...');
-      
+
       // Cargar inmediatamente
       setTimeout(() => {
         loadInventory();

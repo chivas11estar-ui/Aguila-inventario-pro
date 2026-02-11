@@ -1,6 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: phrases.js
 // Gestión de Frases Motivacionales
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 let userMotivationalPhrases = [];

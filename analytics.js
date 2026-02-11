@@ -1,6 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: analytics.js
 // Lógica de Analytics (con Top 10)
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 window.ANALYTICS_STATE = {
@@ -33,7 +34,7 @@ async function initAnalytics() {
     try {
         const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
         const userData = userSnap.val();
-        
+
         if (!userData || !userData.determinante) {
             console.error('❌ Analytics: No se encontró determinante');
             showToast('Error: No se encontró información de la tienda', 'error');
@@ -42,7 +43,7 @@ async function initAnalytics() {
 
         window.ANALYTICS_STATE.determinante = userData.determinante;
         console.log('✅ Analytics: Determinante cargado:', window.ANALYTICS_STATE.determinante);
-        
+
         await window.loadStats(); // Ahora llama a la función loadStats expuesta globalmente
 
     } catch (error) {
@@ -54,7 +55,7 @@ async function initAnalytics() {
 // ============================================================
 // CARGAR DATOS DE FIREBASE (7 DÍAS) - Renombrado y expuesto como window.loadStats
 // ============================================================
-window.loadStats = async function() { // Expuesto globalmente como loadStats
+window.loadStats = async function () { // Expuesto globalmente como loadStats
     console.log("📊 Cargando estadísticas..."); // Log de inicio de carga
     const det = window.ANALYTICS_STATE.determinante;
     if (!det) {
@@ -62,34 +63,32 @@ window.loadStats = async function() { // Expuesto globalmente como loadStats
         // Intentar obtener el determinante si no está cargado (útil si la función se llama directamente sin pasar por initAnalytics)
         const userId = firebase.auth().currentUser?.uid;
         if (userId) {
-             const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
-             const userData = userSnap.val();
-             if (userData && userData.determinante) {
-                 window.ANALYTICS_STATE.determinante = userData.determinante;
-                 console.log('✅ loadStats: Determinante recuperado:', window.ANALYTICS_STATE.determinante);
-             } else {
-                 showToast('Error: Determinante no disponible para cargar estadísticas', 'error');
-                 return;
-             }
+            const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
+            const userData = userSnap.val();
+            if (userData && userData.determinante) {
+                window.ANALYTICS_STATE.determinante = userData.determinante;
+                console.log('✅ loadStats: Determinante recuperado:', window.ANALYTICS_STATE.determinante);
+            } else {
+                showToast('Error: Determinante no disponible para cargar estadísticas', 'error');
+                return;
+            }
         } else {
-             showToast('Error: Usuario no autenticado y determinante no disponible', 'error');
-             return;
+            showToast('Error: Usuario no autenticado y determinante no disponible', 'error');
+            return;
         }
     }
 
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const hoyISO = hoy.toISOString();
+    const hoyStr = getLocalDateString(hoy); // "2026-02-10"
 
     const hace7Dias = new Date();
     hace7Dias.setDate(hace7Dias.getDate() - 7);
-    hace7Dias.setHours(0, 0, 0, 0);
-    const hace7DiasISO = hace7Dias.toISOString();
+    const hace7DiasStr = getLocalDateString(hace7Dias);
 
     try {
         const [movSnap, auditSnap] = await Promise.all([
-            firebase.database().ref(`movimientos/${det}`).orderByChild('fecha').startAt(hace7DiasISO).once('value'),
-            firebase.database().ref(`auditorias/${det}`).orderByChild('fecha').startAt(hace7DiasISO).once('value')
+            firebase.database().ref(`movimientos/${det}`).once('value'),
+            firebase.database().ref(`auditorias/${det}`).once('value')
         ]);
 
         const movimientos = [];
@@ -97,10 +96,22 @@ window.loadStats = async function() { // Expuesto globalmente como loadStats
         const auditorias = [];
         auditSnap.forEach(child => { auditorias.push(child.val()); });
 
-        window.ANALYTICS_STATE.movimientos = movimientos;
-        window.ANALYTICS_STATE.auditorias = auditorias;
+        // Filtrar solo los últimos 7 días en zona horaria local
+        const movimientosFiltrados = movimientos.filter(m => {
+            if (!m.fecha) return false;
+            const fechaMov = isoToLocalDate(m.fecha);
+            return fechaMov >= hace7DiasStr;
+        });
+        const auditoriasFiltradas = auditorias.filter(a => {
+            if (!a.fecha) return false;
+            const fechaAud = isoToLocalDate(a.fecha);
+            return fechaAud >= hace7DiasStr;
+        });
 
-        procesarMetricas(hoyISO);
+        window.ANALYTICS_STATE.movimientos = movimientosFiltrados;
+        window.ANALYTICS_STATE.auditorias = auditoriasFiltradas;
+
+        procesarMetricas(hoyStr);
 
         if (typeof window.renderAnalyticsUI === 'function') {
             window.renderAnalyticsUI();
@@ -120,17 +131,17 @@ function procesarMetricas(fechaHoy) {
     const audits = window.ANALYTICS_STATE.auditorias;
     const res = window.ANALYTICS_STATE.resumen;
 
-    // Métricas de Hoy
-    const movsHoy = movs.filter(m => m.fecha && m.fecha.startsWith(fechaHoy.split('T')[0]));
+    // Métricas de Hoy (usando fecha local)
+    const movsHoy = movs.filter(m => m.fecha && isoToLocalDate(m.fecha) === fechaHoy);
     res.totalRellenosHoy = movsHoy.length;
     res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.cajasMovidas) || 0), 0);
-    res.auditoriasHoy = audits.filter(a => a.fecha && a.fecha.startsWith(fechaHoy.split('T')[0])).length;
+    res.auditoriasHoy = audits.filter(a => a.fecha && isoToLocalDate(a.fecha) === fechaHoy).length;
     res.productosDistintos = new Set(movsHoy.map(m => m.productoNombre).filter(Boolean)).size;
 
     // Top 5 Productos (basado en cajas en 7 días)
     const conteoProd = {};
     movs.forEach(m => {
-        if(m.tipo !== 'salida') return;
+        if (m.tipo !== 'salida') return;
         const nombre = m.productoNombre || 'Desconocido';
         const cajas = parseInt(m.cajasMovidas) || 0;
         if (!conteoProd[nombre]) {
@@ -143,20 +154,20 @@ function procesarMetricas(fechaHoy) {
     // Top 5 Marcas (basado en cajas en 7 días)
     const conteoMarcas = {};
     movs.forEach(m => {
-        if(m.tipo !== 'salida') return;
+        if (m.tipo !== 'salida') return;
         const marca = m.marca || 'Otra';
         const cajas = parseInt(m.cajasMovidas) || 0;
         conteoMarcas[marca] = (conteoMarcas[marca] || 0) + cajas;
     });
     res.topMarcas = Object.entries(conteoMarcas).map(([marca, total]) => ({ marca, total })).sort((a, b) => b.total - a.total).slice(0, 5);
 
-    // Histórico de Rellenos (7 días)
+    // Histórico de Rellenos (7 días) usando zona horaria local
     res.historico7Dias = {};
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const fechaStr = d.toISOString().split('T')[0];
-        const movimientosDia = movs.filter(m => m.fecha && m.fecha.startsWith(fechaStr) && m.tipo === 'salida');
+        const fechaStr = getLocalDateString(d);
+        const movimientosDia = movs.filter(m => m.fecha && isoToLocalDate(m.fecha) === fechaStr && m.tipo === 'salida');
         res.historico7Dias[fechaStr] = movimientosDia.length;
     }
 
@@ -228,7 +239,7 @@ async function generateAndRenderTop10() {
         const top10Data = Object.values(conteoPiezas)
             .sort((a, b) => b.totalPiezas - a.totalPiezas)
             .slice(0, 10);
-            
+
         if (typeof window.renderTopSellersReport === 'function') {
             window.renderTopSellersReport(top10Data);
         } else {
@@ -257,20 +268,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.dataset.tab === 'analytics' && window.ANALYTICS_STATE.determinante) {
-                window.loadStats(); 
+                window.loadStats();
             }
         });
     });
 
     // Listener para el nuevo botón del Top 10
     const top10Btn = document.getElementById('btn-generate-top-sellers');
-    if(top10Btn) {
+    if (top10Btn) {
         top10Btn.addEventListener('click', generateAndRenderTop10);
     }
 });
 
 // Exponer funciones globalmente (solo las necesarias)
-window.reloadAnalytics = async function() { await window.loadStats(); };
+window.reloadAnalytics = async function () { await window.loadStats(); };
 window.initAnalytics = initAnalytics;
 // Ya no es necesario exponer fetchAnalyticsData directamente, ya que se ha renombrado a window.loadStats
 // window.fetchAnalyticsData = fetchAnalyticsData; 
