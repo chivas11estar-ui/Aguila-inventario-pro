@@ -1,0 +1,17 @@
+{
+  "name": "app-aguila",
+  "version": "1.0.0",
+  "description": "🦅 Águila Inventario Pro v7.6",
+  "main": "ai-phrases.js",
+  "scripts": {
+    "build": "tailwindcss -i tailwind-input.css -o tailwind-built.css --minify",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "tailwindcss": "^4.1.18"
+  }
+}
