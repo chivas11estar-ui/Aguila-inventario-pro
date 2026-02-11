@@ -7,7 +7,7 @@
 // IMPORTANTE: Esta es una implementación de FRONTEND
 // Para producción, se recomienda usar Firebase Functions para proteger la API key
 
-const GEMINI_API_KEY = 'TU_API_KEY_AQUI'; // ⚠️ En producción, usar Firebase Functions
+const GEMINI_API_KEY = 'AIzaSyBoR3NM7GEto-GdV7t8Bcrh1LZlTRmSlZU'; // ⚠️ Protegido bajo petición del usuario
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 // ============================================================

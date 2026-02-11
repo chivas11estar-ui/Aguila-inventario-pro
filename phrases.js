@@ -49,6 +49,16 @@ function initMotivationalPhrases(userId) {
   });
 
   setupPhrasesEventListeners();
+
+  // INICIO: Integración con IA
+  if (window.displayDailyAIPhrase) {
+    window.displayDailyAIPhrase().catch(err => {
+      console.warn('⚠️ Falló frase IA, usando frases manuales:', err);
+      displayRandomPhrase();
+    });
+  } else {
+    displayRandomPhrase();
+  }
 }
 
 // ============================================================
@@ -59,6 +69,13 @@ function displayRandomPhrase() {
   if (!phraseContainer || userMotivationalPhrases.length === 0) {
     return;
   }
+
+  // No sobrescribir si ya hay una frase de la IA (las de la IA vienen entre comillas)
+  if (phraseContainer.textContent && phraseContainer.textContent.startsWith('"') && !phraseContainer.dataset.isManual) {
+    console.log('✨ Manteniendo frase de la IA');
+    return;
+  }
+
   const randomIndex = Math.floor(Math.random() * userMotivationalPhrases.length);
   const randomPhrase = userMotivationalPhrases[randomIndex];
 
@@ -66,6 +83,7 @@ function displayRandomPhrase() {
   const finalText = randomPhrase.text.replace(/{nombre}/g, currentUserName);
 
   phraseContainer.textContent = `"${finalText}"`;
+  phraseContainer.dataset.isManual = 'true';
 }
 
 // ============================================================
