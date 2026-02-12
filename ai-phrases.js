@@ -8,7 +8,7 @@
 // Para producción, se recomienda usar Firebase Functions para proteger la API key
 
 const GEMINI_API_KEY = 'AIzaSyBoR3NM7GEto-GdV7t8Bcrh1LZlTRmSlZU'; // ⚠️ Protegido bajo petición del usuario
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 // ============================================================
 // OBTENER FRASE DEL DÍA (con caché)
