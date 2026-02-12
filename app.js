@@ -73,15 +73,15 @@ function switchTab(tabName) {
     }
   } else if (tabName === 'system') { // Added for Profile/System tab
     console.log('✅ Navegando a: system (Perfil)');
-    if (typeof window.loadProfile === 'function') {
-      window.loadProfile();
+    if (typeof window.loadUserProfile === 'function') {
+      window.loadUserProfile();
     } else {
-      console.warn('⚠️ window.loadProfile no está definido. Intentando de nuevo en breve...');
+      console.warn('⚠️ window.loadUserProfile no está definido. Intentando de nuevo en breve...');
       setTimeout(() => {
-        if (typeof window.loadProfile === 'function') {
-          window.loadProfile();
+        if (typeof window.loadUserProfile === 'function') {
+          window.loadUserProfile();
         } else {
-          console.error('❌ Fallo persistente: window.loadProfile sigue sin estar definido.');
+          console.error('❌ Fallo persistente: window.loadUserProfile sigue sin estar definido.');
         }
       }, 500); // Retry after 500ms
     }
