@@ -13,7 +13,11 @@ window.fetchWeatherData = async function () {
     try {
         if (navigator.geolocation) {
             const pos = await new Promise((res, rej) =>
-                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+                navigator.geolocation.getCurrentPosition(res, rej, {
+                    timeout: 15000, // Aumentado a 15s para móviles
+                    maximumAge: 600000, // Cache de 10 minutos
+                    enableHighAccuracy: false // Mayor velocidad, menos batería
+                }));
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
 
