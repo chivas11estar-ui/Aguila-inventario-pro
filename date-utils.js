@@ -12,9 +12,17 @@
  */
 function getLocalISOString() {
     const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000; // Offset en milisegundos
-    const localTime = new Date(now.getTime() - offset);
-    return localTime.toISOString();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(now.getMilliseconds()).padStart(3, '0');
+
+    // Devolvemos el formato ISO pero SIN la 'Z' al final para que los 
+    // navegadores lo interpreten como hora local pura.
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`;
 }
 
 /**
