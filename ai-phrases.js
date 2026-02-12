@@ -22,8 +22,14 @@ async function getDailyAIPhrase(userId, userName) {
         const snapshot = await phraseRef.once('value');
 
         if (snapshot.exists()) {
-            console.log('✅ Frase del día encontrada en caché');
-            return snapshot.val();
+            const cachedPhrase = snapshot.val();
+            // Validación: Si la frase es muy corta (posible error previo), regenerar
+            if (cachedPhrase && cachedPhrase.length > 5) {
+                console.log('✅ Frase del día encontrada en caché');
+                return cachedPhrase;
+            } else {
+                console.warn('⚠️ Frase en caché inválida o muy corta. Regenerando...');
+            }
         }
 
         // 2. Si no existe, generar una nueva con IA
@@ -47,6 +53,16 @@ async function getDailyAIPhrase(userId, userName) {
 // GENERAR FRASE CON GOOGLE GEMINI API
 // ============================================================
 async function generateAIPhrase(userName) {
+    // Detectar celebración especial (México)
+    const today = new Date();
+    const holiday = getMexicanHoliday(today);
+
+    let specialContext = "";
+    if (holiday) {
+        specialContext = `- HOY es ${holiday} en México. La frase DEBE mencionar esto de forma festiva.`;
+        console.log(`🎉 Celebración detectada: ${holiday}`);
+    }
+
     const prompt = `Genera una frase motivacional corta y energética para ${userName}, quien es un promotor de ventas en una tienda. 
   
   Requisitos:
@@ -55,8 +71,9 @@ async function generateAIPhrase(userName) {
   - Incluir el nombre "${userName}" de forma natural
   - Enfocada en ventas, éxito y actitud positiva
   - Usar emojis relevantes (máximo 2)
-  - En español
+  - En español (México)
   - Tono profesional pero cercano
+  ${specialContext}
   
   Ejemplo: "¡${userName}, hoy cada cliente es una oportunidad de oro! 🌟"
   
@@ -171,6 +188,52 @@ async function cleanOldAIPhrases(userId, daysToKeep = 7) {
     } catch (error) {
         console.error('❌ Error limpiando frases antiguas:', error);
     }
+}
+
+// ============================================================
+// DETECTAR FESTIVIDADES MEXICANAS
+// ============================================================
+function getMexicanHoliday(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const key = `${month}-${day}`;
+
+    const holidays = {
+        '01-01': 'Año Nuevo',
+        '01-06': 'Día de Reyes',
+        '02-05': 'Día de la Constitución',
+        '02-14': 'Día del Amor y la Amistad',
+        '02-24': 'Día de la Bandera',
+        '03-21': 'Primavera / Natalicio de Benito Juárez',
+        '04-30': 'Día del Niño',
+        '05-01': 'Día del Trabajo',
+        '05-05': 'Batalla de Puebla',
+        '05-10': 'Día de las Madres',
+        '05-15': 'Día del Maestro',
+        '05-23': 'Día del Estudiante',
+        '06-01': 'Día de la Marina',
+        '09-15': 'Grito de Independencia',
+        '09-16': 'Día de la Independencia',
+        '10-12': 'Día de la Raza',
+        '11-01': 'Día de Todos los Santos',
+        '11-02': 'Día de Muertos',
+        '11-20': 'Revolución Mexicana',
+        '12-12': 'Día de la Virgen de Guadalupe',
+        '12-24': 'Nochebuena',
+        '12-25': 'Navidad',
+        '12-28': 'Día de los Inocentes',
+        '12-31': 'Fin de Año'
+    };
+
+    if (holidays[key]) return holidays[key];
+
+    // Día del Padre (Tercer domingo de Junio)
+    if (date.getMonth() === 5 && date.getDay() === 0) { // Junio es mes 5
+        const d = date.getDate();
+        if (d >= 15 && d <= 21) return 'Día del Padre';
+    }
+
+    return null;
 }
 
 // ============================================================
