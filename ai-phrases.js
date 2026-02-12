@@ -44,8 +44,21 @@ async function getDailyAIPhrase(userId, userName) {
 
     } catch (error) {
         console.error('❌ Error obteniendo frase del día:', error);
+
         // Fallback a frase genérica
-        return getFallbackPhrase(userName);
+        const fallback = getFallbackPhrase(userName);
+
+        // Guardar fallback en caché para no reintentar (y evitar saturar API)
+        try {
+            await phraseRef.update({ [today]: fallback }); // Usamos update o set
+            // Nota: phraseRef apunta a /today, así que usaremos set directo si es referencia directa
+            await firebase.database().ref(`usuarios/${userId}/frasesIA/${today}`).set(fallback);
+            console.log('⚠️ Fallback guardado en caché por hoy.');
+        } catch (dbError) {
+            console.error('Error guardando fallback:', dbError);
+        }
+
+        return fallback;
     }
 }
 
