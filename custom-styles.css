@@ -327,3 +327,209 @@ html {
 .profile-gradient {
     background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
 }
+
+/* ============================================
+   ESTILOS PARA ANALYTICS WALMART
+   Agregar a custom-styles.css
+   ============================================ */
+
+.analytics-walmart {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 16px;
+    max-width: 800px;
+    margin: auto;
+}
+
+/* Grid de Métricas */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.metric-card {
+    background: linear-gradient(145deg, #ffffff, #f0f2f5);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.metric-card .metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.metric-card .metric-label {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-top: 8px;
+}
+
+/* Sección Top 3 por Marca */
+.top-by-brand, .product-search {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.top-by-brand h2, .product-search h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #0f172a;
+}
+
+.brand-group {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.brand-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.brand-group h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.brand-group div {
+    color: #475569;
+    font-size: 0.95rem;
+    padding: 4px 0;
+}
+
+/* Buscador de Productos */
+.search-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.search-controls input[type="text"] {
+    flex-grow: 1;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.search-controls button {
+    border: none;
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 0 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.search-controls button:hover {
+    background-color: #e2e8f0;
+}
+
+.search-controls button:first-child { /* Escanear */
+    background-color: #3b82f6;
+    color: white;
+}
+.search-controls button:first-child:hover {
+    background-color: #2563eb;
+}
+
+/* Tarjeta de Resultado */
+#search-results-container {
+    margin-top: 16px;
+}
+
+.search-result-card, .search-result-card-empty {
+    background-color: #f8fafc;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+}
+.search-result-card-empty {
+    text-align: center;
+    color: #64748b;
+}
+
+.search-result-card h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.search-result-card .brand-code {
+    margin: 0 0 20px 0;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.result-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    text-align: center;
+}
+
+.metric-display {
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-display .metric-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.metric-display .metric-label {
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.daily-metric {
+    background-color: #eff6ff;
+    color: #3b82f6;
+}
+
+.monthly-metric {
+    background-color: #f0fdf4;
+    color: #10b981;
+}
+
+.info-text {
+    margin-top: 16px;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-align: center;
+}
+
+#btn-generate-top-sellers {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+}
