@@ -261,6 +261,7 @@ async function handleRefillEntry() {
       tipo: 'entrada',
       productoNombre: newProductData.nombre,
       productoCodigo: newProductData.codigoBarras,
+      marca: newProductData.marca, // Añadido el campo marca
       cajasMovidas: newProductData.cajas,
       piezasMovidas: newProductData.cajas * newProductData.piezasPorCaja,
       fecha: getLocalISOString(),
@@ -346,6 +347,7 @@ async function handleRefillExit() {
       tipo: 'salida',
       productoNombre: currentRefillProduct.nombre,
       productoCodigo: currentRefillProduct.codigoBarras,
+      marca: currentRefillProduct.marca, // Añadido el campo marca
       cajasMovidas: cajasAMover,
       piezasMovidas: piezasMovidas,
       stockAnterior: currentRefillProduct.totalCajas,
