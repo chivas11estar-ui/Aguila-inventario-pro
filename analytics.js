@@ -201,59 +201,8 @@ function procesarMetricas(fechaHoy) {
 // LÓGICA TOP 10 MÁS VENDIDOS (HISTÓRICO COMPLETO)
 // ============================================================
 async function generateAndRenderTop10() {
-    const container = document.getElementById('top-sellers-container');
-    const btn = document.getElementById('btn-generate-top-sellers');
-    if (!container || !btn) return;
-
-    btn.disabled = true;
-    container.innerHTML = '<p style="text-align:center; color: #6b7280;">🔄 Cargando historial completo...</p>';
-
-    const det = window.ANALYTICS_STATE.determinante;
-    if (!det) {
-        container.innerHTML = '<p style="text-align:center; color: #ef4444;">Error: No se pudo identificar la tienda.</p>';
-        btn.disabled = false;
-        return;
-    }
-
-    try {
-        const movSnap = await firebase.database().ref(`movimientos/${det}`).orderByChild('tipo').equalTo('salida').once('value');
-
-        if (!movSnap.exists()) {
-            container.innerHTML = '<p style="text-align:center; color: #6b7280;">No hay movimientos de salida registrados.</p>';
-            btn.disabled = false;
-            return;
-        }
-
-        const movimientos = movSnap.val();
-        const conteoPiezas = {};
-
-        Object.values(movimientos).forEach(m => {
-            const nombre = m.productoNombre || 'Desconocido';
-            if (nombre === 'Desconocido') return;
-
-            const piezas = parseInt(m.piezasMovidas) || 0;
-            if (!conteoPiezas[nombre]) {
-                conteoPiezas[nombre] = { nombre: nombre, marca: m.marca || 'N/A', totalPiezas: 0 };
-            }
-            conteoPiezas[nombre].totalPiezas += piezas;
-        });
-
-        const top10Data = Object.values(conteoPiezas)
-            .sort((a, b) => b.totalPiezas - a.totalPiezas)
-            .slice(0, 10);
-
-        if (typeof window.renderTopSellersReport === 'function') {
-            window.renderTopSellersReport(top10Data);
-        } else {
-            container.innerHTML = '<p style="text-align:center; color: #ef4444;">Error de renderizado. Contacta a soporte.</p>';
-        }
-
-    } catch (error) {
-        console.error("Error generando Top 10:", error);
-        container.innerHTML = `<p style="text-align:center; color: #ef4444;">Ocurrió un error al cargar el reporte.</p>`;
-    } finally {
-        btn.disabled = false;
-    }
+    showToast('La función de reporte completo se ha integrado o simplificado en el nuevo diseño.', 'info');
+    console.log('ℹ️ Se hizo clic en "Ver Reporte Completo". En el nuevo diseño, la información clave se integra directamente.');
 }
 
 // ============================================================
@@ -275,11 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Listener para el nuevo botón del Top 10
-    const top10Btn = document.getElementById('btn-generate-top-sellers');
-    if (top10Btn) {
-        top10Btn.addEventListener('click', generateAndRenderTop10);
-    }
+
 });
 
 // Exponer funciones globalmente (solo las necesarias)
