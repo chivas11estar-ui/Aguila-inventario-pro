@@ -114,7 +114,9 @@ window.loadStats = async function () { // Expuesto globalmente como loadStats
         procesarMetricas(hoyStr);
 
         if (typeof window.renderAnalyticsUI === 'function') {
-            window.renderAnalyticsUI();
+            setTimeout(() => {
+                window.renderAnalyticsUI();
+            }, 0);
         }
 
     } catch (error) {
