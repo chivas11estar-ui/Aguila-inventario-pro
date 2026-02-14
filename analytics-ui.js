@@ -86,6 +86,7 @@ function createTopByBrandSection(refillAverages) {
         if (m.tipo !== 'salida') return;
         
         const marca = m.marca || 'SIN MARCA';
+        console.log(`DEBUG: Movimiento ${m.productoNombre} - Marca original: ${m.marca}, Marca usada: ${marca}`);
         const producto = m.productoNombre || 'Desconocido';
         
         if (!productosPorMarca[marca]) {
