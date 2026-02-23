@@ -253,8 +253,28 @@ async function handleRefillEntry() {
   }
 
   try {
-    // Registrar el nuevo lote en el inventario
-    await firebase.database().ref('inventario/' + userDeterminanteRefill).push(newProductData);
+    let existingLotId = null;
+    if (currentRefillProduct.existe && currentRefillProduct.registros) {
+      existingLotId = currentRefillProduct.registros.find(reg =>
+        reg.ubicacion === newProductData.ubicacion &&
+        reg.fechaCaducidad === newProductData.fechaCaducidad
+      )?.id;
+    }
+
+    if (existingLotId) {
+      // Update existing lot
+      const currentCajas = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${existingLotId}/cajas`).once('value')).val() || 0;
+      await firebase.database().ref(`inventario/${userDeterminanteRefill}/${existingLotId}`).update({
+        cajas: currentCajas + newProductData.cajas,
+        fechaActualizacion: newProductData.fechaActualizacion,
+        actualizadoPor: newProductData.actualizadoPor,
+      });
+      console.log(`📥 [ENTRADA] Actualizado lote existente con ID: ${existingLotId}. Añadido ${newProductData.cajas} cajas.`);
+    } else {
+      // Create new lot (original logic)
+      await firebase.database().ref('inventario/' + userDeterminanteRefill).push(newProductData);
+      console.log(`📥 [ENTRADA] Creado nuevo lote para ${newProductData.nombre}. Añadido ${newProductData.cajas} cajas.`);
+    }
 
     // Registrar el movimiento de entrada
     const movimientoData = {

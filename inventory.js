@@ -57,11 +57,21 @@ async function getUserDeterminante() {
 }
 
 // ============================================================
-// CARGAR INVENTARIO DESDE FIREBASE
+// CARGAR INVENTARIO DESDE FIREBASE (V2 - DELEGA A inventory-core.js)
 // ============================================================
+// NOTA V2: Esta función ahora delega a cargarInventario() de
+// inventory-core.js, que lee de productos/{det}/{codigo} (nueva ruta).
+// Se mantiene el nombre loadInventory() porque app.js y otras partes
+// la llaman por ese nombre.
 async function loadInventory() {
-  console.log('📦 Cargando inventario desde Firebase...');
+  console.log('📦 [V2] loadInventory → delegando a cargarInventario()...');
 
+  if (typeof window.cargarInventario === 'function') {
+    return window.cargarInventario();
+  }
+
+  // Fallback: si inventory-core.js aún no cargó, intentar la ruta antigua
+  console.warn('⚠️ cargarInventario() no disponible, usando ruta legacy...');
   window.INVENTORY_STATE.isLoading = true;
 
   const determinante = await getUserDeterminante();
@@ -86,35 +96,20 @@ async function loadInventory() {
           ...productsObject[key]
         }));
 
-        console.log(`✅ Inventario cargado: ${window.INVENTORY_STATE.productos.length} productos`);
-
+        console.log(`✅ Inventario cargado (legacy): ${window.INVENTORY_STATE.productos.length} productos`);
         applyFiltersAndRender();
         loadBrandStates();
-
       } else {
         window.INVENTORY_STATE.productos = [];
         console.log('⚠️ Inventario vacío');
-
-        // Renderizar mensaje de vacío
         if (typeof window.renderInventoryUI === 'function') {
           window.renderInventoryUI([]);
         }
       }
-
       window.INVENTORY_STATE.isLoading = false;
-
     } catch (error) {
       console.error('❌ Error procesando inventario:', error);
       window.INVENTORY_STATE.isLoading = false;
-      if (typeof showToast === 'function') {
-        showToast('Error al procesar inventario', 'error');
-      }
-    }
-  }, (error) => {
-    console.error('❌ Error de conexión Firebase:', error);
-    window.INVENTORY_STATE.isLoading = false;
-    if (typeof showToast === 'function') {
-      showToast('Error de conexión: ' + error.message, 'error');
     }
   });
 }
@@ -127,6 +122,8 @@ function groupProductsByBarcode(productos) {
 
   productos.forEach(prod => {
     const codigo = prod.codigoBarras || prod.id;
+    // V2: soportar tanto 'stockTotal' (nueva estructura) como 'cajas' (legacy)
+    const cajasProducto = parseInt(prod.stockTotal) || parseInt(prod.cajas) || 0;
 
     if (!agrupados[codigo]) {
       agrupados[codigo] = {
@@ -142,12 +139,12 @@ function groupProductsByBarcode(productos) {
 
     agrupados[codigo].bodegas.push({
       ubicacion: prod.ubicacion,
-      cajas: parseInt(prod.cajas) || 0,
+      cajas: cajasProducto,
       fechaCaducidad: prod.fechaCaducidad,
       id: prod.id
     });
 
-    agrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
+    agrupados[codigo].totalCajas += cajasProducto;
     agrupados[codigo].totalPiezas =
       agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
@@ -248,8 +245,9 @@ function applyFiltersAndRender() {
     window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
   }
 
+  // V2: soportar tanto 'stockTotal' (nueva estructura) como 'cajas' (legacy)
   const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p =>
-    (parseInt(p.cajas) || 0) > 0
+    (parseInt(p.stockTotal) || parseInt(p.cajas) || 0) > 0
   );
 
   console.log('📊 Productos con stock:', productsWithStock.length);
@@ -345,7 +343,8 @@ async function editarProducto(productId) {
     document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
     document.getElementById('add-warehouse').value = product.ubicacion || '';
     document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
-    document.getElementById('add-boxes').value = product.cajas || '';
+    // V2: soportar stockTotal (nuevo) y cajas (legacy)
+    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
 
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) {
@@ -367,82 +366,19 @@ async function editarProducto(productId) {
 }
 
 // ============================================================
-// AGREGAR O ACTUALIZAR PRODUCTO
+// AGREGAR O ACTUALIZAR PRODUCTO (LEGACY - DESACTIVADO EN V2)
 // ============================================================
+// NOTA V2: Esta función ya NO se usa directamente.
+// La lógica de escritura fue reemplazada por handleAddProductV2()
+// en inventory-core.js que usa productos/{det}/{codigoBarras}
+// en vez de push(). Se mantiene como fallback/referencia.
 async function handleAddProduct(event) {
   if (event) event.preventDefault();
-
-  const determinante = window.INVENTORY_STATE.determinante;
-  if (!determinante) {
-    if (typeof showToast === 'function') {
-      showToast('❌ Error: No se encontró información de la tienda', 'error');
-    }
-    return;
+  console.warn('⚠️ [LEGACY] handleAddProduct llamado. Redirigiendo a inventory-core V2...');
+  if (typeof window.handleAddProductV2 === 'function') {
+    return window.handleAddProductV2(event);
   }
-
-  try {
-    const formData = {
-      codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
-      nombre: document.getElementById('add-product-name')?.value.trim() || '',
-      marca: document.getElementById('add-brand')?.value || '',
-      piezasPorCaja: parseInt(document.getElementById('add-pieces-per-box')?.value || 0),
-      ubicacion: document.getElementById('add-warehouse')?.value.trim() || '',
-      fechaCaducidad: document.getElementById('add-expiry-date')?.value || '',
-      cajas: parseInt(document.getElementById('add-boxes')?.value || 0),
-      fechaActualizacion: getLocalISOString(),
-      actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
-    };
-
-    if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
-      if (typeof showToast === 'function') {
-        showToast('❌ Completa todos los campos correctamente', 'error');
-      }
-      return;
-    }
-
-    if (window.EDITING_PRODUCT_ID) {
-      await firebase.database()
-        .ref('inventario/' + determinante + '/' + window.EDITING_PRODUCT_ID)
-        .update(formData);
-
-      if (typeof showToast === 'function') {
-        showToast('✅ Producto actualizado correctamente', 'success');
-      }
-
-      window.EDITING_PRODUCT_ID = null;
-    } else {
-      await firebase.database()
-        .ref('inventario/' + determinante)
-        .push(formData);
-
-      if (typeof showToast === 'function') {
-        showToast('✅ Producto guardado correctamente', 'success');
-      }
-    }
-
-    document.getElementById('add-product-form').reset();
-
-    const formTitle = document.querySelector('#tab-add h2');
-    if (formTitle) {
-      formTitle.textContent = '➕ Agregar Producto';
-    }
-
-    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
-    if (submitBtn) {
-      submitBtn.textContent = '✅ Guardar Producto';
-      submitBtn.style.background = '';
-    }
-
-    if (typeof window.switchTab === 'function') {
-      window.switchTab('inventory');
-    }
-
-  } catch (error) {
-    console.error('Error al guardar/actualizar producto:', error);
-    if (typeof showToast === 'function') {
-      showToast('❌ Error: ' + error.message, 'error');
-    }
-  }
+  console.error('❌ handleAddProductV2 no disponible. ¿Se cargó inventory-core.js?');
 }
 
 // ============================================================
@@ -451,12 +387,10 @@ async function handleAddProduct(event) {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📦 Inicializando módulo de inventario (lógica)...');
 
-  // Configurar formulario de agregar/editar
-  const addProductForm = document.getElementById('add-product-form');
-  if (addProductForm) {
-    addProductForm.addEventListener('submit', handleAddProduct);
-    console.log('✅ Formulario configurado');
-  }
+  // NOTA V2: El formulario de agregar/editar ahora es manejado
+  // por inventory-core.js (handleAddProductV2). No registrar listener aquí.
+  // Se mantiene handleAddProduct como fallback que redirige a V2.
+  console.log('📋 Formulario será configurado por inventory-core.js');
 
   // CRÍTICO: Cargar inventario cuando el usuario esté autenticado
   firebase.auth().onAuthStateChanged((user) => {

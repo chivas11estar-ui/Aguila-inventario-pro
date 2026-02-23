@@ -145,8 +145,8 @@ async function showSystemStats() {
 
     console.log('🏪 Cargando estadísticas de tienda:', determinante);
 
-    // PASO 2: Usar el determinante para consultar el inventario
-    const snapshot = await firebase.database().ref('inventario/' + determinante).once('value');
+    // PASO 2: V2 - Consultar desde productos/{det} (nueva estructura)
+    const snapshot = await firebase.database().ref('productos/' + determinante).once('value');
     const data = snapshot.val();
 
     if (!data) {
@@ -163,17 +163,18 @@ Agrega productos desde la pestaña "Agregar" para comenzar a ver estadísticas.
 
     const productos = Object.values(data);
 
-    // Calcular estadísticas (esto ya estaba bien)
+    // V2: Usar stockTotal (nueva estructura) con fallback a cajas (legacy)
+    const getStock = (p) => parseInt(p.stockTotal) || parseInt(p.cajas) || 0;
     const stats = {
       totalProductos: productos.length,
-      totalCajas: productos.reduce((sum, p) => sum + (p.cajas || 0), 0),
+      totalCajas: productos.reduce((sum, p) => sum + getStock(p), 0),
       totalPiezas: productos.reduce((sum, p) => {
-        return sum + ((p.cajas || 0) * (p.piezasPorCaja || 0));
+        return sum + (getStock(p) * (p.piezasPorCaja || 0));
       }, 0),
       marcas: [...new Set(productos.map(p => p.marca))].length,
       ubicaciones: [...new Set(productos.map(p => p.ubicacion))].length,
-      sinStock: productos.filter(p => (p.cajas || 0) === 0).length,
-      stockBajo: productos.filter(p => (p.cajas || 0) > 0 && (p.cajas || 0) < 5).length
+      sinStock: productos.filter(p => getStock(p) === 0).length,
+      stockBajo: productos.filter(p => getStock(p) > 0 && getStock(p) < 5).length
     };
 
     const mensaje = `

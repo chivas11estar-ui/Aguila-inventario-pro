@@ -97,21 +97,24 @@ async function handleQuickAuditScan(barcode) {
     renderQuickAuditList(); // Re-render for real-time update
 }
 
+// V2: Lectura directa por key desde productos/{det}/{codigoBarras}
 async function fetchProductDataByBarcode(barcode) {
     if (!userDeterminanteAudit) return null;
-    const snap = await firebase.database().ref(`inventario/${userDeterminanteAudit}`)
-        .orderByChild('codigoBarras').equalTo(barcode).limitToFirst(1).once('value');
+    const safeCode = (typeof sanitizeBarcode === 'function') ? sanitizeBarcode(barcode) : barcode.trim();
+    if (!safeCode) return null;
+
+    const snap = await firebase.database()
+        .ref(`productos/${userDeterminanteAudit}/${safeCode}`)
+        .once('value');
 
     if (snap.exists()) {
-        const data = snap.val();
-        const id = Object.keys(data)[0];
-        const product = data[id];
+        const product = snap.val();
         return {
-            id: id, // ID de la primera coincidencia para referencia
+            id: safeCode, // En V2, el código de barras ES el id
             nombre: product.nombre,
             marca: product.marca,
-            codigoBarras: product.codigoBarras,
-            // No necesitamos el stock aquí, solo los datos del producto
+            codigoBarras: product.codigoBarras || barcode.trim(),
+            stockTotal: parseInt(product.stockTotal) || 0
         };
     }
     return null;
@@ -161,26 +164,22 @@ async function saveQuickAudit() {
     const updates = {};
     const auditLog = [];
 
+    // V2: Lectura directa por key, un solo nodo por producto
     for (const item of quickAuditItems) {
-        const snap = await firebase.database().ref(`inventario/${userDeterminanteAudit}`)
-            .orderByChild('codigoBarras').equalTo(item.codigoBarras).once('value');
+        const safeCode = (typeof sanitizeBarcode === 'function') ? sanitizeBarcode(item.codigoBarras) : item.codigoBarras.trim();
+        const snap = await firebase.database()
+            .ref(`productos/${userDeterminanteAudit}/${safeCode}`)
+            .once('value');
 
         if (snap.exists()) {
-            const batches = snap.val();
-            const batchIds = Object.keys(batches);
-            let systemStock = 0;
-            batchIds.forEach(id => {
-                systemStock += parseInt(batches[id].cajas) || 0;
-            });
-
+            const product = snap.val();
+            const systemStock = parseInt(product.stockTotal) || 0;
             const diferencia = item.quantity - systemStock;
 
             if (diferencia !== 0) {
-                // Consolidar stock en el primer batch, zerar los demás
-                batchIds.forEach((id, index) => {
-                    updates[`inventario/${userDeterminanteAudit}/${id}/cajas`] = (index === 0) ? item.quantity : 0;
-                    updates[`inventario/${userDeterminanteAudit}/${id}/ultimaAuditoria`] = getLocalISOString();
-                });
+                // V2: Actualizar stockTotal directamente en el nodo único
+                updates[`productos/${userDeterminanteAudit}/${safeCode}/stockTotal`] = item.quantity;
+                updates[`productos/${userDeterminanteAudit}/${safeCode}/ultimaAuditoria`] = getLocalISOString();
 
                 auditLog.push({
                     producto: item.nombre,
@@ -249,6 +248,7 @@ function saveBodega() {
     setTimeout(() => document.getElementById('audit-barcode').focus(), 300);
 }
 
+// V2: Búsqueda directa por key en productos/{det}/{codigoBarras}
 async function buscarProductoAudit() {
     const barcode = document.getElementById('audit-barcode').value.trim();
     if (!currentAuditWarehouse) {
@@ -258,13 +258,20 @@ async function buscarProductoAudit() {
     if (barcode.length < 3) return;
 
     try {
-        const snap = await firebase.database().ref(`inventario/${userDeterminanteAudit}`)
-            .orderByChild('codigoBarras').equalTo(barcode).once('value');
+        const safeCode = (typeof sanitizeBarcode === 'function') ? sanitizeBarcode(barcode) : barcode;
+        const snap = await firebase.database()
+            .ref(`productos/${userDeterminanteAudit}/${safeCode}`)
+            .once('value');
 
         if (snap.exists()) {
             const data = snap.val();
-            const id = Object.keys(data)[0];
-            currentAuditProduct = { id, ...data[id] };
+            currentAuditProduct = {
+                id: safeCode,
+                codigoBarras: barcode,
+                ...data,
+                // V2: usar stockTotal como campo principal
+                cajas: parseInt(data.stockTotal) || 0
+            };
 
             document.getElementById('audit-nombre').value = currentAuditProduct.nombre;
             const info = document.getElementById('audit-stock-info');
@@ -290,9 +297,12 @@ async function registrarConteo() {
 
     try {
         const diferencia = cajasContadas - currentAuditProduct.cajas;
-        await firebase.database().ref(`inventario/${userDeterminanteAudit}/${currentAuditProduct.id}`).update({
-            cajas: cajasContadas,
-            ultimaAuditoria: getLocalISOString()
+        // V2: Actualizar stockTotal en productos/{det}/{codigoBarras}
+        await firebase.database().ref(`productos/${userDeterminanteAudit}/${currentAuditProduct.id}`).update({
+            stockTotal: cajasContadas,
+            ultimaAuditoria: getLocalISOString(),
+            fechaActualizacion: getLocalISOString(),
+            actualizadoPor: firebase.auth().currentUser.email
         });
         await firebase.database().ref(`auditorias/${userDeterminanteAudit}`).push({
             producto: currentAuditProduct.nombre,
