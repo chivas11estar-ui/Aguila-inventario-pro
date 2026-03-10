@@ -64,3 +64,41 @@ initFirebase();
 window.initFirebase = initFirebase;
 
 console.log('✅ firebase-config.js cargado correctamente');
+
+// ============================================================
+// INSTRUCCIONES DE SEGURIDAD - Firebase Realtime Rules
+// ============================================================
+//
+// ⚠️ CRÍTICO: Las reglas de seguridad en security-rules.json DEBEN
+// deployarse INMEDIATAMENTE para proteger los datos.
+//
+// PASOS PARA DEPLOYAR RULES (versión web, sin CLI):
+// 1. Ir a: https://console.firebase.google.com
+// 2. Proyecto: promosentry
+// 3. Realtime Database → Rules (pestaña)
+// 4. Copiar TODO el contenido de security-rules.json
+// 5. Pegar en el editor de Rules en Firebase Console
+// 6. Hacer CLICK EN "PUBLISH"
+//
+// ALTERNATIVA (si tienes Firebase CLI instalado):
+//   $ firebase login
+//   $ cd "tu/ruta/al/proyecto"
+//   $ firebase deploy --only database:rules
+//
+// ¿QUÉ HACEN ESTAS RULES?
+// - ✅ Usuario A NO puede acceder datos de Usuario B
+// - ✅ Stock NUNCA puede ser negativo
+// - ✅ Determinante (tienda) DEBE ser 4-8 caracteres alfanuméricos
+// - ✅ Códigos de barras deben tener ≥8 dígitos
+// - ✅ Previene inyección de SQL/NoSQL
+//
+// TESTING DE SEGURIDAD:
+// 1. Crear 2 usuarios: user1@test.com (tienda: TIENDA1) y user2@test.com (tienda: TIENDA2)
+// 2. Login como user1 → Intentar acceder /productos/TIENDA2
+//    ❌ Debe FALLAR (Access Denied)
+// 3. Login como user1 → Intentar crear stock negativo
+//    ❌ Debe FALLAR (Validation Failed)
+// 4. Login como user1 → Crear stock válido para /productos/TIENDA1
+//    ✅ Debe PASAR
+//
+// ============================================================

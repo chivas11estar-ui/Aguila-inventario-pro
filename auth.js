@@ -63,15 +63,21 @@ async function handleRegister() {
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
 
-  // CORRECCIÓN: Quitamos espacios vacíos al determinante
+  // SEGURIDAD FASE 1.2: Validación de determinante con regex
   const determinanteInput = document.getElementById('register-determinante')?.value;
-  const determinante = determinanteInput ? String(determinanteInput).trim() : '';
+  const determinante = determinanteInput ? String(determinanteInput).trim().toUpperCase() : '';
 
   const storeName = document.getElementById('register-store-name')?.value;
   const promoterName = document.getElementById('register-promoter-name')?.value;
 
   if (!email || !password || !determinante || !storeName || !promoterName) {
     showToast('❌ Completa todos los campos', 'error');
+    return;
+  }
+
+  // Validar determinante: 4-8 caracteres, mayúsculas y números solo
+  if (!/^[A-Z0-9]{4,8}$/.test(determinante)) {
+    showToast('❌ Determinante: debe ser 4-8 caracteres (letras mayúsculas y números)', 'error');
     return;
   }
 

@@ -1,0 +1,213 @@
+{
+  "rules": {
+    // ========================================================
+    // USUARIOS - Solo el usuario propietario puede acceder
+    // ========================================================
+    "usuarios": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        ".validate": "newData.hasChildren(['email', 'determinante', 'storeName', 'promoterName'])",
+
+        "determinante": {
+          ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 8 && newData.val().matches(/^[A-Z0-9]+$/)"
+        },
+        "storeName": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "promoterName": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        }
+      }
+    },
+
+    // ========================================================
+    // PRODUCTOS - Accesible solo por usuario propietario del determinante
+    // ========================================================
+    "productos": {
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+
+        // Validar que determinante es válido
+        ".validate": "$determinante.matches(/^[A-Z0-9]{4,8}$/)",
+
+        "$codigoBarras": {
+          ".validate": "newData.hasChildren(['nombre', 'marca', 'codigoBarras', 'piezasPorCaja', 'ubicacion', 'stockTotal']) && newData.child('codigoBarras').val().length >= 8",
+
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "marca": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "codigoBarras": {
+            ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 14"
+          },
+          "piezasPorCaja": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "ubicacion": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "stockTotal": {
+            // Anti-negativos: stock nunca puede ser menor a 0
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "fechaCaducidad": {
+            ".validate": "!newData.exists() || newData.isString()"
+          },
+          "fechaCreacion": {
+            ".validate": "!newData.exists() || newData.isNumber()"
+          },
+          "fechaActualizacion": {
+            ".validate": "!newData.exists() || newData.isNumber()"
+          },
+          "creadoPor": {
+            ".validate": "!newData.exists() || newData.isString()"
+          },
+          "actualizadoPor": {
+            ".validate": "!newData.exists() || newData.isString()"
+          },
+          "ultimoRelleno": {
+            ".validate": "!newData.exists() || newData.isNumber()"
+          },
+          "ultimaVenta": {
+            ".validate": "!newData.exists() || newData.isNumber()"
+          }
+        }
+      }
+    },
+
+    // ========================================================
+    // MOVIMIENTOS - Registro de entrada/salida
+    // ========================================================
+    "movimientos": {
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".validate": "$determinante.matches(/^[A-Z0-9]{4,8}$/)",
+
+        "$pushId": {
+          ".validate": "newData.hasChildren(['tipo', 'producto', 'cajas', 'timestamp'])",
+
+          "tipo": {
+            ".validate": "newData.isString() && (newData.val() === 'entrada' || newData.val() === 'salida' || newData.val() === 'entrada_directa_anaquel')"
+          },
+          "producto": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "codigoBarras": {
+            ".validate": "newData.isString() && newData.val().length >= 8"
+          },
+          "cajas": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "usuario": {
+            ".validate": "!newData.exists() || newData.isString()"
+          }
+        }
+      }
+    },
+
+    // ========================================================
+    // AUDITORÍAS - Registro de conteos físicos
+    // ========================================================
+    "auditorias": {
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".validate": "$determinante.matches(/^[A-Z0-9]{4,8}$/)",
+
+        "$pushId": {
+          ".validate": "newData.hasChildren(['bodega', 'timestamp', 'items'])",
+
+          "bodega": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "usuario": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "items": {
+            "$codigoBarras": {
+              ".validate": "newData.hasChildren(['producto', 'contado', 'sistemico', 'diferencia'])",
+
+              "producto": {
+                ".validate": "newData.isString() && newData.val().length > 0"
+              },
+              "contado": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "sistemico": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "diferencia": {
+                ".validate": "newData.isNumber()"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    // ========================================================
+    // FRASES MOTIVACIONALES - Usuario solo accede las suyas
+    // ========================================================
+    "user_phrases": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+
+        "$pushId": {
+          ".validate": "newData.hasChildren(['text', 'timestamp'])",
+          "text": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        }
+      }
+    },
+
+    // ========================================================
+    // AUDIT TRAIL - Log de cambios (lectura para auditores, escritura automática)
+    // ========================================================
+    "audit_trail": {
+      "$determinante": {
+        ".read": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".validate": "$determinante.matches(/^[A-Z0-9]{4,8}$/)",
+
+        "$timestamp": {
+          ".validate": "newData.hasChildren(['tabla', 'documento', 'cambio', 'quien', 'timestamp'])",
+          "tabla": {
+            ".validate": "newData.isString()"
+          },
+          "documento": {
+            ".validate": "newData.isString()"
+          },
+          "quien": {
+            ".validate": "newData.isString()"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        }
+      }
+    },
+
+    // ========================================================
+    // DENY ALL OTHERS
+    // ========================================================
+    ".read": false,
+    ".write": false,
+    ".indexOn": ["timestamp", "determinante"]
+  }
+}

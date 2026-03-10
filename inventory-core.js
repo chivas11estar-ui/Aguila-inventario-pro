@@ -67,7 +67,43 @@ async function getCachedDeterminante() {
 }
 
 // ============================================================
-// 2. SANITIZAR CÓDIGO DE BARRAS PARA USAR COMO KEY
+// 2. VALIDACIÓN CHECKSUM EAN-13 (SEGURIDAD FASE 1.4)
+// ============================================================
+// Previene escaneos de códigos falsos o corruptos.
+// Aplica el algoritmo estándar EAN-13 de checksum.
+// Si el código tiene 13 dígitos, valida el dígito de control.
+function validateEAN13(ean) {
+  if (!ean || typeof ean !== 'string') return false;
+
+  const clean = ean.trim();
+
+  // Si no es 13 dígitos, no es EAN-13 — pero permitir otras longitudes (EAN-8, UPC, etc)
+  if (clean.length !== 13) return true; // Pass-through para códigos de otros formatos
+
+  // Validar que todos son dígitos
+  if (!/^\d{13}$/.test(clean)) return false;
+
+  // Calcular checksum EAN-13
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const digit = parseInt(clean[i]);
+    const weight = (i % 2 === 0) ? 1 : 3;
+    sum += digit * weight;
+  }
+
+  const checkdigit = (10 - (sum % 10)) % 10;
+  const providedCheckdigit = parseInt(clean[12]);
+
+  if (checkdigit !== providedCheckdigit) {
+    console.warn(`⚠️ [CORE] Checksum EAN-13 inválido: ${clean}`);
+    return false;
+  }
+
+  return true;
+}
+
+// ============================================================
+// 3. SANITIZAR CÓDIGO DE BARRAS PARA USAR COMO KEY
 // ============================================================
 // Firebase no permite: . # $ [ ] /
 // Los códigos de barras normales (EAN-13, UPC-A) son numéricos puros,
@@ -142,6 +178,11 @@ async function guardarProducto(formData) {
   // Validaciones de datos obligatorios
   if (!formData.codigoBarras || formData.codigoBarras.trim().length < 8) {
     throw new Error('Código de barras inválido (mínimo 8 dígitos)');
+  }
+
+  // SEGURIDAD FASE 1.4: Validar checksum EAN-13 si aplica
+  if (!validateEAN13(formData.codigoBarras)) {
+    throw new Error('❌ Código de barras inválido (checksum EAN-13 fallido)');
   }
   if (!formData.nombre || !formData.nombre.trim()) {
     throw new Error('El nombre del producto es obligatorio');
@@ -338,6 +379,7 @@ async function modificarStock(codigoBarras, cantidad, operacion) {
 // ============================================================
 // 8. CARGAR INVENTARIO COMPLETO (LISTENER EN TIEMPO REAL)
 // ============================================================
+// FASE 2.1: Usa listener-manager para prevenir memory leaks
 // Reemplaza loadInventory() pero lee de la nueva ruta.
 async function cargarInventario() {
   console.log('📦 [CORE] Cargando inventario desde nueva estructura...');
@@ -351,9 +393,14 @@ async function cargarInventario() {
     return;
   }
 
+  // FASE 2.1: Desuscribir listener anterior si existe (prevenir duplicados)
+  if (window.LISTENERS_MANAGER) {
+    window.LISTENERS_MANAGER.unsubscribe('inventario_listener');
+  }
+
   const inventoryRef = firebase.database().ref('productos/' + det);
 
-  inventoryRef.on('value', (snapshot) => {
+  const listener = inventoryRef.on('value', (snapshot) => {
     try {
       const productsObject = snapshot.val();
 
@@ -379,6 +426,13 @@ async function cargarInventario() {
       console.error('❌ [CORE] Error procesando inventario:', error);
     }
   });
+
+  // FASE 2.1: Registrar unsubscribe en gestor centralizado para autolimpieza
+  if (window.LISTENERS_MANAGER) {
+    window.LISTENERS_MANAGER.register('inventario_listener', () => {
+      inventoryRef.off('value');
+    });
+  }
 }
 
 // ============================================================
