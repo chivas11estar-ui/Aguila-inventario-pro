@@ -127,141 +127,114 @@ function getProductRef(determinante, codigoBarras) {
   return firebase.database().ref(`productos/${determinante}/${safeCode}`);
 }
 
+// NUEVO: Referencia a Firestore (Arquitectura Pro)
+function getFirestoreProductRef(determinante, codigoBarras) {
+  if (!window.firestore || !determinante || !codigoBarras) return null;
+  return window.firestore.doc(`stores/${determinante}/products/${codigoBarras.trim()}`);
+}
+
 // ============================================================
-// 4. BUSCAR PRODUCTO POR CÓDIGO DE BARRAS
+// 4. BUSCAR PRODUCTO POR CÓDIGO DE BARRAS (HÍBRIDO PRO)
 // ============================================================
-// Lectura directa por key — O(1), no necesita orderByChild ni índices.
 async function buscarProductoPorCodigo(codigoBarras) {
   const det = await getCachedDeterminante();
   if (!det) return null;
 
   const ref = getProductRef(det, codigoBarras);
-  if (!ref) return null;
+  const fsRef = getFirestoreProductRef(det, codigoBarras);
 
   try {
-    const snapshot = await ref.once('value');
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      return {
-        codigoBarras: codigoBarras.trim(),
-        ...data,
-        _ref: ref, // referencia para updates directos
-        _exists: true
-      };
-    }
-    return {
+    // Lectura paralela (RTDB para stock, Firestore para analytics)
+    const [rtdbSnap, fsSnap] = await Promise.all([
+      ref.once('value'),
+      fsRef ? fsRef.get() : Promise.resolve(null)
+    ]);
+
+    let data = {
       codigoBarras: codigoBarras.trim(),
       _exists: false,
-      _ref: ref
+      _ref: ref,
+      analytics: { daily_sales_avg: 0, last_restock_date: null }
     };
+
+    if (rtdbSnap.exists()) {
+      data = { ...data, ...rtdbSnap.val(), _exists: true };
+    }
+
+    if (fsSnap && fsSnap.exists) {
+      const fsData = fsSnap.data();
+      data.analytics = fsData.analytics || data.analytics;
+      // Mezclar metadata de Firestore si es más completa
+      if (fsData.metadata) {
+        data.nombre = fsData.metadata.name || data.nombre;
+        data.marca = fsData.metadata.brand || data.marca;
+      }
+    }
+
+    return data;
   } catch (error) {
-    console.error('❌ [CORE] Error buscando producto:', error);
+    console.error('❌ [CORE] Error buscando producto híbrido:', error);
     return null;
   }
 }
 
 // ============================================================
-// 5. CREAR O ACTUALIZAR PRODUCTO (UPSERT ATÓMICO)
+// 5. CREAR O ACTUALIZAR PRODUCTO (UPSERT HÍBRIDO)
 // ============================================================
-// Esta es la función central que REEMPLAZA a handleAddProduct.
-// Usa set() con merge manual o update() — nunca push().
-//
-// Regla fundamental: el código de barras ES la clave.
-// Si ya existe → actualiza campos (merge inteligente).
-// Si no existe → crea el nodo completo.
 async function guardarProducto(formData) {
   const det = await getCachedDeterminante();
-  if (!det) {
-    throw new Error('No se pudo obtener el determinante de la tienda');
-  }
-
-  // Validaciones de datos obligatorios
-  if (!formData.codigoBarras || formData.codigoBarras.trim().length < 8) {
-    throw new Error('Código de barras inválido (mínimo 8 dígitos)');
-  }
-
-  // SEGURIDAD FASE 1.4: Validar checksum EAN-13 si aplica
-  if (!validateEAN13(formData.codigoBarras)) {
-    throw new Error('❌ Código de barras inválido (checksum EAN-13 fallido)');
-  }
-  if (!formData.nombre || !formData.nombre.trim()) {
-    throw new Error('El nombre del producto es obligatorio');
-  }
-  if (!formData.marca) {
-    throw new Error('La marca es obligatoria');
-  }
-  if (!formData.piezasPorCaja || formData.piezasPorCaja <= 0) {
-    throw new Error('Piezas por caja debe ser mayor a 0');
-  }
+  if (!det) throw new Error('No se pudo obtener el determinante');
 
   const safeCode = sanitizeBarcode(formData.codigoBarras);
-  if (!safeCode) {
-    throw new Error('Código de barras contiene caracteres inválidos');
-  }
-
   const ref = getProductRef(det, formData.codigoBarras);
+  const fsRef = getFirestoreProductRef(det, formData.codigoBarras);
+  
   const timestamp = getLocalISOString();
   const usuario = firebase.auth().currentUser?.email || 'sistema';
 
   try {
-    const snapshot = await ref.once('value');
+    // 1. Preparar datos para RTDB (Stock y Operatividad)
+    const rtdbData = {
+      nombre: formData.nombre.trim(),
+      marca: formData.marca,
+      piezasPorCaja: parseInt(formData.piezasPorCaja),
+      ubicacion: formData.ubicacion?.trim() || '',
+      fechaCaducidad: formData.fechaCaducidad || '',
+      fechaActualizacion: timestamp,
+      actualizadoPor: usuario
+    };
 
-    if (snapshot.exists()) {
-      // ── PRODUCTO YA EXISTE → ACTUALIZAR (sin tocar stockTotal) ──
-      const existing = snapshot.val();
-      console.log(`📝 [CORE] Actualizando producto existente: ${existing.nombre}`);
-
-      const updateData = {
-        nombre: formData.nombre.trim(),
-        marca: formData.marca,
-        piezasPorCaja: parseInt(formData.piezasPorCaja),
-        ubicacion: formData.ubicacion?.trim() || existing.ubicacion || '',
-        fechaCaducidad: formData.fechaCaducidad || existing.fechaCaducidad || '',
-        fechaActualizacion: timestamp,
-        actualizadoPor: usuario
-      };
-
-      // Solo actualizar cajas si se proporcionan explícitamente
-      // (para no pisar el stock durante ediciones de metadatos)
-      if (formData.cajas !== undefined && formData.cajas !== null) {
-        updateData.stockTotal = Math.max(0, parseInt(formData.cajas) || 0);
-      }
-
-      await ref.update(updateData);
-
-      console.log(`✅ [CORE] Producto actualizado: ${updateData.nombre}`);
-      return { action: 'updated', codigoBarras: safeCode, data: updateData };
-
-    } else {
-      // ── PRODUCTO NUEVO → CREAR CON ESTRUCTURA COMPLETA ──
-      console.log(`🆕 [CORE] Creando producto nuevo: ${formData.nombre}`);
-
-      const newProduct = {
-        nombre: formData.nombre.trim(),
-        marca: formData.marca,
-        codigoBarras: formData.codigoBarras.trim(),
-        piezasPorCaja: parseInt(formData.piezasPorCaja),
-        ubicacion: formData.ubicacion?.trim() || '',
-        fechaCaducidad: formData.fechaCaducidad || '',
-        stockTotal: Math.max(0, parseInt(formData.cajas) || 0),
-        fechaCreacion: timestamp,
-        fechaActualizacion: timestamp,
-        creadoPor: usuario,
-        actualizadoPor: usuario,
-        // Campos para analytics de producto en 0
-        ultimoRelleno: null,
-        ultimaVenta: null
-      };
-
-      // set() en la ruta exacta — no push()
-      await ref.set(newProduct);
-
-      console.log(`✅ [CORE] Producto creado: ${newProduct.nombre}`);
-      return { action: 'created', codigoBarras: safeCode, data: newProduct };
+    if (formData.cajas !== undefined) {
+      rtdbData.stockTotal = Math.max(0, parseInt(formData.cajas) || 0);
     }
 
+    // 2. Preparar datos para Firestore (Metadata Pro y Búsqueda)
+    const fsData = {
+      metadata: {
+        name: formData.nombre.trim(),
+        brand: formData.marca,
+        search_keywords: formData.nombre.toLowerCase().split(' '),
+        pieces_per_box: parseInt(formData.piezasPorCaja)
+      },
+      inventory: {
+        location: formData.ubicacion?.trim() || '',
+        last_updated: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    };
+
+    // 3. Ejecutar actualizaciones en paralelo
+    const updates = [ref.update(rtdbData)];
+    if (fsRef) {
+      updates.push(fsRef.set(fsData, { merge: true }));
+    }
+
+    await Promise.all(updates);
+
+    console.log(`✅ [CORE] Producto guardado (Híbrido): ${formData.nombre}`);
+    return { action: 'saved', codigoBarras: safeCode };
+
   } catch (error) {
-    console.error('❌ [CORE] Error en guardarProducto:', error);
+    console.error('❌ [CORE] Error en guardarProducto Híbrido:', error);
     throw error;
   }
 }

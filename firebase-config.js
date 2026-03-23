@@ -43,8 +43,9 @@ function initFirebase() {
     window.firebaseApp = firebase.app();
     window.firebaseAuth = firebase.auth();
     window.firebaseDB = firebase.database();
+    window.firestore = firebase.firestore(); // Nuevo: Soporte para Firestore (Arquitectura Pro)
 
-    console.log('🔐 Servicios de Firebase listos (Auth, DB).');
+    console.log('🔐 Servicios de Firebase listos (Auth, DB, Firestore).');
     
     return true;
 
