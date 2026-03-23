@@ -1,138 +1,104 @@
 /**
- * Águila Inventario Pro - Módulo: scanner-mlkit.js (V3 Singleton Pro)
- * Optimizado para Auditoría masiva y cambio de pestañas.
+ * Águila Pro - ScannerService (Singleton)
+ * V4 - Motor Unificado de Hardware e IA
  * Copyright © 2026 José A. G. Betancourt
  */
 
 'use strict';
 
-window.SCANNER_MLKIT = (function() {
-    let stream = null;
-    let detector = null;
-    let isReady = false;
-    let readyPromise = null;
-    let activeCallback = null;
+window.ScannerService = {
+    stream: null,
+    detector: null,
+    activeVideoElement: null,
+    isReady: false,
 
-    /**
-     * INICIALIZACIÓN SINGLETON
-     */
-    async function init() {
-        if (readyPromise) return readyPromise;
-
-        readyPromise = new Promise(async (resolve, reject) => {
-            try {
-                console.log("📷 [SCANNER] Iniciando Singleton...");
-
-                // 1. Soporte de Hardware
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw { name: 'NotSupportedError' };
-                }
-
-                // 2. Motor de Detección (ML Kit Nativo vs Fallback)
-                if ('BarcodeDetector' in window) {
-                    detector = new BarcodeDetector({ 
-                        formats: ['ean_13', 'upc_a', 'code_128', 'qr_code'] 
-                    });
-                } else {
-                    console.warn("⚠️ [SCANNER] ML Kit no nativo. Usando fallback engine.");
-                    // Fallback Dummy para evitar errores de null
-                    detector = { detect: async () => [] };
-                }
-
-                // 3. Captura de Cámara (Industrial Settings)
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: "environment",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                });
-
-                isReady = true;
-                resolve(true);
-
-            } catch (err) {
-                isReady = false;
-                readyPromise = null;
-                handleError(err);
-                reject(err);
-            }
-        });
-
-        return readyPromise;
-    }
-
-    function handleError(err) {
-        let msg = "Error de cámara.";
-        if (err.name === 'NotAllowedError') msg = "🚫 Activa la cámara en los ajustes del navegador.";
-        if (err.name === 'NotSupportedError') msg = "❌ Navegador no compatible con escáner.";
-        if (typeof showToast === 'function') showToast(msg, "error");
-    }
-
-    /**
-     * LOOP DE ESCANEO RECURSIVO
-     */
-    async function scanLoop(video) {
-        if (!isReady || !detector || !video || video.paused) return;
+    async requestCamera(videoElement) {
+        console.log("📷 [ScannerService] Solicitando hardware...");
+        if (this.stream) this.stop(); 
 
         try {
-            const barcodes = await detector.detect(video);
-            if (barcodes.length > 0 && activeCallback) {
-                activeCallback(barcodes[0].rawValue);
-            }
-        } catch (e) {
-            // Silenciar errores de frames vacíos durante transición
-        }
-
-        if (window.AUDIT_PRO && window.AUDIT_PRO.state === 'SCANNING') {
-            requestAnimationFrame(() => scanLoop(video));
-        }
-    }
-
-    return {
-        ensureScannerReady: async function() {
-            return await init();
-        },
-
-        startContinuous: async function(callback) {
-            await this.ensureScannerReady();
-            activeCallback = callback;
-
-            // Buscar elemento video en la zona de auditoría
-            let video = document.querySelector('#audit-scanner-view video');
-            
-            if (!video) {
-                // Crear dinámicamente si no existe
-                const container = document.getElementById('audit-scanner-view');
-                if (container) {
-                    video = document.createElement('video');
-                    video.setAttribute('autoplay', '');
-                    video.setAttribute('playsinline', '');
-                    video.style.width = '100%';
-                    video.style.height = '100%';
-                    video.style.objectFit = 'cover';
-                    container.prepend(video);
-                }
-            }
-
-            if (video) {
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    video.play();
-                    scanLoop(video);
-                };
-            }
-        },
-
-        stop: function() {
-            activeCallback = null;
-            const videos = document.querySelectorAll('video');
-            videos.forEach(v => {
-                v.pause();
-                v.srcObject = null;
+            this.stream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    facingMode: "environment", 
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
             });
-            console.log("📷 [SCANNER] Detenido.");
+
+            videoElement.srcObject = this.stream;
+            this.activeVideoElement = videoElement;
+
+            return new Promise((resolve) => {
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    this.initDetector();
+                    this.isReady = true;
+                    console.log("✅ [ScannerService] Video caliente y listo.");
+                    resolve(true);
+                };
+            });
+        } catch (err) {
+            console.error("❌ [ScannerService] Fallo en Cámara:", err);
+            if (typeof showToast === 'function') showToast("Error de cámara: Activa los permisos.", "error");
+            return false;
         }
-    };
-})();
+    },
+
+    initDetector() {
+        if ('BarcodeDetector' in window) {
+            this.detector = new BarcodeDetector({ 
+                formats: ['ean_13', 'upc_a', 'code_128', 'qr_code'] 
+            });
+            console.log("🤖 [ScannerService] ML Kit Nativo Activo.");
+        } else {
+            console.warn("⚠️ [ScannerService] ML Kit no disponible. Usando fallback manual.");
+            this.detector = null;
+        }
+    },
+
+    async scan(callback) {
+        if (!this.activeVideoElement) return;
+
+        const loop = async () => {
+            if (!this.stream || !this.activeVideoElement) return;
+            
+            try {
+                if (this.detector) {
+                    const barcodes = await this.detector.detect(this.activeVideoElement);
+                    if (barcodes.length > 0) {
+                        console.log("🎯 [ScannerService] Código detectado:", barcodes[0].rawValue);
+                        callback(barcodes[0].rawValue);
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        return; // Detener tras éxito
+                    }
+                }
+            } catch (e) { /* Frame vacío o transición */ }
+            
+            if (this.isReady) {
+                requestAnimationFrame(loop);
+            }
+        };
+        loop();
+    },
+
+    stop() {
+        this.isReady = false;
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+        }
+        console.log("📷 [ScannerService] Hardware liberado.");
+    }
+};
+
+// Mantener compatibilidad con llamadas viejas si existen
+window.SCANNER_MLKIT = {
+    startContinuous: (cb) => window.ScannerService.scan(cb),
+    stop: () => window.ScannerService.stop(),
+    ensureScannerReady: () => window.ScannerService.requestCamera(document.createElement('video'))
+};

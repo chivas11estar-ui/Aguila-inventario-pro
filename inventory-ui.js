@@ -360,58 +360,14 @@ function applyBrandStates() {
 }
 
 // ============================================================
-// CONFIGURAR BUSCADOR
+// CONFIGURAR BUSCADOR (V4 - HYBRID PRO)
 // ============================================================
 function setupSearchBar() {
-  const inventoryList = document.getElementById('inventory-list');
-  if (!inventoryList) return;
-
-  // Verificar si ya existe el buscador
-  if (document.getElementById('inventory-search')) {
-    console.log('⚠️ Buscador ya existe');
-    return;
-  }
-
-  const searchHTML = `
-    <div style="margin-bottom: 20px;">
-      <input
-        id="inventory-search"
-        type="text"
-        placeholder="🔍 Buscar producto, marca o código..."
-        style="
-          width: 100%;
-          padding: 12px;
-          border: 2px solid var(--border);
-          border-radius: 8px;
-          font-size: 14px;
-          box-sizing: border-box;
-          transition: all 0.3s ease;
-        "
-      />
-    </div>
-  `;
-
-  inventoryList.insertAdjacentHTML('beforebegin', searchHTML);
-
-  // Evento de búsqueda
-  const searchInput = document.getElementById('inventory-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      window.setSearchTerm(e.target.value);
-    });
-
-    // Focus effect
-    searchInput.addEventListener('focus', () => {
-      searchInput.style.borderColor = 'var(--primary)';
-      searchInput.style.boxShadow = '0 0 0 3px rgba(0, 74, 173, 0.1)';
-    });
-
-    searchInput.addEventListener('blur', () => {
-      searchInput.style.borderColor = 'var(--border)';
-      searchInput.style.boxShadow = 'none';
-    });
-
-    console.log('✅ Buscador configurado');
+  console.log('🔍 [UI] Inyectando Buscador Híbrido Pro...');
+  if (window.SearchController) {
+    window.SearchController.renderGlobalSearch('tab-inventory');
+  } else {
+    console.error('❌ SearchController no disponible');
   }
 }
 
@@ -421,10 +377,10 @@ function setupSearchBar() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🎨 Inicializando módulo de inventario (UI)...');
 
-  // Configurar buscador
+  // Configurar buscador híbrido después de un breve delay para asegurar el DOM
   setTimeout(() => {
     setupSearchBar();
-  }, 500);
+  }, 1000);
 });
 
 // ============================================================
