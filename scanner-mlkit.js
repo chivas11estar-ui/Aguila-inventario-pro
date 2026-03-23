@@ -1,55 +1,75 @@
 /**
- * Águila Pro - ScannerService (Singleton con Mutex)
- * V5 - Estabilización de Hardware y Concurrencia
+ * Águila Pro - ScannerService (Singleton Persistent Bridge)
+ * V6 - WebRTC Stream Persistence
  * Copyright © 2026 José A. G. Betancourt
  */
 
 'use strict';
 
 window.ScannerService = {
-    stream: null,
+    persistentStream: null,
     detector: null,
     activeVideoElement: null,
-    isStreaming: false,
+    isScanning: false,
 
+    /**
+     * Punto de entrada único: Solicita hardware o reutiliza el stream caliente.
+     */
     async requestCamera(videoElement) {
-        // Mutex: Si el hardware ya está en uso por este mismo elemento, no reiniciar
-        if (this.isStreaming && this.activeVideoElement === videoElement) {
-            console.log("🔒 [ScannerService] Hardware ya bloqueado y activo.");
-            return true;
+        console.log("📷 [ScannerService] Petición de cámara recibida.");
+
+        // Caso A: Ya hay un stream activo y saludable
+        if (this.persistentStream && this.persistentStream.active) {
+            console.log("🔥 [ScannerService] Reutilizando Stream Caliente.");
+            return await this.attachToElement(videoElement);
         }
 
-        // Si hay un flujo activo en otro elemento, lo liberamos primero
-        if (this.stream) this.stop(); 
-
+        // Caso B: Primera vez o el stream se perdió
         try {
-            console.log("📷 [ScannerService] Solicitando acceso a cámara...");
-            this.stream = await navigator.mediaDevices.getUserMedia({
+            this.persistentStream = await navigator.mediaDevices.getUserMedia({
                 video: { 
                     facingMode: "environment", 
                     width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    height: { ideal: 720 },
+                    focusMode: "continuous"
                 },
                 audio: false
             });
-
-            videoElement.srcObject = this.stream;
-            this.activeVideoElement = videoElement;
-
-            return new Promise((resolve) => {
-                videoElement.onloadedmetadata = () => {
-                    videoElement.play();
-                    this.initDetector();
-                    this.isStreaming = true;
-                    console.log("✅ [ScannerService] Streaming estable.");
-                    resolve(true);
-                };
-            });
+            return await this.attachToElement(videoElement);
         } catch (err) {
-            console.error("❌ [ScannerService] Error de acceso:", err);
-            this.isStreaming = false;
+            console.error("❌ [ScannerService] Error WebRTC:", err);
             return false;
         }
+    },
+
+    /**
+     * Vincula el stream a un elemento sin apagar el sensor.
+     */
+    async attachToElement(videoElement) {
+        if (!this.persistentStream || !videoElement) return false;
+
+        // Desvincular video anterior si existe
+        if (this.activeVideoElement && this.activeVideoElement !== videoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+        }
+
+        videoElement.srcObject = this.persistentStream;
+        this.activeVideoElement = videoElement;
+
+        return new Promise((resolve) => {
+            videoElement.onloadedmetadata = async () => {
+                try {
+                    await videoElement.play();
+                    this.initDetector();
+                    console.log("✅ [ScannerService] Video vinculado y reproduciendo.");
+                    resolve(true);
+                } catch (e) {
+                    console.warn("⚠️ [ScannerService] Play automático fallido:", e);
+                    resolve(false);
+                }
+            };
+        });
     },
 
     initDetector() {
@@ -61,34 +81,44 @@ window.ScannerService = {
     },
 
     async scan(callback) {
-        if (!this.activeVideoElement || !this.isStreaming) return;
-
+        this.isScanning = true;
         const loop = async () => {
-            if (!this.isStreaming || !this.activeVideoElement) return;
+            if (!this.isScanning || !this.activeVideoElement || this.activeVideoElement.paused) return;
             
             try {
                 if (this.detector) {
                     const barcodes = await this.detector.detect(this.activeVideoElement);
                     if (barcodes.length > 0) {
-                        const code = barcodes[0].rawValue;
-                        callback(code);
+                        callback(barcodes[0].rawValue);
                         if (navigator.vibrate) navigator.vibrate(50);
+                        this.isScanning = false; // Detener flujo de datos tras éxito
                         return; 
                     }
                 }
-            } catch (e) { /* Transición de frames */ }
+            } catch (e) { /* Transición de frames o video pausado */ }
             
             requestAnimationFrame(loop);
         };
         loop();
     },
 
-    stop() {
-        console.log("🔓 [ScannerService] Liberando hardware...");
-        this.isStreaming = false;
-        if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-            this.stream = null;
+    /**
+     * Pausa el procesamiento de datos pero MANTIENE el hardware encendido.
+     */
+    stopDataFlow() {
+        this.isScanning = false;
+        console.log("⏸️ [ScannerService] Procesamiento de IA en pausa (Hardware encendido).");
+    },
+
+    /**
+     * Único método que realmente apaga el sensor (Cierre de sesión / Salida).
+     */
+    hardStop() {
+        console.log("🛑 [ScannerService] APAGANDO HARDWARE COMPLETAMENTE.");
+        this.isScanning = false;
+        if (this.persistentStream) {
+            this.persistentStream.getTracks().forEach(track => track.stop());
+            this.persistentStream = null;
         }
         if (this.activeVideoElement) {
             this.activeVideoElement.pause();
@@ -99,26 +129,24 @@ window.ScannerService = {
 };
 
 /** 
- * BRIDGE: Compatibilidad con openScanner legado
+ * BRIDGE: Compatibilidad legacy
  */
 window.openScanner = async function(callback) {
     const modal = document.getElementById('scanner-modal');
     const video = document.getElementById('scanner-video');
-    
     if (!modal || !video) return;
 
     modal.classList.remove('hidden');
     const ready = await window.ScannerService.requestCamera(video);
-    
     if (ready) {
         window.ScannerService.scan((code) => {
             if (callback) callback(code);
-            // Puente al buscador si existe
             if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
             
+            // Si no es auditoría continua, ocultamos el modal
             if (!window.AUDIT_PRO || !window.AUDIT_PRO.continuousMode) {
-                window.ScannerService.stop();
                 modal.classList.add('hidden');
+                window.ScannerService.stopDataFlow();
             }
         });
     }

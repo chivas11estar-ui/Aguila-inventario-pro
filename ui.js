@@ -78,6 +78,8 @@ function setupTabs() {
       const tabElement = document.getElementById('tab-' + tabName);
       if (tabElement) {
         tabElement.classList.add('active');
+        // RECONEXIÓN CALIENTE: Si la pestaña tiene un video, reconectar el stream persistente
+        refreshCameraOnTabChange(tabName);
       }
       
       item.classList.add('active');
@@ -90,6 +92,22 @@ function setupTabs() {
       console.log('📑 Tab activado:', tabName);
     });
   });
+}
+
+/**
+ * Asegura que el video se mantenga reproduciendo al cambiar de pestaña (Hot-Swap)
+ */
+function refreshCameraOnTabChange(tabName) {
+    if (!window.ScannerService || !window.ScannerService.persistentStream) return;
+
+    // Buscar si hay un video en la pestaña activa
+    const activeTab = document.getElementById('tab-' + tabName);
+    const video = activeTab?.querySelector('video');
+
+    if (video) {
+        console.log(`🔗 [UI] Reconectando cámara a la pestaña: ${tabName}`);
+        window.ScannerService.attachToElement(video);
+    }
 }
 
 // ============================================================
