@@ -229,20 +229,18 @@ async function startAuditScanning() {
     updateAuditStateUI('⏳ CÁMARA...', '#3b82f6');
     
     try {
-        const video = document.querySelector('#audit-scanner-view video');
-        if (!video) throw new Error("No se encontró elemento de video");
-
-        // ESPERAR AL SINGLETON
-        await window.ScannerService.requestCamera(video);
+        // V6.2: El servicio ahora crea el video si no existe en el contenedor
+        const ready = await window.ScannerService.requestCamera('#audit-scanner-view');
         
-        window.AUDIT_PRO.state = 'SCANNING';
-        const fab = document.getElementById('fab-audit-trigger');
-        if (fab) fab.classList.add('active');
-        
-        // Iniciar feed
-        await window.ScannerService.scan(handleAuditScan);
-        
-        updateAuditStateUI('🟢 ESCANEANDO...', '#10b981');
+        if (ready) {
+            window.AUDIT_PRO.state = 'SCANNING';
+            const fab = document.getElementById('fab-audit-trigger');
+            if (fab) fab.classList.add('active');
+            
+            // Iniciar feed
+            await window.ScannerService.scan(handleAuditScan);
+            updateAuditStateUI('🟢 ESCANEANDO...', '#10b981');
+        }
     } catch (error) {
         updateAuditStateUI('❌ ERROR CÁMARA', '#ef4444');
         console.error("Fallo al iniciar auditoría:", error);
