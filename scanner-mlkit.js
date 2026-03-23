@@ -1,6 +1,6 @@
 /**
- * Águila Pro - ScannerService (Singleton)
- * V4 - Motor Unificado de Hardware e IA
+ * Águila Pro - ScannerService (Singleton con Mutex)
+ * V5 - Estabilización de Hardware y Concurrencia
  * Copyright © 2026 José A. G. Betancourt
  */
 
@@ -10,13 +10,20 @@ window.ScannerService = {
     stream: null,
     detector: null,
     activeVideoElement: null,
-    isReady: false,
+    isStreaming: false,
 
     async requestCamera(videoElement) {
-        console.log("📷 [ScannerService] Solicitando hardware...");
+        // Mutex: Si el hardware ya está en uso por este mismo elemento, no reiniciar
+        if (this.isStreaming && this.activeVideoElement === videoElement) {
+            console.log("🔒 [ScannerService] Hardware ya bloqueado y activo.");
+            return true;
+        }
+
+        // Si hay un flujo activo en otro elemento, lo liberamos primero
         if (this.stream) this.stop(); 
 
         try {
+            console.log("📷 [ScannerService] Solicitando acceso a cámara...");
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: { 
                     facingMode: "environment", 
@@ -33,57 +40,52 @@ window.ScannerService = {
                 videoElement.onloadedmetadata = () => {
                     videoElement.play();
                     this.initDetector();
-                    this.isReady = true;
-                    console.log("✅ [ScannerService] Video caliente y listo.");
+                    this.isStreaming = true;
+                    console.log("✅ [ScannerService] Streaming estable.");
                     resolve(true);
                 };
             });
         } catch (err) {
-            console.error("❌ [ScannerService] Fallo en Cámara:", err);
-            if (typeof showToast === 'function') showToast("Error de cámara: Activa los permisos.", "error");
+            console.error("❌ [ScannerService] Error de acceso:", err);
+            this.isStreaming = false;
             return false;
         }
     },
 
     initDetector() {
-        if ('BarcodeDetector' in window) {
+        if (!this.detector && 'BarcodeDetector' in window) {
             this.detector = new BarcodeDetector({ 
                 formats: ['ean_13', 'upc_a', 'code_128', 'qr_code'] 
             });
-            console.log("🤖 [ScannerService] ML Kit Nativo Activo.");
-        } else {
-            console.warn("⚠️ [ScannerService] ML Kit no disponible. Usando fallback manual.");
-            this.detector = null;
         }
     },
 
     async scan(callback) {
-        if (!this.activeVideoElement) return;
+        if (!this.activeVideoElement || !this.isStreaming) return;
 
         const loop = async () => {
-            if (!this.stream || !this.activeVideoElement) return;
+            if (!this.isStreaming || !this.activeVideoElement) return;
             
             try {
                 if (this.detector) {
                     const barcodes = await this.detector.detect(this.activeVideoElement);
                     if (barcodes.length > 0) {
-                        console.log("🎯 [ScannerService] Código detectado:", barcodes[0].rawValue);
-                        callback(barcodes[0].rawValue);
+                        const code = barcodes[0].rawValue;
+                        callback(code);
                         if (navigator.vibrate) navigator.vibrate(50);
-                        return; // Detener tras éxito
+                        return; 
                     }
                 }
-            } catch (e) { /* Frame vacío o transición */ }
+            } catch (e) { /* Transición de frames */ }
             
-            if (this.isReady) {
-                requestAnimationFrame(loop);
-            }
+            requestAnimationFrame(loop);
         };
         loop();
     },
 
     stop() {
-        this.isReady = false;
+        console.log("🔓 [ScannerService] Liberando hardware...");
+        this.isStreaming = false;
         if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop());
             this.stream = null;
@@ -91,45 +93,29 @@ window.ScannerService = {
         if (this.activeVideoElement) {
             this.activeVideoElement.pause();
             this.activeVideoElement.srcObject = null;
+            this.activeVideoElement = null;
         }
-        console.log("📷 [ScannerService] Hardware liberado.");
     }
 };
 
-// Mantener compatibilidad con llamadas viejas si existen
-window.SCANNER_MLKIT = {
-    startContinuous: (cb) => window.ScannerService.scan(cb),
-    stop: () => window.ScannerService.stop(),
-    ensureScannerReady: () => window.ScannerService.requestCamera(document.createElement('video'))
-};
-
 /** 
- * BRIDGE: Conector Global para compatibilidad (V4.1)
- * Mapea las llamadas legacy al nuevo ScannerService Singleton.
+ * BRIDGE: Compatibilidad con openScanner legado
  */
 window.openScanner = async function(callback) {
     const modal = document.getElementById('scanner-modal');
     const video = document.getElementById('scanner-video');
     
-    if (!modal || !video) {
-        console.error("❌ [ScannerBridge] Elementos del modal no encontrados.");
-        return;
-    }
+    if (!modal || !video) return;
 
-    // 1. Mostrar Interfaz
     modal.classList.remove('hidden');
-    
-    // 2. Encender Cámara vía Singleton
     const ready = await window.ScannerService.requestCamera(video);
     
     if (ready) {
-        // 3. Iniciar Escaneo
         window.ScannerService.scan((code) => {
-            // Ejecutar la lógica del módulo solicitante
             if (callback) callback(code);
+            // Puente al buscador si existe
+            if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
             
-            // 4. Seguridad/Batería: Auto-cierre tras éxito (Modo Manual)
-            // Si no estamos en auditoría continua, cerramos para ahorrar recursos
             if (!window.AUDIT_PRO || !window.AUDIT_PRO.continuousMode) {
                 window.ScannerService.stop();
                 modal.classList.add('hidden');
@@ -137,12 +123,3 @@ window.openScanner = async function(callback) {
         });
     }
 };
-
-// Listener para el botón de cerrar modal (si existe)
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('close-scanner')?.addEventListener('click', () => {
-        window.ScannerService.stop();
-        document.getElementById('scanner-modal').classList.add('hidden');
-    });
-});
-

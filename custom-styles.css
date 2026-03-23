@@ -702,3 +702,32 @@ html {
 .scanner-overlay {
     z-index: 10001 !important;
 }
+
+/* ============================================================
+   SISTEMAS - FIX VISIBILIDAD DE VIDEO (MUTEX)
+   ============================================================ */
+#search-video-feed, 
+#scanner-video, 
+.audit-camera-zone video {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 300px !important;
+    object-fit: cover !important;
+    background: #000 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.visible-scanner {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #000 !important;
+}
+
+.search-wrapper {
+    background: #000 !important; /* OLED Priority */
+    border-bottom: 1px solid #222;
+}

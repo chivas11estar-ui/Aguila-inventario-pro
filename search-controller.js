@@ -7,13 +7,16 @@
 'use strict';
 
 window.SearchController = {
+    isInitialized: false,
+
     renderGlobalSearch(containerId) {
+        if (this.isInitialized) {
+            console.log("ℹ️ [SearchController] Buscador ya inyectado.");
+            return;
+        }
+
         const container = document.getElementById(containerId);
         if (!container) return;
-
-        // Limpiar búsqueda anterior si existe
-        const existing = document.querySelector('.search-wrapper');
-        if (existing) existing.remove();
 
         const searchHTML = `
             <div class="search-wrapper">
@@ -33,9 +36,8 @@ window.SearchController = {
             </div>
         `;
 
-        // Insertar al inicio del contenedor
         container.insertAdjacentHTML('afterbegin', searchHTML);
-
+        this.isInitialized = true;
         this.setupListeners();
     },
 
@@ -48,7 +50,7 @@ window.SearchController = {
 
         if (!input || !btn || !video || !overlay) return;
 
-        // Búsqueda por texto (Filtrado local)
+        // Búsqueda por texto (Bridge directo a inventory.js)
         input.addEventListener('input', (e) => {
             if (typeof window.setSearchTerm === 'function') {
                 window.setSearchTerm(e.target.value);
@@ -57,24 +59,21 @@ window.SearchController = {
 
         // Disparar Escáner
         btn.addEventListener('click', async () => {
-            console.log("🚀 [SearchController] Iniciando escaneo rápido...");
             overlay.classList.remove('hidden-scanner');
             overlay.classList.add('visible-scanner');
             
             const ready = await window.ScannerService.requestCamera(video);
             if (ready) {
                 window.ScannerService.scan((code) => {
-                    input.value = code;
-                    this.closeScanner(overlay);
-                    if (typeof window.setSearchTerm === 'function') {
-                        window.setSearchTerm(code);
+                    // Puente de datos: Inyectar código en buscador
+                    if (window.bridgeScanToSearch) {
+                        window.bridgeScanToSearch(code);
                     }
-                    if (typeof showToast === 'function') showToast(`Escaneado: ${code}`, "success");
+                    this.closeScanner(overlay);
                 });
             }
         });
 
-        // Cerrar Escáner
         closeBtn.addEventListener('click', () => this.closeScanner(overlay));
     },
 
@@ -82,5 +81,18 @@ window.SearchController = {
         overlay.classList.remove('visible-scanner');
         overlay.classList.add('hidden-scanner');
         window.ScannerService.stop();
+    }
+};
+
+/**
+ * BRIDGE: Conecta el escáner con el filtrado global de la lista
+ */
+window.bridgeScanToSearch = function(code) {
+    const input = document.getElementById('global-search-input');
+    if (input) {
+        input.value = code;
+        // IMPORTANTE: Disparar evento para que el filtro de inventory.js reaccione
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        if (typeof showToast === 'function') showToast(`🎯 Producto: ${code}`, "success");
     }
 };
