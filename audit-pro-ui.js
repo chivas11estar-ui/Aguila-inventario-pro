@@ -225,17 +225,24 @@ function setupAuditListeners() {
     fab.addEventListener('mouseup', () => clearTimeout(longPressTimer));
 }
 
-function startAuditScanning() {
-    window.AUDIT_PRO.state = 'SCANNING';
-    const fab = document.getElementById('fab-audit-trigger');
-    if (fab) fab.classList.add('active');
-    updateAuditStateUI('🟢 ESCANEANDO...', '#10b981');
+async function startAuditScanning() {
+    updateAuditStateUI('⏳ CÁMARA...', '#3b82f6');
     
-    // Integración con el motor MLKit existente
-    if (window.SCANNER_MLKIT) {
-        window.SCANNER_MLKIT.startContinuous(handleAuditScan);
-    } else {
-        showToast('⚠️ Motor de escaneo no listo', 'error');
+    try {
+        // ESPERAR AL SINGLETON
+        await window.SCANNER_MLKIT.ensureScannerReady();
+        
+        window.AUDIT_PRO.state = 'SCANNING';
+        const fab = document.getElementById('fab-audit-trigger');
+        if (fab) fab.classList.add('active');
+        
+        // Iniciar feed
+        await window.SCANNER_MLKIT.startContinuous(handleAuditScan);
+        
+        updateAuditStateUI('🟢 ESCANEANDO...', '#10b981');
+    } catch (error) {
+        updateAuditStateUI('❌ ERROR CÁMARA', '#ef4444');
+        console.error("Fallo al iniciar auditoría:", error);
     }
 }
 
