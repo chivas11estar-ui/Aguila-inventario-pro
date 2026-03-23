@@ -229,15 +229,18 @@ async function startAuditScanning() {
     updateAuditStateUI('⏳ CÁMARA...', '#3b82f6');
     
     try {
+        const video = document.querySelector('#audit-scanner-view video');
+        if (!video) throw new Error("No se encontró elemento de video");
+
         // ESPERAR AL SINGLETON
-        await window.SCANNER_MLKIT.ensureScannerReady();
+        await window.ScannerService.requestCamera(video);
         
         window.AUDIT_PRO.state = 'SCANNING';
         const fab = document.getElementById('fab-audit-trigger');
         if (fab) fab.classList.add('active');
         
         // Iniciar feed
-        await window.SCANNER_MLKIT.startContinuous(handleAuditScan);
+        await window.ScannerService.scan(handleAuditScan);
         
         updateAuditStateUI('🟢 ESCANEANDO...', '#10b981');
     } catch (error) {
@@ -256,8 +259,8 @@ function stopAuditScanning() {
     window.AUDIT_PRO.continuousMode = false;
     updateAuditStateUI('⚪ LISTO', '#ffffff');
     
-    if (window.SCANNER_MLKIT) {
-        window.SCANNER_MLKIT.stop();
+    if (window.ScannerService) {
+        window.ScannerService.stopDataFlow();
     }
 }
 
