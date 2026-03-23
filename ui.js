@@ -99,46 +99,54 @@ function initUI() {
   console.log('🎨 Inicializando UI...');
   
   setupTabs();
-  
-  // ✅ BOTÓN ESCÁNER AGREGAR - CORREGIDO
-  const btnScanAdd = document.getElementById('btn-scan-add');
-  if (btnScanAdd) {
-    btnScanAdd.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🎬 Abriendo escáner para agregar...');
-      
-      if (typeof window.openScanner === 'function') {
-        console.log('✅ openScanner disponible, abriendo...');
-        window.openScanner((code) => {
-          console.log('📦 Código escaneado:', code);
-          const input = document.getElementById('add-barcode');
-          if (input) {
-            input.value = code;
-            showToast('✅ Código detectado: ' + code, 'success');
-          }
-        });
-      } else {
-        console.error('❌ openScanner NO está disponible');
-        showToast('❌ El escáner no está disponible', 'error');
-      }
-    });
-  } else {
-    console.warn('⚠️ Botón btn-scan-add no encontrado');
-  }
-  
-  // ✅ BOTÓN CERRAR ESCÁNER
-  const closeBtn = document.getElementById('close-scanner');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      console.log('🔴 Cerrando escáner...');
-      if (typeof window.closeScanner === 'function') {
-        window.closeScanner();
-      }
-    });
-  }
+  connectGlobalScanButtons();
   
   console.log('✅ UI inicializado correctamente');
+}
+
+/**
+ * Conector Global de Eventos de Cámara (Bridge V4.1)
+ */
+function connectGlobalScanButtons() {
+    // 1. Botón pestaña AÑADIR
+    document.getElementById('btn-scan-add')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openScanner((code) => {
+            const input = document.getElementById('add-barcode');
+            if (input) input.value = code;
+        });
+    });
+
+    // 2. Botón pestaña RELLENAR
+    document.getElementById('btn-scan-refill')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openScanner((code) => {
+            const input = document.getElementById('refill-barcode');
+            if (input) {
+                input.value = code;
+                input.dispatchEvent(new Event('input')); // Disparar búsqueda
+            }
+        });
+    });
+
+    // 3. Botón pestaña AUDITORÍA (Modo Normal)
+    document.getElementById('btn-scan-audit')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openScanner((code) => {
+            const input = document.getElementById('audit-barcode');
+            if (input) {
+                input.value = code;
+                input.dispatchEvent(new Event('input'));
+            }
+        });
+    });
+
+    // 4. Botón cerrar (Cerrar Hardware)
+    document.getElementById('close-scanner')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.ScannerService) window.ScannerService.stop();
+        document.getElementById('scanner-modal')?.classList.add('hidden');
+    });
 }
 
 // ============================================================

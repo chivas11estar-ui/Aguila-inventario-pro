@@ -102,3 +102,47 @@ window.SCANNER_MLKIT = {
     stop: () => window.ScannerService.stop(),
     ensureScannerReady: () => window.ScannerService.requestCamera(document.createElement('video'))
 };
+
+/** 
+ * BRIDGE: Conector Global para compatibilidad (V4.1)
+ * Mapea las llamadas legacy al nuevo ScannerService Singleton.
+ */
+window.openScanner = async function(callback) {
+    const modal = document.getElementById('scanner-modal');
+    const video = document.getElementById('scanner-video');
+    
+    if (!modal || !video) {
+        console.error("❌ [ScannerBridge] Elementos del modal no encontrados.");
+        return;
+    }
+
+    // 1. Mostrar Interfaz
+    modal.classList.remove('hidden');
+    
+    // 2. Encender Cámara vía Singleton
+    const ready = await window.ScannerService.requestCamera(video);
+    
+    if (ready) {
+        // 3. Iniciar Escaneo
+        window.ScannerService.scan((code) => {
+            // Ejecutar la lógica del módulo solicitante
+            if (callback) callback(code);
+            
+            // 4. Seguridad/Batería: Auto-cierre tras éxito (Modo Manual)
+            // Si no estamos en auditoría continua, cerramos para ahorrar recursos
+            if (!window.AUDIT_PRO || !window.AUDIT_PRO.continuousMode) {
+                window.ScannerService.stop();
+                modal.classList.add('hidden');
+            }
+        });
+    }
+};
+
+// Listener para el botón de cerrar modal (si existe)
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('close-scanner')?.addEventListener('click', () => {
+        window.ScannerService.stop();
+        document.getElementById('scanner-modal').classList.add('hidden');
+    });
+});
+
