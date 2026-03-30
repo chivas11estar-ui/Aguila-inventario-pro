@@ -57,23 +57,37 @@ window.SearchController = {
             }
         });
 
-        // Disparar Escáner
+        // Disparar Escáner (V4.2 - Bridge Integrado)
         btn.addEventListener('click', async () => {
-            overlay.classList.remove('hidden-scanner');
-            overlay.classList.add('visible-scanner');
-            
-            const ready = await window.ScannerService.requestCamera(video);
-            if (ready) {
-                window.ScannerService.scan((code) => {
+            if (typeof window.openScanner === 'function') {
+                window.openScanner((code) => {
                     // Puente de datos: Inyectar código en buscador
                     if (window.bridgeScanToSearch) {
                         window.bridgeScanToSearch(code);
+                    } else {
+                        const input = document.getElementById('global-search-input');
+                        if (input) {
+                            input.value = code;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                     }
-                    this.closeScanner(overlay);
                 });
+            } else {
+                // Fallback si no está el bridge (Modo In-Line Legacy)
+                overlay.classList.remove('hidden-scanner');
+                overlay.classList.add('visible-scanner');
+
+                const ready = await window.ScannerService.requestCamera(video);
+                if (ready) {
+                    window.ScannerService.scan((code) => {
+                        if (window.bridgeScanToSearch) {
+                            window.bridgeScanToSearch(code);
+                        }
+                        this.closeScanner(overlay);
+                    });
+                }
             }
         });
-
         closeBtn.addEventListener('click', () => this.closeScanner(overlay));
     },
 

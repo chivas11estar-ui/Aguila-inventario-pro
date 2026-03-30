@@ -70,6 +70,13 @@ window.ScannerService = {
     },
 
     async scan(callback) {
+        if (!this.detector && !('BarcodeDetector' in window)) {
+            console.error("❌ BarcodeDetector no disponible en este navegador.");
+            if (typeof showToast === 'function') showToast("⚠️ Tu navegador no soporta el escáner nativo", "error");
+            this.isScanning = false;
+            return;
+        }
+        
         this.isScanning = true;
         const loop = async () => {
             if (!this.isScanning || !this.activeVideoElement || this.activeVideoElement.paused) return;
@@ -77,21 +84,33 @@ window.ScannerService = {
                 if (this.detector) {
                     const barcodes = await this.detector.detect(this.activeVideoElement);
                     if (barcodes.length > 0) {
-                        callback(barcodes[0].rawValue);
+                        const code = barcodes[0].rawValue;
+                        console.log("🎯 Código detectado:", code);
+                        
                         if (navigator.vibrate) navigator.vibrate(50);
-                        this.isScanning = false;
-                        return; 
+                        
+                        callback(code);
+                        
+                        if (!window.ScannerService.continuousMode) {
+                            this.isScanning = false;
+                            return; 
+                        }
                     }
                 }
-            } catch (e) {}
-            requestAnimationFrame(loop);
+            } catch (e) {
+                console.warn("⚠️ Error en ciclo de escaneo:", e);
+            }
+            if (this.isScanning) requestAnimationFrame(loop);
         };
         loop();
     },
 
-    // ALIAS DE COMPATIBILIDAD PARA EL ERROR DE CONSOLA
+    // ALIAS DE COMPATIBILIDAD
     stop() {
         this.isScanning = false;
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+        }
         console.log("⏸️ [ScannerService] Flujo detenido.");
     },
 
@@ -108,23 +127,49 @@ window.ScannerService = {
 
 /**
  * BRIDGE GLOBAL BLINDADO
+ * Soporta: 
+ * 1. openScanner(callback)
+ * 2. openScanner({ onScan: callback, continuous: bool })
  */
 Object.defineProperty(window, 'openScanner', {
-    value: async function(callback) {
+    value: async function(args) {
         const modal = document.getElementById('scanner-modal');
         const video = document.getElementById('scanner-video');
-        if (!modal || !video) return;
+        if (!modal || !video) {
+            console.error("❌ No se encontró el modal o video del escáner");
+            return;
+        }
+
+        // Determinar callback y modo
+        let callback = typeof args === 'function' ? args : (args?.onScan || null);
+        window.ScannerService.continuousMode = args?.continuous || false;
+
+        if (!callback) {
+            console.error("❌ openScanner requiere un callback");
+            return;
+        }
+
         modal.classList.remove('hidden');
+        modal.classList.add('active'); // Por si se usa CSS para mostrarlo
+
         const ready = await window.ScannerService.requestCamera(video);
         if (ready) {
             window.ScannerService.scan((code) => {
-                if (callback) callback(code);
+                callback(code);
+                
+                // Si hay un puente global para búsqueda (analytics/etc)
                 if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
-                if (!window.AUDIT_PRO || !window.AUDIT_PRO.continuousMode) {
+
+                // Auto-cerrar si no es modo continuo
+                if (!window.ScannerService.continuousMode) {
                     modal.classList.add('hidden');
+                    modal.classList.remove('active');
                     window.ScannerService.stop();
                 }
             });
+        } else {
+            if (typeof showToast === 'function') showToast("❌ No se pudo acceder a la cámara", "error");
+            modal.classList.add('hidden');
         }
     },
     writable: false,

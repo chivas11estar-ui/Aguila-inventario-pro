@@ -123,7 +123,8 @@ function initUI() {
 }
 
 /**
- * Conector Global de Eventos de Cámara (Bridge V4.1)
+ * Conector Global de Eventos de Cámara (Bridge V4.2)
+ * Asegura que todos los botones de escaneo tengan un comportamiento consistente.
  */
 function connectGlobalScanButtons() {
     // 1. Botón pestaña AÑADIR
@@ -131,7 +132,27 @@ function connectGlobalScanButtons() {
         e.preventDefault();
         window.openScanner((code) => {
             const input = document.getElementById('add-barcode');
-            if (input) input.value = code;
+            if (input) {
+                input.value = code;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                // Si existe una función para buscar en "Agregar", llamarla
+                if (typeof window.buscarProductoParaAgregar === 'function') {
+                    window.buscarProductoParaAgregar(code);
+                } else if (typeof window.buscarProductoPorCodigo === 'function') {
+                    // Fallback: verificar si ya existe el producto
+                    window.buscarProductoPorCodigo(code).then(prod => {
+                        if (prod && prod._exists) {
+                            showToast(`📦 Producto existente: ${prod.nombre}`, 'info');
+                            if (document.getElementById('add-product-name')) {
+                                document.getElementById('add-product-name').value = prod.nombre || '';
+                            }
+                            if (document.getElementById('add-brand')) {
+                                document.getElementById('add-brand').value = prod.marca || '';
+                            }
+                        }
+                    });
+                }
+            }
         });
     });
 
@@ -142,7 +163,13 @@ function connectGlobalScanButtons() {
             const input = document.getElementById('refill-barcode');
             if (input) {
                 input.value = code;
-                input.dispatchEvent(new Event('input')); // Disparar búsqueda
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                // Prioridad a refill-safe.js
+                if (typeof window.searchProductForRefillSafe === 'function') {
+                    window.searchProductForRefillSafe(code);
+                } else if (typeof window.searchProductForRefill === 'function') {
+                    window.searchProductForRefill(code);
+                }
             }
         });
     });
@@ -154,16 +181,40 @@ function connectGlobalScanButtons() {
             const input = document.getElementById('audit-barcode');
             if (input) {
                 input.value = code;
-                input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                // Llamar a la búsqueda de auditoría
+                if (typeof window.buscarProductoAudit === 'function') {
+                    window.buscarProductoAudit();
+                }
             }
         });
     });
 
-    // 4. Botón cerrar (Cerrar Hardware)
+    // 4. Botón Búsqueda Global (Si existe el ID)
+    document.getElementById('btn-trigger-scan')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openScanner((code) => {
+            if (window.bridgeScanToSearch) {
+                window.bridgeScanToSearch(code);
+            } else {
+                const input = document.getElementById('global-search-input');
+                if (input) {
+                    input.value = code;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        });
+    });
+
+    // 5. Botón cerrar modal (Cerrar Hardware)
     document.getElementById('close-scanner')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (window.ScannerService) window.ScannerService.stop();
-        document.getElementById('scanner-modal')?.classList.add('hidden');
+        const modal = document.getElementById('scanner-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('active');
+        }
     });
 }
 
