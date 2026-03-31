@@ -189,48 +189,47 @@ async function guardarProducto(formData) {
   const ref = getProductRef(det, formData.codigoBarras);
   const fsRef = getFirestoreProductRef(det, formData.codigoBarras);
   
-  const timestamp = getLocalISOString();
+  // CORRECCIÓN: Usar timestamp numérico para RTDB (evita PERMISSION_DENIED)
+  const timestampNum = Date.now();
   const usuario = firebase.auth().currentUser?.email || 'sistema';
 
   try {
-    // 1. Preparar datos para RTDB (Stock y Operatividad)
+    // 1. Preparar datos para RTDB con tipos exactos según security-rules.json
     const rtdbData = {
       nombre: formData.nombre.trim(),
       marca: formData.marca,
-      piezasPorCaja: parseInt(formData.piezasPorCaja),
-      ubicacion: formData.ubicacion?.trim() || '',
+      codigoBarras: safeCode, // REQUERIDO por reglas
+      piezasPorCaja: parseInt(formData.piezasPorCaja) || 1,
+      ubicacion: formData.ubicacion?.trim() || 'General',
       fechaCaducidad: formData.fechaCaducidad || '',
-      fechaActualizacion: timestamp,
-      actualizadoPor: usuario
+      fechaActualizacion: timestampNum, // AHORA ES NUMBER
+      actualizadoPor: usuario,
+      stockTotal: Math.max(0, parseInt(formData.cajas) || 0) // REQUERIDO
     };
-
-    if (formData.cajas !== undefined) {
-      rtdbData.stockTotal = Math.max(0, parseInt(formData.cajas) || 0);
-    }
 
     // 2. Preparar datos para Firestore (Metadata Pro y Búsqueda)
     const fsData = {
       metadata: {
-        name: formData.nombre.trim(),
-        brand: formData.marca,
-        search_keywords: formData.nombre.toLowerCase().split(' '),
-        pieces_per_box: parseInt(formData.piezasPorCaja)
+        name: rtdbData.nombre,
+        brand: rtdbData.marca,
+        search_keywords: rtdbData.nombre.toLowerCase().split(' '),
+        pieces_per_box: rtdbData.piezasPorCaja
       },
       inventory: {
-        location: formData.ubicacion?.trim() || '',
+        location: rtdbData.ubicacion,
         last_updated: firebase.firestore.FieldValue.serverTimestamp()
       }
     };
 
     // 3. Ejecutar actualizaciones en paralelo
-    const updates = [ref.update(rtdbData)];
+    const updates = [ref.set(rtdbData)]; // Usamos set para asegurar integridad total del nodo
     if (fsRef) {
       updates.push(fsRef.set(fsData, { merge: true }));
     }
 
     await Promise.all(updates);
 
-    console.log(`✅ [CORE] Producto guardado (Híbrido): ${formData.nombre}`);
+    console.log(`✅ [CORE] Producto guardado (Híbrido): ${rtdbData.nombre}`);
     return { action: 'saved', codigoBarras: safeCode };
 
   } catch (error) {

@@ -134,7 +134,11 @@ function connectGlobalScanButtons() {
             const input = document.getElementById('add-barcode');
             if (input) {
                 input.value = code;
+                // Disparar eventos para activar validaciones y búsquedas automáticas
                 input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.focus();
+
                 // Si existe una función para buscar en "Agregar", llamarla
                 if (typeof window.buscarProductoParaAgregar === 'function') {
                     window.buscarProductoParaAgregar(code);
@@ -164,6 +168,9 @@ function connectGlobalScanButtons() {
             if (input) {
                 input.value = code;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.focus();
+
                 // Prioridad a refill-safe.js
                 if (typeof window.searchProductForRefillSafe === 'function') {
                     window.searchProductForRefillSafe(code);

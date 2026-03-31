@@ -45,6 +45,14 @@ window.AUDIT_SYNC = {
             }
 
             for (const item of itemsToSync) {
+                // VALIDACIÓN CRÍTICA: Si el producto es desconocido, no intentamos 
+                // actualizar el documento de producto para evitar errores de batch.
+                if (item.code === 'DESCONOCIDO' || !item.code) {
+                    console.warn(`⚠️ Saltando actualización de DB para producto desconocido: ${item.name}`);
+                    discrepancies.push(item);
+                    continue; 
+                }
+
                 const fsRef = window.firestore.doc(`stores/${det}/products/${item.code}`);
                 const rtdbPath = `productos/${det}/${item.code}`;
 
@@ -59,7 +67,7 @@ window.AUDIT_SYNC = {
 
                 // B. Preparar actualización en RTDB (Stock Real-Time)
                 rtdbUpdates[`${rtdbPath}/stockTotal`] = item.counted;
-                rtdbUpdates[`${rtdbPath}/ultimaAuditoria`] = new Date().toISOString();
+                rtdbUpdates[`${rtdbPath}/ultimaAuditoria`] = Date.now();
                 rtdbUpdates[`${rtdbPath}/auditadoPor`] = firebase.auth().currentUser.email;
 
                 discrepancies.push(item);
