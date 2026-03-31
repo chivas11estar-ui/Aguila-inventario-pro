@@ -116,12 +116,35 @@ window.ScannerService = {
 
     stopDataFlow() { this.stop(); },
 
+    /**
+     * MÉTODO HARD-STOP (Mobile Optimization)
+     * Apaga físicamente el hardware de la cámara y libera el buffer de la GPU.
+     */
     hardStop() {
-        this.stop();
+        console.log("🛑 [ScannerService] Apagando hardware de cámara...");
+        
+        // 1. Detener el ciclo de detección
+        this.isScanning = false;
+        
+        // 2. Limpiar el elemento de video (Libera buffer GPU)
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+            this.activeVideoElement.load(); // Fuerza limpieza del buffer
+            this.activeVideoElement = null;
+        }
+        
+        // 3. Matar físicamente los tracks del MediaStream
         if (this.persistentStream) {
-            this.persistentStream.getTracks().forEach(track => track.stop());
+            const tracks = this.persistentStream.getTracks();
+            tracks.forEach(track => {
+                track.stop();
+                console.log(`✅ Track detenido: ${track.kind}`);
+            });
             this.persistentStream = null;
         }
+
+        console.log("🔋 Hardware liberado correctamente.");
     }
 };
 
@@ -160,11 +183,15 @@ Object.defineProperty(window, 'openScanner', {
                 // Si hay un puente global para búsqueda (analytics/etc)
                 if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
 
-                // Auto-cerrar si no es modo continuo
+                // Auto-cerrar si no es modo continuo (HARD STOP para liberar hardware)
                 if (!window.ScannerService.continuousMode) {
                     modal.classList.add('hidden');
                     modal.classList.remove('active');
-                    window.ScannerService.stop();
+                    if (window.ScannerService.hardStop) {
+                        window.ScannerService.hardStop();
+                    } else {
+                        window.ScannerService.stop();
+                    }
                 }
             });
         } else {

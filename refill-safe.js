@@ -98,13 +98,13 @@ async function searchProductForRefillSafe(barcode) {
       console.log('✅ [REFILL-SAFE] Producto encontrado');
       refillCurrentProduct = producto;
 
-      // Rellenar campos del formulario
-      document.getElementById('refill-nombre').value = producto.nombre || '';
-      document.getElementById('refill-marca').value = producto.marca || '';
+      // Rellenar campos del formulario con DESENCRIPTACIÓN
+      document.getElementById('refill-nombre').value = decryptData(producto.nombre) || '';
+      document.getElementById('refill-marca').value = decryptData(producto.marca) || '';
       document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
 
       if (refillMode === 'exit') {
-        document.getElementById('refill-warehouse').value = producto.ubicacion || '';
+        document.getElementById('refill-warehouse').value = decryptData(producto.ubicacion) || '';
       }
 
       renderRefillProductInfo();
@@ -250,31 +250,19 @@ async function handleRefillExitSafe() {
   }
 
   const stockActual = parseInt(refillCurrentProduct.stockTotal) || 0;
-  const timestamp = getLocalISOString();
+  const timestamp = Date.now();
   const usuario = firebase.auth().currentUser?.email || 'sistema';
   const codigo = refillCurrentProduct.codigoBarras;
 
   // ────────────────────────────────────────────────────────
   // CASO ESPECIAL: RELLENO INTELIGENTE (stock === 0)
   // ────────────────────────────────────────────────────────
-  // Escenario real: el producto está en 0, el promotor escanea
-  // y dice "rellenar 2 cajas". Eso significa que llegó mercancía
-  // y fue directo al anaquel, sin pasar por bodega.
-  //
-  // Reglas:
-  // - Se registra como entrada_directa_anaquel
-  // - El stock SUBE (no baja)
-  // - No genera negativos
-  // - No pide confirmación
-  // ────────────────────────────────────────────────────────
   if (stockActual === 0) {
     console.log('💡 [REFILL-SAFE] Stock en 0 → Activando RELLENO INTELIGENTE');
 
     try {
-      // Sumar stock (no restar)
       const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar');
 
-      // Actualizar fecha de último relleno en el producto
       const ref = getProductRef(det, codigo);
       await ref.update({
         ultimoRelleno: timestamp,
@@ -282,7 +270,6 @@ async function handleRefillExitSafe() {
         actualizadoPor: usuario
       });
 
-      // Registrar movimiento especial
       const movimiento = {
         tipo: 'entrada_directa_anaquel',
         productoNombre: refillCurrentProduct.nombre,
@@ -292,9 +279,9 @@ async function handleRefillExitSafe() {
         piezasMovidas: cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
         stockAnterior: 0,
         stockNuevo: nuevoStock,
-        fecha: timestamp,
+        timestamp: timestamp,
         realizadoPor: usuario,
-        motivo: 'Mercancía recibida directo a anaquel (stock estaba en 0)'
+        motivo: 'Mercancía recibida directo a anaquel'
       };
 
       await firebase.database()

@@ -117,6 +117,10 @@ function renderProductCard(product) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
   const isOutOfStock = (product.totalCajas || 0) <= 0;
   
+  // DESENCRIPTACIÓN: Desencriptar nombre y marca para mostrar en UI
+  const decryptedName = decryptData(product.nombre);
+  const decryptedBrand = decryptData(product.marca);
+
   // Calcular info de caducidad
   const expiryInfo = window.calculateExpiryInfo(product, window.BRAND_EXPIRY_CONFIG);
   
@@ -134,7 +138,7 @@ function renderProductCard(product) {
   return `
     <div 
       data-product-item 
-      data-product-name="${product.nombre}"
+      data-product-name="${decryptedName}"
       data-product-code="${product.codigoBarras}"
       class="card"
       style="
@@ -149,10 +153,11 @@ function renderProductCard(product) {
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div style="flex: 1;">
           <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'};">
-            ${product.nombre} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-left:8px;">AGOTADO</span>' : ''}
+            ${decryptedName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-left:8px;">AGOTADO</span>' : ''}
           </h4>
           <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
             <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
+            <div>🏷️ Marca: <strong>${decryptedBrand}</strong></div>
             <div>📦 ${product.piezasPorCaja} piezas/caja</div>
             <div style="color:var(--primary); font-weight:600;">📈 Venta prom: ${salesAvg} pzas/día</div>
             ${expiryTag}

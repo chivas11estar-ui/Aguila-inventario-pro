@@ -213,15 +213,24 @@ function connectGlobalScanButtons() {
         });
     });
 
-    // 5. Botón cerrar modal (Cerrar Hardware)
+    // 5. Botón cerrar modal (APAGADO FÍSICO DE HARDWARE)
     document.getElementById('close-scanner')?.addEventListener('click', (e) => {
         e.preventDefault();
-        if (window.ScannerService) window.ScannerService.stop();
+        
+        // Ejecutar HARD STOP para liberar hardware y GPU
+        if (window.ScannerService && typeof window.ScannerService.hardStop === 'function') {
+            window.ScannerService.hardStop();
+        } else if (window.ScannerService) {
+            window.ScannerService.stop(); // Fallback
+        }
+
         const modal = document.getElementById('scanner-modal');
         if (modal) {
             modal.classList.add('hidden');
             modal.classList.remove('active');
         }
+        
+        console.log("📷 [UI] Cámara apagada y recursos liberados.");
     });
 }
 
