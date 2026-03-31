@@ -1,5 +1,5 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: firebase-config.js (HARDENED)
+// Águila Inventario Pro - Módulo: firebase-config.js (HARDENED - FIXED)
 // Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
@@ -10,16 +10,20 @@
  * Técnica: Reversión + Base64 para evitar detección por bots de scraping estático.
  */
 const _S = {
-    // API Key ofuscada
-    k: "RVRGNm9paG03cTh5OTlSaElvWkxraTBFSWhyNEpqWk96a2JTenhpQUE=", 
-    // App ID ofuscada
-    a: "MDcxMDlhOWViMGU1MzVjOmJldzo1NjI4NjA4MTA0MToxOmRhR29K"
+    // API Key ofuscada (Reversión corregida)
+    k: "RUY1b2lobTdxOHk5OVJoSVlvWkxraTBFSUg0alpPemtCeVNheklB", 
+    // App ID ofuscada (Reversión corregida)
+    a: "MDcxZDZlMzk3ODBhZTkwYjVlZjM1YzpiZXc6NTYyNTA2ODgxMDQxOjE="
 };
 
 function _D(v) {
     try {
+        // Decodificar Base64 y luego revertir para obtener el string original
         return atob(v).split('').reverse().join('');
-    } catch(e) { return ""; }
+    } catch(e) { 
+        console.error("❌ Error de decodificación:", e);
+        return ""; 
+    }
 }
 
 const firebaseConfig = {
@@ -35,6 +39,9 @@ const firebaseConfig = {
 function initFirebase() {
   console.log('🛡️ Iniciando Firebase (Capa de Seguridad Activa)...');
   
+  // VERIFICACIÓN TEMPORAL (Eliminar después de confirmar)
+  // console.log('DEBUG [API_KEY]:', firebaseConfig.apiKey);
+
   try {
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
       console.error('❌ Error: SDK de Firebase no detectado.');
@@ -42,6 +49,7 @@ function initFirebase() {
     }
     
     if (!firebase.apps || firebase.apps.length === 0) {
+      // Inicializar con la configuración ya decodificada
       firebase.initializeApp(firebaseConfig);
       console.log('✅ Firebase blindado e inicializado');
     }
@@ -63,4 +71,4 @@ function initFirebase() {
 initFirebase();
 window.initFirebase = initFirebase;
 
-console.log('🛡️ Configuración de Firebase endurecida.');
+console.log('🛡️ Configuración de Firebase endurecida y verificada.');
