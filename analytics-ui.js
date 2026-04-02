@@ -78,16 +78,26 @@ function createTopByBrandSection(refillAverages) {
         `;
     }
 
-    // Agrupar por marca usando datos de movimientos
+    // Agrupar por marca usando datos de movimientos y cruce con inventario (Task 3)
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
     const productosPorMarca = {};
+
+    // Helper para desencriptación segura
+    const safeDecrypt = (data) => {
+        try { return window.decryptData(data) || data; } catch (e) { return data; }
+    };
 
     movimientos.forEach(m => {
         if (m.tipo !== 'salida') return;
         
-        const marca = m.marca || 'SIN MARCA';
-        console.log(`DEBUG: Movimiento ${m.productoNombre} - Marca original: ${m.marca}, Marca usada: ${marca}`);
-        const producto = m.productoNombre || 'Desconocido';
+        // Intentar obtener datos más recientes del inventario cargado
+        const productInInventory = window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === m.productoCodigo);
+        
+        const marcaRaw = productInInventory ? productInInventory.marca : m.marca;
+        const nombreRaw = productInInventory ? productInInventory.nombre : m.productoNombre;
+        
+        const marca = safeDecrypt(marcaRaw) || 'SIN MARCA';
+        const producto = safeDecrypt(nombreRaw) || 'Desconocido';
         
         if (!productosPorMarca[marca]) {
             productosPorMarca[marca] = {};
@@ -192,16 +202,24 @@ window.searchProduct = function() {
         return;
     }
 
-    // Buscar producto
-    const productInfo = movimientos.find(m =>
-        m.productoNombre?.toLowerCase().includes(query) ||
-        m.codigoBarra?.includes(query)
-    );
+    // Helper para desencriptación segura
+    const safeDecrypt = (data) => {
+        try { return window.decryptData(data) || data; } catch (e) { return data; }
+    };
+
+    // Buscar producto desencriptando en memoria (Task 3)
+    const productInfo = movimientos.find(m => {
+        const nombreDec = safeDecrypt(m.productoNombre).toLowerCase();
+        return nombreDec.includes(query) || (m.codigoBarra && m.codigoBarra.includes(query));
+    });
 
     if (!productInfo) {
         renderSearchResult(null);
         return;
     }
+
+    const decryptedProductName = safeDecrypt(productInfo.productoNombre);
+    const decryptedBrand = safeDecrypt(productInfo.marca);
 
     // Calcular métricas
     const hace7Dias = new Date();
@@ -221,8 +239,8 @@ window.searchProduct = function() {
     const promedioMensual = (piezasPorDia * 30).toFixed(2);
 
     renderSearchResult({
-        nombre: productInfo.productoNombre,
-        marca: productInfo.marca || 'N/A',
+        nombre: decryptedProductName,
+        marca: decryptedBrand || 'N/A',
         codigo: productInfo.codigoBarra,
         piezasPorDia: piezasPorDia,
         promedioMensual: promedioMensual

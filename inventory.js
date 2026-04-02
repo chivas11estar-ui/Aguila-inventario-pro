@@ -233,12 +233,25 @@ function calculateExpiryInfo(product, brandConfig) {
 function applyFiltersAndRender() {
   const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
 
+  // Helper para desencriptación segura (Task 1)
+  const safeDecrypt = (data) => {
+    try {
+      return window.decryptData(data) || data;
+    } catch (e) {
+      return data;
+    }
+  };
+
   if (searchTerm.length > 0) {
     window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
+      const nombreDec = safeDecrypt(p.nombre).toLowerCase();
+      const marcaDec = safeDecrypt(p.marca).toLowerCase();
+      const codigo = (p.codigoBarras || "").toLowerCase();
+
       return (
-        (p.nombre && p.nombre.toLowerCase().includes(searchTerm)) ||
-        (p.marca && p.marca.toLowerCase().includes(searchTerm)) ||
-        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm))
+        nombreDec.includes(searchTerm) ||
+        marcaDec.includes(searchTerm) ||
+        codigo.includes(searchTerm)
       );
     });
   } else {

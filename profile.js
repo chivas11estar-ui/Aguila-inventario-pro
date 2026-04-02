@@ -37,13 +37,28 @@ window.saveUserPreferences = saveUserPreferences;
 // ============================================================
 // GESTIÓN DE TEMA (CLARO/OSCURO)
 // ============================================================
-function applyTheme() {
+function applyTheme(forceMode = null) {
     const htmlElement = document.documentElement;
-    if (window.PROFILE_STATE.preferences.darkMode) {
+    let isDark;
+
+    if (forceMode !== null) {
+        isDark = forceMode;
+    } else {
+        // Prioridad: 1. Estado en memoria, 2. localStorage, 3. Preferencias cargadas
+        isDark = window.PROFILE_STATE.preferences.darkMode || 
+                 localStorage.getItem('theme') === 'dark';
+    }
+
+    if (isDark) {
         htmlElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
     } else {
         htmlElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
     }
+
+    // Asegurar sincronía con el estado
+    window.PROFILE_STATE.preferences.darkMode = isDark;
 }
 
 // ============================================================
@@ -51,6 +66,11 @@ function applyTheme() {
 // ============================================================
 async function initProfileModule() {
     console.log('👤 Inicializando módulo de perfil (Logic)...');
+
+    // Carga inicial ultra-rápida del tema desde localStorage
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+    }
 
     // Escuchar cambios de autenticación
     firebase.auth().onAuthStateChanged(async (user) => {

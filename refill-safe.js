@@ -98,13 +98,18 @@ async function searchProductForRefillSafe(barcode) {
       console.log('✅ [REFILL-SAFE] Producto encontrado');
       refillCurrentProduct = producto;
 
-      // Rellenar campos del formulario con DESENCRIPTACIÓN
-      document.getElementById('refill-nombre').value = decryptData(producto.nombre) || '';
-      document.getElementById('refill-marca').value = decryptData(producto.marca) || '';
+      // Helper para desencriptación segura
+      const safeDecrypt = (data) => {
+        try { return window.decryptData(data) || data; } catch (e) { return data; }
+      };
+
+      // Rellenar campos del formulario con DESENCRIPTACIÓN (Task 2)
+      document.getElementById('refill-nombre').value = safeDecrypt(producto.nombre);
+      document.getElementById('refill-marca').value = safeDecrypt(producto.marca);
       document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
 
       if (refillMode === 'exit') {
-        document.getElementById('refill-warehouse').value = decryptData(producto.ubicacion) || '';
+        document.getElementById('refill-warehouse').value = safeDecrypt(producto.ubicacion);
       }
 
       renderRefillProductInfo();
@@ -143,6 +148,12 @@ async function renderRefillProductInfo() {
   infoDiv.style.display = 'block';
   const stock = parseInt(refillCurrentProduct.stockTotal) || 0;
 
+  // Helper para desencriptación segura
+  const safeDecrypt = (data) => {
+    try { return window.decryptData(data) || data; } catch (e) { return data; }
+  };
+  const productName = safeDecrypt(refillCurrentProduct.nombre);
+
   if (stock === 0) {
     // ── PRODUCTO EN 0: mostrar analytics enriquecidos ──
     const analytics = await consultarProductoEnCero(refillCurrentProduct.codigoBarras);
@@ -159,7 +170,7 @@ async function renderRefillProductInfo() {
       infoDiv.innerHTML = `
         <div style="padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;margin:16px 0;">
           <div style="font-size:16px;font-weight:700;color:#92400e;margin-bottom:8px;">
-            ⚠️ ${refillCurrentProduct.nombre} — STOCK EN 0
+            ⚠️ ${productName} — STOCK EN 0
           </div>
           <div style="color:#b45309;font-size:13px;margin-bottom:4px;">
             📊 Venta promedio: <strong>${promedio} piezas/día</strong>
@@ -178,7 +189,7 @@ async function renderRefillProductInfo() {
       infoDiv.innerHTML = `
         <div style="padding:16px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:8px;margin:16px 0;">
           <div style="font-size:16px;font-weight:700;color:#1e40af;margin-bottom:8px;">
-            📥 ${refillCurrentProduct.nombre} — STOCK EN 0
+            📥 ${productName} — STOCK EN 0
           </div>
           <div style="color:#1d4ed8;font-size:13px;margin-bottom:4px;">
             📊 Venta promedio: <strong>${promedio} piezas/día</strong>
@@ -201,7 +212,7 @@ async function renderRefillProductInfo() {
     infoDiv.innerHTML = `
       <div style="padding:16px;background:${stockBg};border-left:4px solid ${stockColor};border-radius:8px;margin:16px 0;">
         <div style="font-size:16px;font-weight:700;color:#065f46;margin-bottom:8px;">
-          ${icon} ${refillCurrentProduct.nombre}
+          ${icon} ${productName}
         </div>
         <div style="color:#047857;font-size:14px;">
           📦 <strong>${msg}</strong>
@@ -210,7 +221,7 @@ async function renderRefillProductInfo() {
     `;
   }
 
-  showToast(`${refillCurrentProduct.nombre} — ${stock} cajas en sistema`, stock > 0 ? 'success' : 'warning');
+  showToast(`${productName} — ${stock} cajas en sistema`, stock > 0 ? 'success' : 'warning');
 }
 
 // ============================================================
@@ -294,7 +305,7 @@ async function handleRefillExitSafe() {
       updateRefillTodayUI();
 
       showToast(
-        `💡 ${cajasAMover} cajas de ${refillCurrentProduct.nombre} → directo a anaquel (stock: 0 → ${nuevoStock})`,
+        `💡 ${cajasAMover} cajas de ${productName} → directo a anaquel (stock: 0 → ${nuevoStock})`,
         'success'
       );
 
@@ -360,7 +371,7 @@ async function handleRefillExitSafe() {
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
-    showToast(`📤 ${cajasAMover} cajas de ${refillCurrentProduct.nombre} movidas (quedan ${nuevoStock})`, 'success');
+    showToast(`📤 ${cajasAMover} cajas de ${productName} movidas (quedan ${nuevoStock})`, 'success');
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode').focus();

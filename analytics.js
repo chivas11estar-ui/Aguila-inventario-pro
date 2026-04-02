@@ -133,21 +133,26 @@ function procesarMetricas(fechaHoy) {
     const audits = window.ANALYTICS_STATE.auditorias;
     const res = window.ANALYTICS_STATE.resumen;
 
+    // Helper para desencriptación segura (Task 3)
+    const safeDecrypt = (data) => {
+        try { return window.decryptData(data) || data; } catch (e) { return data; }
+    };
+
     // Métricas de Hoy (usando fecha local)
     const movsHoy = movs.filter(m => m.fecha && isoToLocalDate(m.fecha) === fechaHoy);
     res.totalRellenosHoy = movsHoy.length;
     res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.cajasMovidas) || 0), 0);
     res.auditoriasHoy = audits.filter(a => a.fecha && isoToLocalDate(a.fecha) === fechaHoy).length;
-    res.productosDistintos = new Set(movsHoy.map(m => m.productoNombre).filter(Boolean)).size;
+    res.productosDistintos = new Set(movsHoy.map(m => safeDecrypt(m.productoNombre)).filter(Boolean)).size;
 
     // Top 5 Productos (basado en cajas en 7 días)
     const conteoProd = {};
     movs.forEach(m => {
         if (m.tipo !== 'salida') return;
-        const nombre = m.productoNombre || 'Desconocido';
+        const nombre = safeDecrypt(m.productoNombre) || 'Desconocido';
         const cajas = parseInt(m.cajasMovidas) || 0;
         if (!conteoProd[nombre]) {
-            conteoProd[nombre] = { nombre: nombre, marca: m.marca || 'N/A', total: 0 };
+            conteoProd[nombre] = { nombre: nombre, marca: safeDecrypt(m.marca) || 'N/A', total: 0 };
         }
         conteoProd[nombre].total += cajas;
     });
@@ -157,7 +162,7 @@ function procesarMetricas(fechaHoy) {
     const conteoMarcas = {};
     movs.forEach(m => {
         if (m.tipo !== 'salida') return;
-        const marca = m.marca || 'Otra';
+        const marca = safeDecrypt(m.marca) || 'Otra';
         const cajas = parseInt(m.cajasMovidas) || 0;
         conteoMarcas[marca] = (conteoMarcas[marca] || 0) + cajas;
     });
@@ -178,7 +183,7 @@ function procesarMetricas(fechaHoy) {
     const piecesPerProduct = {};
 
     refillMovements.forEach(m => {
-        const productName = m.productoNombre || 'Desconocido';
+        const productName = safeDecrypt(m.productoNombre) || 'Desconocido';
         const pieces = parseInt(m.piezasMovidas) || 0;
         if (!piecesPerProduct[productName]) {
             piecesPerProduct[productName] = 0;

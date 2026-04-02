@@ -117,9 +117,18 @@ function renderProductCard(product) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
   const isOutOfStock = (product.totalCajas || 0) <= 0;
   
-  // DESENCRIPTACIÓN: Desencriptar nombre y marca para mostrar en UI
-  const decryptedName = decryptData(product.nombre);
-  const decryptedBrand = decryptData(product.marca);
+  // DESENCRIPTACIÓN SEGURA CON TRY/CATCH (Task 1)
+  const safeDecrypt = (data) => {
+    try {
+      return window.decryptData(data) || data;
+    } catch (e) {
+      console.warn("⚠️ Error al desencriptar dato:", e);
+      return data;
+    }
+  };
+
+  const decryptedName = safeDecrypt(product.nombre);
+  const decryptedBrand = safeDecrypt(product.marca);
 
   // Calcular info de caducidad
   const expiryInfo = window.calculateExpiryInfo(product, window.BRAND_EXPIRY_CONFIG);
