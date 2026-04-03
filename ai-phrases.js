@@ -12,7 +12,7 @@
  */
 const AIService = (function() {
     // API KEY OFUSCADA (Reversión + Base64)
-    const _H = "VVpaSmxtUlpsWjFodGNCOHQ3VlZkRy1vdEVHN00zUjhvQmllU3pBSUE=";
+    const _H = "NDBuYjJxbTJFWmtybDV0VEFuaUxnYXlNcC1OcGh1VjBEeVNheklB=";
     const _D = (v) => atob(v).split('').reverse().join('');
     
     const API_KEY = _D(_H);
@@ -46,8 +46,7 @@ const AIService = (function() {
         return true;
     }
 
-    return {
-        async generate(userName) {
+    async generate(userName) {
             const safeName = sanitize(userName);
             
             if (!checkRateLimit(firebase.auth().currentUser?.uid)) {
@@ -61,22 +60,34 @@ const AIService = (function() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.85, maxOutputTokens: 80 }
+                        // ESTO SOLUCIONA EL ERROR 400: Estructura estricta con 'role'
+                        contents: [{ 
+                            role: "user",
+                            parts: [{ text: prompt }] 
+                        }],
+                        generationConfig: { 
+                            temperature: 0.85, 
+                            maxOutputTokens: 80 
+                        }
                     })
                 });
 
-                if (!response.ok) throw new Error(`API Status: ${response.status}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const exactError = errorData.error?.message || response.statusText;
+                    throw new Error(`API Status: ${response.status} - ${exactError}`);
+                }
 
                 const data = await response.json();
                 const text = data.candidates[0].content.parts[0].text.trim();
                 return text.replace(/^["']|["']$/g, '');
 
             } catch (error) {
-                console.error("🛡️ Error IA:", error);
+                console.error("🛡️ Error IA:", error.message);
                 throw error;
             }
         }
+  
     };
 })();
 
