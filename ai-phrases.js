@@ -109,12 +109,16 @@ async function getDailyAIPhrase(userId, userName) {
         return newPhrase;
 
     } catch (error) {
-        if (error.message === "RATE_LIMIT_EXCEEDED") {
-            console.log("🛡️ Usando fallback por límite de cuota");
+                console.error("🛡️ Error IA:", error.message);
+                throw error;
+            }
         }
-        return getFallbackPhrase(userName);
-    }
-}
+  
+        // ESTO ES LO QUE FALTABA
+        return {
+            generate: generate
+        };
+})();
 
 // ============================================================
 // MOSTRAR FRASE DEL DÍA EN LA UI
