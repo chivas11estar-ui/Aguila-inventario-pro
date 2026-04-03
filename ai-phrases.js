@@ -47,47 +47,50 @@ const AIService = (function() {
     }
 
     async function generate(userName) {
-            const safeName = sanitize(userName);
-            
-            // Verificación de seguridad (mantenida de tu código original)
-            if (typeof checkRateLimit === 'function' && !checkRateLimit(firebase.auth().currentUser?.uid)) {
-                throw new Error("RATE_LIMIT_EXCEEDED");
-            }
-
-            const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${safeName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
-
-            try {
-                const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ 
-                            role: "user",
-                            parts: [{ text: prompt }] 
-                        }],
-                        generationConfig: { 
-                            temperature: 0.85, 
-                            maxOutputTokens: 80 
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    const exactError = errorData.error?.message || response.statusText;
-                    throw new Error(`API Status: ${response.status} - ${exactError}`);
-                }
-
-                const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text.trim();
-                return text.replace(/^["']|["']$/g, '');
-
-            } catch (error) {
-                console.error("🛡️ Error IA:", error.message);
-                throw error;
-            }
+        const safeName = sanitize(userName);
+        
+        // Verificación de seguridad (mantenida de tu código original)
+        if (typeof checkRateLimit === 'function' && !checkRateLimit(firebase.auth().currentUser?.uid)) {
+            throw new Error("RATE_LIMIT_EXCEEDED");
         }
+
+        const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${safeName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
+
+        try {
+            const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ 
+                        role: "user",
+                        parts: [{ text: prompt }] 
+                    }],
+                    generationConfig: { 
+                        temperature: 0.85, 
+                        maxOutputTokens: 80 
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const exactError = errorData.error?.message || response.statusText;
+                throw new Error(`API Status: ${response.status} - ${exactError}`);
+            }
+
+            const data = await response.json();
+            const text = data.candidates[0].content.parts[0].text.trim();
+            return text.replace(/^["']|["']$/g, '');
+
+        } catch (error) {
+            console.error("🛡️ Error IA:", error.message);
+            throw error;
+        }
+    }
   
+    // CORRECCIÓN: Exportar la función correctamente en lugar del token ';' inesperado
+    return {
+        generate: generate
     };
 })();
 
@@ -109,16 +112,12 @@ async function getDailyAIPhrase(userId, userName) {
         return newPhrase;
 
     } catch (error) {
-                console.error("🛡️ Error IA:", error.message);
-                throw error;
-            }
+        if (error.message === "RATE_LIMIT_EXCEEDED") {
+            console.log("🛡️ Usando fallback por límite de cuota");
         }
-  
-        // ESTO ES LO QUE FALTABA
-        return {
-            generate: generate
-        };
-})();
+        return getFallbackPhrase(userName);
+    }
+}
 
 // ============================================================
 // MOSTRAR FRASE DEL DÍA EN LA UI
