@@ -12,7 +12,7 @@
  */
 const AIService = (function() {
     // API KEY OFUSCADA (Reversión + Base64)
-    const _H = "STQwbmIycW0yRVprcmw1dFRBbmlMZ2F5TXAtTnBodVYwRHlTYXpJQQ==";
+    const _H = "MG5iMnFtMkVaa3JsNXRUQW5pTGdheU1wLU5waHVWMER5U2F6SUE=";
     const _D = (v) => atob(v).split('').reverse().join('');
     
     const API_KEY = _D(_H);
