@@ -46,10 +46,11 @@ const AIService = (function() {
         return true;
     }
 
-    async generate(userName) {
+    async function generate(userName) {
             const safeName = sanitize(userName);
             
-            if (!checkRateLimit(firebase.auth().currentUser?.uid)) {
+            // Verificación de seguridad (mantenida de tu código original)
+            if (typeof checkRateLimit === 'function' && !checkRateLimit(firebase.auth().currentUser?.uid)) {
                 throw new Error("RATE_LIMIT_EXCEEDED");
             }
 
@@ -60,7 +61,6 @@ const AIService = (function() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        // ESTO SOLUCIONA EL ERROR 400: Estructura estricta con 'role'
                         contents: [{ 
                             role: "user",
                             parts: [{ text: prompt }] 
