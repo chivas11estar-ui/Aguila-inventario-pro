@@ -55,37 +55,28 @@ async function initAnalytics() {
 // ============================================================
 // CARGAR DATOS DE FIREBASE (7 DÍAS) - Renombrado y expuesto como window.loadStats
 // ============================================================
-window.loadStats = async function () { // Expuesto globalmente como loadStats
-    console.log("📊 Cargando estadísticas..."); // Log de inicio de carga
-    const det = window.ANALYTICS_STATE.determinante;
-    if (!det) {
-        console.warn('⚠️ loadStats: Determinante no disponible, no se pueden cargar las estadísticas.');
-        // Intentar obtener el determinante si no está cargado (útil si la función se llama directamente sin pasar por initAnalytics)
-        const userId = firebase.auth().currentUser?.uid;
-        if (userId) {
-            const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
-            const userData = userSnap.val();
-            if (userData && userData.determinante) {
-                window.ANALYTICS_STATE.determinante = userData.determinante;
-                console.log('✅ loadStats: Determinante recuperado:', window.ANALYTICS_STATE.determinante);
-            } else {
-                showToast('Error: Determinante no disponible para cargar estadísticas', 'error');
-                return;
-            }
-        } else {
-            showToast('Error: Usuario no autenticado y determinante no disponible', 'error');
-            return;
-        }
+window.loadStats = async function () { 
+    console.log("📊 [ARCHITECT] Verificando requisitos para carga de estadísticas...");
+
+    // 1. ASIGNACIÓN EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
+    const det = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante;
+
+    // 2. VALIDACIÓN ESTRICTA (Race Condition evitada)
+    if (!det || det === "null" || det === "undefined") {
+        console.warn('🛑 [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
+        return; 
     }
 
     const hoy = new Date();
-    const hoyStr = getLocalDateString(hoy); // "2026-02-10"
+    const hoyStr = getLocalDateString(hoy); 
 
     const hace7Dias = new Date();
     hace7Dias.setDate(hace7Dias.getDate() - 7);
     const hace7DiasStr = getLocalDateString(hace7Dias);
 
     try {
+        console.log(`📡 [ARCHITECT] Consultando Firebase para Tienda: ${det}`);
+        
         const [movSnap, auditSnap] = await Promise.all([
             firebase.database().ref(`movimientos/${det}`).once('value'),
             firebase.database().ref(`auditorias/${det}`).once('value')
