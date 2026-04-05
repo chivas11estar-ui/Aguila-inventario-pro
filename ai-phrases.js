@@ -11,8 +11,8 @@
  * Protege la llave del scope global y evita que sea accesible vía consola.
  */
 const AIService = (function() {
-    // API KEY OFUSCADA (39 caracteres reales decodificados)
-    const _H = "NDBuYjJxbTJFWmtybDV0VEFuaUxnYXlNcC1OcGh1VjBEeVNheklB";
+    // API KEY OFUSCADA (Reversión + Base64)
+    const _H = STQwbmIycW0yRVprcmw1dFRBbmlMZ2F5TXAtTnBodVYwRHlTYXpJQQ==";
     const _D = (v) => atob(v).split('').reverse().join('');
     
     const API_KEY = _D(_H);

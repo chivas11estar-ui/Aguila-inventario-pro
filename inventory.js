@@ -91,12 +91,21 @@ async function loadInventory() {
       const productsObject = snapshot.val();
 
       if (productsObject) {
-        window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => ({
-          id: key,
-          ...productsObject[key]
-        }));
+        window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => {
+          const product = productsObject[key];
+          try {
+            if (typeof window.decryptData === 'function') {
+              product.nombre = window.decryptData(product.nombre) || product.nombre;
+              product.marca = window.decryptData(product.marca) || product.marca;
+              product.ubicacion = window.decryptData(product.ubicacion) || product.ubicacion;
+            }
+          } catch (e) {
+            console.warn('⚠️ Producto con formato antiguo o error de llave:', key);
+          }
+          return { id: key, ...product };
+        });
 
-        console.log(`✅ Inventario cargado (legacy): ${window.INVENTORY_STATE.productos.length} productos`);
+        console.log(`✅ Inventario cargado y desencriptado: ${window.INVENTORY_STATE.productos.length} productos`);
         applyFiltersAndRender();
         loadBrandStates();
       } else {
@@ -233,25 +242,12 @@ function calculateExpiryInfo(product, brandConfig) {
 function applyFiltersAndRender() {
   const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
 
-  // Helper para desencriptación segura (Task 1)
-  const safeDecrypt = (data) => {
-    try {
-      return window.decryptData(data) || data;
-    } catch (e) {
-      return data;
-    }
-  };
-
   if (searchTerm.length > 0) {
     window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
-      const nombreDec = safeDecrypt(p.nombre).toLowerCase();
-      const marcaDec = safeDecrypt(p.marca).toLowerCase();
-      const codigo = (p.codigoBarras || "").toLowerCase();
-
       return (
-        nombreDec.includes(searchTerm) ||
-        marcaDec.includes(searchTerm) ||
-        codigo.includes(searchTerm)
+        (p.nombre && p.nombre.toLowerCase().includes(searchTerm)) ||
+        (p.marca && p.marca.toLowerCase().includes(searchTerm)) ||
+        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm))
       );
     });
   } else {

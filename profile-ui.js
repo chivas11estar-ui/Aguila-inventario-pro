@@ -298,6 +298,7 @@ function setupProfileEvents() {
     darkModeToggle.addEventListener('change', async (e) => {
       const isDarkMode = e.target.checked;
       console.log('🌓 Cambiando modo oscuro a:', isDarkMode);
+      document.documentElement.classList.toggle('dark', isDarkMode);
       await window.saveUserPreferences({ darkMode: isDarkMode });
     });
   }

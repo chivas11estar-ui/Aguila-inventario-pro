@@ -78,14 +78,9 @@ function createTopByBrandSection(refillAverages) {
         `;
     }
 
-    // Agrupar por marca usando datos de movimientos y cruce con inventario (Task 3)
+    // Agrupar por marca usando datos de movimientos y cruce con inventario
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
     const productosPorMarca = {};
-
-    // Helper para desencriptación segura
-    const safeDecrypt = (data) => {
-        try { return window.decryptData(data) || data; } catch (e) { return data; }
-    };
 
     movimientos.forEach(m => {
         if (m.tipo !== 'salida') return;
@@ -93,11 +88,8 @@ function createTopByBrandSection(refillAverages) {
         // Intentar obtener datos más recientes del inventario cargado
         const productInInventory = window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === m.productoCodigo);
         
-        const marcaRaw = productInInventory ? productInInventory.marca : m.marca;
-        const nombreRaw = productInInventory ? productInInventory.nombre : m.productoNombre;
-        
-        const marca = safeDecrypt(marcaRaw) || 'SIN MARCA';
-        const producto = safeDecrypt(nombreRaw) || 'Desconocido';
+        const marca = productInInventory ? productInInventory.marca : m.marca || 'SIN MARCA';
+        const producto = productInInventory ? productInInventory.nombre : m.productoNombre || 'Desconocido';
         
         if (!productosPorMarca[marca]) {
             productosPorMarca[marca] = {};
@@ -202,15 +194,10 @@ window.searchProduct = function() {
         return;
     }
 
-    // Helper para desencriptación segura
-    const safeDecrypt = (data) => {
-        try { return window.decryptData(data) || data; } catch (e) { return data; }
-    };
-
-    // Buscar producto desencriptando en memoria (Task 3)
+    // Buscar producto en texto plano
     const productInfo = movimientos.find(m => {
-        const nombreDec = safeDecrypt(m.productoNombre).toLowerCase();
-        return nombreDec.includes(query) || (m.codigoBarra && m.codigoBarra.includes(query));
+        const nombre = (m.productoNombre || "").toLowerCase();
+        return nombre.includes(query) || (m.codigoBarra && m.codigoBarra.includes(query));
     });
 
     if (!productInfo) {
@@ -218,8 +205,8 @@ window.searchProduct = function() {
         return;
     }
 
-    const decryptedProductName = safeDecrypt(productInfo.productoNombre);
-    const decryptedBrand = safeDecrypt(productInfo.marca);
+    const productName = productInfo.productoNombre;
+    const brandName = productInfo.marca;
 
     // Calcular métricas
     const hace7Dias = new Date();
@@ -239,8 +226,8 @@ window.searchProduct = function() {
     const promedioMensual = (piezasPorDia * 30).toFixed(2);
 
     renderSearchResult({
-        nombre: decryptedProductName,
-        marca: decryptedBrand || 'N/A',
+        nombre: productName,
+        marca: brandName || 'N/A',
         codigo: productInfo.codigoBarra,
         piezasPorDia: piezasPorDia,
         promedioMensual: promedioMensual

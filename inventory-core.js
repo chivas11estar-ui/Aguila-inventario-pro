@@ -91,11 +91,11 @@ async function guardarProducto(formData) {
 
   try {
     const rtdbData = {
-      nombre: encryptData(formData.nombre.trim()),
-      marca: encryptData(formData.marca),
+      nombre: formData.nombre.trim(),
+      marca: formData.marca,
       codigoBarras: safeCode,
       piezasPorCaja: parseInt(formData.piezasPorCaja) || 1,
-      ubicacion: encryptData(formData.ubicacion?.trim() || 'General'),
+      ubicacion: formData.ubicacion?.trim() || 'General',
       fechaCaducidad: formData.fechaCaducidad || '',
       fechaActualizacion: Date.now(), // Siempre Number
       actualizadoPor: usuario,

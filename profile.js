@@ -183,17 +183,11 @@ async function updateUserData(newData) {
     const userId = firebase.auth().currentUser?.uid;
     if (!userId) return false;
 
-    // Encriptar campos sensibles antes de guardar
-    const encryptedData = { ...newData };
-    if (encryptedData.promoterName) encryptedData.promoterName = encryptData(encryptedData.promoterName);
-    if (encryptedData.storeName) encryptedData.storeName = encryptData(encryptedData.storeName);
-
     try {
-        await firebase.database().ref(`usuarios/${userId}`).update(encryptedData);
+        await firebase.database().ref(`usuarios/${userId}`).update(newData);
 
-        // Actualizar estado local (con datos encriptados para consistencia con DB, 
-        // pero la UI se encargará de desencriptar al mostrar)
-        window.PROFILE_STATE.userData = { ...window.PROFILE_STATE.userData, ...encryptedData };
+        // Actualizar estado local
+        window.PROFILE_STATE.userData = { ...window.PROFILE_STATE.userData, ...newData };
 
         if (typeof showToast === 'function') showToast('✅ Datos actualizados', 'success');
         return true;

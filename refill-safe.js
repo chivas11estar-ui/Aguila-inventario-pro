@@ -98,18 +98,13 @@ async function searchProductForRefillSafe(barcode) {
       console.log('✅ [REFILL-SAFE] Producto encontrado');
       refillCurrentProduct = producto;
 
-      // Helper para desencriptación segura
-      const safeDecrypt = (data) => {
-        try { return window.decryptData(data) || data; } catch (e) { return data; }
-      };
-
-      // Rellenar campos del formulario con DESENCRIPTACIÓN (Task 2)
-      document.getElementById('refill-nombre').value = safeDecrypt(producto.nombre);
-      document.getElementById('refill-marca').value = safeDecrypt(producto.marca);
+      // Rellenar campos del formulario con texto plano
+      document.getElementById('refill-nombre').value = producto.nombre || '';
+      document.getElementById('refill-marca').value = producto.marca || '';
       document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
 
       if (refillMode === 'exit') {
-        document.getElementById('refill-warehouse').value = safeDecrypt(producto.ubicacion);
+        document.getElementById('refill-warehouse').value = producto.ubicacion || '';
       }
 
       renderRefillProductInfo();
@@ -147,12 +142,7 @@ async function renderRefillProductInfo() {
 
   infoDiv.style.display = 'block';
   const stock = parseInt(refillCurrentProduct.stockTotal) || 0;
-
-  // Helper para desencriptación segura
-  const safeDecrypt = (data) => {
-    try { return window.decryptData(data) || data; } catch (e) { return data; }
-  };
-  const productName = safeDecrypt(refillCurrentProduct.nombre);
+  const productName = refillCurrentProduct.nombre || 'Producto';
 
   if (stock === 0) {
     // ── PRODUCTO EN 0: mostrar analytics enriquecidos ──
@@ -247,6 +237,11 @@ async function handleRefillExitSafe() {
     showToast('⚠️ Primero escanea un producto existente', 'warning');
     return;
   }
+
+  // DEFINICIÓN CRÍTICA PARA ALERTAS Y LOGS
+  const productName = (typeof window.decryptData === 'function') 
+    ? (window.decryptData(refillCurrentProduct.nombre) || refillCurrentProduct.nombre)
+    : (refillCurrentProduct.nombre || 'Producto');
 
   const cajasAMover = parseInt(document.getElementById('refill-boxes').value);
   if (isNaN(cajasAMover) || cajasAMover <= 0) {
