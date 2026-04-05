@@ -141,18 +141,19 @@ function renderProductCard(product) {
       data-product-code="${product.codigoBarras}"
       class="card"
       style="
-        background: ${isOutOfStock ? '#f3f4f6' : 'white'};
+        background: ${isOutOfStock ? 'var(--bg-muted, #f3f4f6)' : 'var(--card-bg, #ffffff)'};
+        color: var(--text-main, #1f2937);
         border-left: 4px solid ${isOutOfStock ? '#9ca3af' : 'var(--primary)'};
         margin-bottom: 10px;
         transition: all 0.3s ease;
-        opacity: ${isOutOfStock ? '0.8' : '1'};
+        opacity: ${isOutOfStock ? '0.7' : '1'};
       "
     >
       <!-- Header del producto -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px;">
         <div style="flex: 1;">
-          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'};">
-            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-left:8px;">AGOTADO</span>' : ''}
+          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? 'var(--text-muted)' : 'var(--primary)'}; font-size: 16px; font-weight: 700;">
+            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:var(--bg-muted); padding:2px 6px; border-radius:4px; margin-left:8px; color: var(--text-muted);">AGOTADO</span>' : ''}
           </h4>
           <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
             <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>

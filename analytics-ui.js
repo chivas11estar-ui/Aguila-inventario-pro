@@ -85,11 +85,18 @@ function createTopByBrandSection(refillAverages) {
     movimientos.forEach(m => {
         if (m.tipo !== 'salida') return;
         
-        // Intentar obtener datos más recientes del inventario cargado
+        // Intentar obtener datos más recientes del inventario cargado (que ya vienen desencriptados)
         const productInInventory = window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === m.productoCodigo);
         
-        const marca = productInInventory ? productInInventory.marca : m.marca || 'SIN MARCA';
-        const producto = productInInventory ? productInInventory.nombre : m.productoNombre || 'Desconocido';
+        // RECUPERAR Y DESENCRIPTAR (Fallback a datos de movimiento si no está en inventario local)
+        let marca = productInInventory ? productInInventory.marca : m.marca || 'SIN MARCA';
+        let producto = productInInventory ? productInInventory.nombre : m.productoNombre || 'Desconocido';
+
+        // Doble capa de seguridad: asegurar desencriptación si los datos vienen de m (movimiento)
+        if (typeof window.decryptData === 'function') {
+            marca = window.decryptData(marca) || marca;
+            producto = window.decryptData(producto) || producto;
+        }
         
         if (!productosPorMarca[marca]) {
             productosPorMarca[marca] = {};
