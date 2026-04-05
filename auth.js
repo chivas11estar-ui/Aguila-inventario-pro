@@ -155,41 +155,48 @@ function showForgotForm() {
   document.getElementById('forgot-password-form').classList.remove('hidden');
 }
 
-function loadUserData(userId) {
-  firebase.database().ref('usuarios/' + userId).once('value')
-    .then((snapshot) => {
-      const userData = snapshot.val();
-      if (userData) {
-        console.log('📦 Datos cargados:', userData.nombrePromotor);
-        const userInfo = document.getElementById('user-info');
-        if (userInfo) {
-          userInfo.textContent = `👤 ${userData.email}`;
-        }
-        showApp();
-        if (typeof loadInventory === 'function') {
-          loadInventory();
-        }
-      } else {
-        // Fallback: Usuario existe en Auth pero no en DB (Inconsistencia)
-        console.warn('⚠️ Usuario autenticado sin perfil en DB. Intentando reparar o mostrar UI básica.');
-        showToast('⚠️ Perfil incompleto. Contacta soporte o regístrate de nuevo.', 'warning');
-
-        // Opción: Cerrar sesión para que se registre bien, o dejarlo pasar con datos dummy.
-        // Por seguridad, forzamos mostrar la app pero limitando funcionalidad, o logout.
-        // Aquí elegimos mostrar la app para que no se quede trabado, usando datos temporales.
-
-        showApp();
-        if (typeof loadInventory === 'function') {
-          loadInventory();
-        }
-      }
-    })
-    .catch((error) => {
-      console.error('❌ Error cargando datos:', error);
-      showToast('Error al cargar datos del perfil. Revisa tu conexión.', 'error');
-      // Aún así intentamos mostrar la app si es posible
+async function loadUserData(userId) {
+  try {
+    console.log('🔐 [ARCHITECT] Iniciando secuencia de arranque sincronizada...');
+    
+    // 1. ESPERAR AL PERFIL (Fuente de la llave de desencriptación)
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+    
+    if (userData && userData.determinante) {
+      // Inyectar en el estado global ANTES de cualquier desencriptación
+      window.PROFILE_STATE = window.PROFILE_STATE || {};
+      window.PROFILE_STATE.determinante = userData.determinante;
+      window.PROFILE_STATE.nombrePromotor = userData.nombrePromotor;
+      
+      console.log('✅ [ARCHITECT] Determinante listo:', userData.determinante);
+      
+      // Actualizar UI básica
+      const userInfo = document.getElementById('user-info');
+      if (userInfo) userInfo.textContent = `👤 ${userData.email}`;
+      
       showApp();
-    });
+
+      // 2. CARGAR INVENTARIO (Ahora getDeriveKey() tendrá el determinante)
+      if (typeof window.loadInventory === 'function') {
+        console.log('📦 [ARCHITECT] Cargando inventario con llave compartida...');
+        await window.loadInventory();
+      }
+
+      // 3. CARGAR ESTADÍSTICAS (Depende del inventario cargado)
+      if (typeof window.loadStats === 'function') {
+        console.log('📊 [ARCHITECT] Cargando analíticas...');
+        window.loadStats();
+      }
+      
+    } else {
+      console.warn('⚠️ Perfil incompleto o sin determinante. Redirigiendo a registro.');
+      showApp();
+    }
+  } catch (error) {
+    console.error('❌ [ARCHITECT] Error crítico en secuencia de arranque:', error);
+    showToast('Error de sincronización. Reintenta.', 'error');
+  }
 }
 
 // CORRECCIÓN CLAVE: Recargar página al salir

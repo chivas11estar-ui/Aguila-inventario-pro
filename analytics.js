@@ -209,11 +209,15 @@ async function generateAndRenderTop10() {
 // INICIALIZACIÓN AUTOMÁTICA Y EVENTOS
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // NOTA [ARCHITECT]: Desactivado para evitar condición de carrera.
+    // La carga ahora es gestionada secuencialmente por auth.js
+    /*
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
-            initAnalytics();
+            window.loadStats();
         }
     });
+    */
 
     // Listener para el botón de la pestaña analytics (ahora llama a window.loadStats)
     document.querySelectorAll('[data-tab]').forEach(btn => {

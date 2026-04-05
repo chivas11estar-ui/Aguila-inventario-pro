@@ -400,7 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Se mantiene handleAddProduct como fallback que redirige a V2.
   console.log('📋 Formulario será configurado por inventory-core.js');
 
-  // CRÍTICO: Cargar inventario cuando el usuario esté autenticado
+  // NOTA [ARCHITECT]: Desactivado para evitar condición de carrera. 
+  // La carga ahora es gestionada secuencialmente por auth.js
+  /*
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, cargando inventario...');
@@ -413,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('⏳ Esperando autenticación...');
     }
   });
+  */
 });
 
 // ============================================================
