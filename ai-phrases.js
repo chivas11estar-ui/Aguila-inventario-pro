@@ -11,15 +11,10 @@
  * Protege la llave del scope global y evita que sea accesible vía consola.
  */
 const AIService = (function() {
-    // API KEY OFUSCADA (Reversión + Base64)
-    const _H = "MHQ4dDhnMnptdTZFZVpockdwa095bVhHaTA0RHdmbiN5U2F6SUE=";
-    const _D = (v) => atob(v).split('').reverse().join('');
+    // ELIMINADO: API_KEY expuesta y ofuscación (AHORA EN CLOUD FUNCTION)
     
-    const API_KEY = _D(_H);
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-    
-    // Configuración de Rate Limiting (Protección contra abusos)
-    const MAX_REQUESTS_PER_DAY = 3; 
+    // Configuración del Proxy (Cloud Function)
+    const PROXY_URL = 'https://us-central1-promosentry.cloudfunctions.net/geminiProxy';
 
     /**
      * SANITIZACIÓN DE ENTRADAS (Anti-Prompt Injection)
@@ -29,66 +24,43 @@ const AIService = (function() {
         return text.toString().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "").substring(0, 30);
     }
 
-    /**
-     * RATE LIMITING LOCAL
-     */
-    function checkRateLimit(userId) {
-        const today = new Date().toISOString().split('T')[0];
-        const key = `ai_req_${userId}_${today}`;
-        const currentCount = parseInt(localStorage.getItem(key) || "0");
-        
-        if (currentCount >= MAX_REQUESTS_PER_DAY) {
-            console.warn("🛡️ Rate limit alcanzado para la IA");
-            return false;
-        }
-        
-        localStorage.setItem(key, (currentCount + 1).toString());
-        return true;
-    }
-
     async function generate(userName) {
         const safeName = sanitize(userName);
         
-        // Verificación de seguridad (mantenida de tu código original)
-        if (typeof checkRateLimit === 'function' && !checkRateLimit(firebase.auth().currentUser?.uid)) {
-            throw new Error("RATE_LIMIT_EXCEEDED");
-        }
-
-        const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${safeName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
-
         try {
-            const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+            // a) Obtener el idToken del usuario actual autenticado (Firebase Auth)
+            const user = firebase.auth().currentUser;
+            if (!user) throw new Error("No hay sesión activa");
+
+            const idToken = await user.getIdToken();
+
+            // b) Llamar a la Cloud Function proxy
+            const response = await fetch(PROXY_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ 
-                        role: "user",
-                        parts: [{ text: prompt }] 
-                    }],
-                    generationConfig: { 
-                        temperature: 0.85, 
-                        maxOutputTokens: 80 
-                    }
-                })
+                headers: { 
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ userName: safeName })
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const exactError = errorData.error?.message || response.statusText;
-                throw new Error(`API Status: ${response.status} - ${exactError}`);
+                const msg = errorData.error || `Error ${response.status}`;
+                throw new Error(msg);
             }
 
             const data = await response.json();
-            const text = data.candidates[0].content.parts[0].text.trim();
-            return text.replace(/^["']|["']$/g, '');
+            
+            // Retornar la frase recibida
+            return data.phrase;
 
         } catch (error) {
-            console.error("🛡️ Error IA:", error.message);
-            throw error;
+            console.error("🛡️ Error IA (vía Proxy):", error.message);
+            throw error; // getDailyAIPhrase manejará el fallback
         }
     }
   
-    // CORRECCIÓN: Exportar la función correctamente en lugar del token ';' inesperado
     return {
         generate: generate
     };
