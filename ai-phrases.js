@@ -46,6 +46,7 @@ const AIService = (function() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                console.error("❌ Detalles técnicos del Proxy:", errorData.details || "Sin detalles");
                 const msg = errorData.error || `Error ${response.status}`;
                 throw new Error(msg);
             }
