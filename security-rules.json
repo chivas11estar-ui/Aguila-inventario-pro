@@ -1,0 +1,54 @@
+{
+  "rules": {
+    "usuarios": {
+      "$uid": {
+        // Un usuario solo puede leer y escribir su propio perfil
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        
+        // Validación de estructura de perfil
+        ".validate": "newData.hasChildren(['email', 'determinante', 'storeName'])"
+      }
+    },
+    "productos": {
+      "$determinante": {
+        // REGLA CRÍTICA: Solo el usuario que tiene este determinante en su perfil puede acceder
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        
+        "$codigoBarras": {
+          ".validate": "newData.hasChildren(['nombre', 'codigoBarras', 'stockTotal'])",
+          "stockTotal": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "piezasPorCaja": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "codigoBarras": {
+            ".validate": "newData.isString() && newData.val().length >= 8"
+          }
+        }
+      }
+    },
+    "movimientos": {
+      "$determinante": {
+        // Bloquea listados globales de movimientos
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        
+        "$pushId": {
+          ".validate": "newData.hasChildren(['tipo', 'productoCodigo', 'cajasMovidas', 'timestamp'])"
+        }
+      }
+    },
+    "auditorias": {
+      "$determinante": {
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante"
+      }
+    },
+    // DENY ALL: Prohíbe cualquier consulta fuera de los nodos específicos (evita escaneos de base de datos)
+    ".read": false,
+    ".write": false
+  }
+}
