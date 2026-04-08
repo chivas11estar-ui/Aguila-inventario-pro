@@ -244,11 +244,17 @@ function applyFiltersAndRender() {
 
   if (searchTerm.length > 0) {
     window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
-      return (
-        (p.nombre && p.nombre.toLowerCase().includes(searchTerm)) ||
-        (p.marca && p.marca.toLowerCase().includes(searchTerm)) ||
-        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm))
-      );
+      const nameMatch = p.nombre && p.nombre.toLowerCase().includes(searchTerm);
+      const brandMatch = p.marca && p.marca.toLowerCase().includes(searchTerm);
+      const fullBarcodeMatch = p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm);
+      
+      // NUEVO: Coincidencia por los últimos 4 dígitos (si el término tiene 4 o más caracteres y es numérico)
+      let suffixMatch = false;
+      if (searchTerm.length >= 4 && /^\d+$/.test(searchTerm)) {
+          suffixMatch = p.codigoBarras && p.codigoBarras.endsWith(searchTerm);
+      }
+
+      return nameMatch || brandMatch || fullBarcodeMatch || suffixMatch;
     });
   } else {
     window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
