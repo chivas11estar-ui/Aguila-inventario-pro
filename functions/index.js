@@ -67,7 +67,7 @@ exports.geminiProxy = onRequest({
 
             const { userName } = req.body;
             // CAMBIO DE MODELO A gemini-2.0-flash (v1beta)
-            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${API_KEY}`;
+            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
             
             const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${userName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
 
