@@ -10,6 +10,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": "20"
+  },
   "type": "commonjs",
   "dependencies": {
     "tailwindcss": "^4.1.18"
