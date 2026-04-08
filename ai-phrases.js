@@ -14,7 +14,7 @@ const AIService = (function() {
     // ELIMINADO: API_KEY expuesta y ofuscación (AHORA EN CLOUD FUNCTION)
     
     // Configuración del Proxy (Cloud Function V2)
-    const PROXY_URL = 'https://geminiproxy-w2tnq6lqta-uc.a.run.app/geminiProxy';
+    const PROXY_URL = 'https://geminiproxy-w2tnq6lqta-uc.a.run.app';
 
     /**
      * SANITIZACIÓN DE ENTRADAS (Anti-Prompt Injection)
