@@ -44,9 +44,9 @@ exports.syncSalesAnalytics = onValueCreated("/movimientos/{storeId}/{movId}", as
 });
 
 /**
- * 🦅 FUNCION: geminiProxy
+ * 🦅 FUNCION: geminiProxyV3
  */
-exports.geminiProxy = onRequest({ 
+exports.geminiProxyV3 = onRequest({ 
     region: "us-central1",
     secrets: ["GEMINI_KEY"],
     maxInstances: 10
