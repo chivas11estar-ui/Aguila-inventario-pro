@@ -80,8 +80,23 @@ exports.geminiProxyV3 = onRequest({
                     ]
                 }];
             } else {
-                // Modo Frase Motivacional
-                const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${userName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
+                // Modo Frase Motivacional (HIPER-PERSONALIZADA)
+                const { date, dayOfWeek, weather, city } = req.body;
+                const weatherContext = weather ? `el clima es ${weather.condition} con ${weather.temperature}°C` : 'clima desconocido';
+                
+                const prompt = `Actúa como una socia digital motivadora y apasionada para ${userName}, un promotor de ventas en México. 
+                Contexto de hoy:
+                - Fecha: ${date} (${dayOfWeek})
+                - Ubicación: ${city || 'México'}
+                - Clima: ${weatherContext}
+                
+                Instrucciones:
+                1. Saluda por su nombre de forma cariñosa pero profesional.
+                2. Menciona si hoy hay alguna festividad importante en México o el Santo del día (Santoral Mexicano).
+                3. Haz una breve referencia al clima actual.
+                4. Da una frase motivacional corta (máximo 25 palabras totales) relacionada con las ventas o el éxito.
+                5. Usa 2 emojis y tono mexicano (sin exagerar). No uses comillas.`;
+                
                 contents = [{ role: "user", parts: [{ text: prompt }] }];
             }
 

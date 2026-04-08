@@ -28,20 +28,30 @@ const AIService = (function() {
         const safeName = sanitize(userName);
         
         try {
-            // a) Obtener el idToken del usuario actual autenticado (Firebase Auth)
             const user = firebase.auth().currentUser;
             if (!user) throw new Error("No hay sesión activa");
 
             const idToken = await user.getIdToken();
 
-            // b) Llamar a la Cloud Function proxy
+            // Recopilar contexto para la Súper Frase
+            const now = new Date();
+            const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const context = {
+                userName: safeName,
+                date: now.toLocaleDateString('es-MX'),
+                dayOfWeek: days[now.getDay()],
+                weather: window.PROFILE_STATE?.weather || null,
+                city: window.PROFILE_STATE?.weather?.city || 'México'
+            };
+
+            // b) Llamar a la Cloud Function proxy V3
             const response = await fetch(PROXY_URL, {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json' 
                 },
-                body: JSON.stringify({ userName: safeName })
+                body: JSON.stringify(context)
             });
 
             if (!response.ok) {
