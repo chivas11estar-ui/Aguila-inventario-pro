@@ -397,16 +397,21 @@ function setupVisualScan() {
     console.log('📸 Iniciando Auditoría Visual...');
     
     if (typeof openScanner === 'function') {
-      // Abrimos el escáner pero con un callback especial
+      // 1. Abrir escáner
       openScanner({
         continuous: true,
         onScan: async (code) => {
-          // Si detecta un código mientras mira, genial, pero...
           console.log("🔍 Código visto en auditoría:", code);
         }
       });
 
-      // Añadir botón flotante de "CAPTURAR ANAQUEL" sobre el video
+      // 2. Limpiar UI del escáner tradicional para el modo Visión
+      const overlay = document.querySelector('.scanner-overlay');
+      if (overlay) {
+        overlay.style.display = 'none'; // Ocultar cuadro y texto de guía
+      }
+
+      // 3. Inyectar botón de captura
       injectCaptureButton();
     }
   });
@@ -416,17 +421,17 @@ function injectCaptureButton() {
   const modal = document.getElementById('scanner-modal');
   if (!modal) return;
 
-  // Evitar duplicados
   if (document.getElementById('btn-capture-shelf')) return;
 
   const btn = document.createElement('button');
   btn.id = 'btn-capture-shelf';
-  btn.innerHTML = '<span class="material-icons-round" style="font-size:32px;">analytics</span><br>Analizar Anaquel';
+  btn.innerHTML = '<span class="material-icons-round" style="font-size:28px;">analytics</span><br>Analizar Anaquel';
   btn.style.cssText = `
-    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-    background: var(--success); color: white; border: none; padding: 15px 25px;
-    border-radius: 50px; font-weight: 700; z-index: 3000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+    background: #10b981; color: white; border: none; padding: 12px 25px;
+    border-radius: 12px; font-weight: 700; z-index: 3000; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    width: 200px; border: 2px solid white;
   `;
 
   btn.onclick = async () => {
@@ -434,47 +439,55 @@ function injectCaptureButton() {
     if (!video) return;
 
     btn.disabled = true;
-    btn.innerHTML = '🧠 Analizando...';
-    btn.style.background = '#6b7280';
+    btn.innerHTML = '<div class="spinner"></div> Analizando...';
+    btn.style.background = '#4b5563';
 
-    // 1. Capturar Frame
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg');
 
-    // 2. Pasar a VisionAI
     if (window.VisionAI) {
       const results = await window.VisionAI.analyzeShelf(dataUrl);
-      
       if (results) {
-        if (typeof showToast === 'function') showToast(`✅ Detectados ${results.length} productos`, "success");
-        console.log("📊 RESULTADOS VISIÓN:", results);
-        // Aquí integraremos el cálculo de Share of Shelf después
-      } else {
-        if (typeof showToast === 'function') showToast("❌ No se detectaron productos", "error");
+        mostrarResultadoAuditoria(results);
       }
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<span class="material-icons-round" style="font-size:32px;">analytics</span><br>Analizar Anaquel';
-    btn.style.background = 'var(--success)';
+    btn.innerHTML = '<span class="material-icons-round" style="font-size:28px;">analytics</span><br>Analizar Anaquel';
+    btn.style.background = '#10b981';
   };
 
   modal.appendChild(btn);
 
-  // Limpiar botón cuando se cierre el escáner
+  // Limpiar al cerrar
   const closeBtn = document.getElementById('close-scanner');
   if (closeBtn) {
     const originalClose = closeBtn.onclick;
     closeBtn.onclick = () => {
       btn.remove();
+      const overlay = document.querySelector('.scanner-overlay');
+      if (overlay) overlay.style.display = 'flex'; // Restaurar overlay
       if (originalClose) originalClose();
       if (window.ScannerService) window.ScannerService.hardStop();
       modal.classList.add('hidden');
     };
   }
+}
+
+function mostrarResultadoAuditoria(res) {
+  if (typeof showToast === 'function') {
+    showToast(`📊 Pepsico: ${res.pepsico_frentes} frentes`, "success");
+  }
+  
+  // Opcional: Crear un modal de resultados más detallado
+  alert(`🔎 RESULTADO DE AUDITORÍA:\n\n` +
+        `📦 Frentes PepsiCo: ${res.pepsico_frentes}\n` +
+        `🚫 Competencia: ${res.competencia_frentes}\n` +
+        `📈 Total en Anaquel: ${res.total_frentes}\n\n` +
+        `💬 IA dice: ${res.mensaje || 'Buen trabajo'}`);
 }
 
 // ============================================================
