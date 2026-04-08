@@ -602,6 +602,11 @@
   <script src="migrate-to-v2.js?v=2.0"></script>
 
   <!-- ============================================================
+       INTELIGENCIA ARTIFICIAL DE VISIÓN
+       ============================================================ -->
+  <script src="vision-ai.js?v=1.0"></script>
+
+  <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
   <script src="auth.js?v=2.0"></script>
@@ -643,6 +648,18 @@
           this.classList.add('active');
           const tab = document.getElementById('tab-' + tabName);
           if (tab) {
+            tab.classList.remove('hidden');
+            tab.classList.add('active');
+          }
+        });
+      });
+
+      console.log('✅ Navegación lista');
+    });
+  </script>
+</body>
+
+</html>f (tab) {
             tab.classList.remove('hidden');
             tab.classList.add('active');
           }

@@ -385,8 +385,97 @@ document.addEventListener('DOMContentLoaded', () => {
   // Configurar buscador híbrido después de un breve delay para asegurar el DOM
   setTimeout(() => {
     setupSearchBar();
+    setupVisualScan(); // Iniciar Ojo de Águila
   }, 1000);
 });
+
+function setupVisualScan() {
+  const btn = document.getElementById('btn-visual-scan');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    console.log('📸 Iniciando Auditoría Visual...');
+    
+    if (typeof openScanner === 'function') {
+      // Abrimos el escáner pero con un callback especial
+      openScanner({
+        continuous: true,
+        onScan: async (code) => {
+          // Si detecta un código mientras mira, genial, pero...
+          console.log("🔍 Código visto en auditoría:", code);
+        }
+      });
+
+      // Añadir botón flotante de "CAPTURAR ANAQUEL" sobre el video
+      injectCaptureButton();
+    }
+  });
+}
+
+function injectCaptureButton() {
+  const modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+
+  // Evitar duplicados
+  if (document.getElementById('btn-capture-shelf')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'btn-capture-shelf';
+  btn.innerHTML = '<span class="material-icons-round" style="font-size:32px;">analytics</span><br>Analizar Anaquel';
+  btn.style.cssText = `
+    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--success); color: white; border: none; padding: 15px 25px;
+    border-radius: 50px; font-weight: 700; z-index: 3000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  `;
+
+  btn.onclick = async () => {
+    const video = document.getElementById('scanner-video');
+    if (!video) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '🧠 Analizando...';
+    btn.style.background = '#6b7280';
+
+    // 1. Capturar Frame
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+
+    // 2. Pasar a VisionAI
+    if (window.VisionAI) {
+      const results = await window.VisionAI.analyzeShelf(dataUrl);
+      
+      if (results) {
+        if (typeof showToast === 'function') showToast(`✅ Detectados ${results.length} productos`, "success");
+        console.log("📊 RESULTADOS VISIÓN:", results);
+        // Aquí integraremos el cálculo de Share of Shelf después
+      } else {
+        if (typeof showToast === 'function') showToast("❌ No se detectaron productos", "error");
+      }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-round" style="font-size:32px;">analytics</span><br>Analizar Anaquel';
+    btn.style.background = 'var(--success)';
+  };
+
+  modal.appendChild(btn);
+
+  // Limpiar botón cuando se cierre el escáner
+  const closeBtn = document.getElementById('close-scanner');
+  if (closeBtn) {
+    const originalClose = closeBtn.onclick;
+    closeBtn.onclick = () => {
+      btn.remove();
+      if (originalClose) originalClose();
+      if (window.ScannerService) window.ScannerService.hardStop();
+      modal.classList.add('hidden');
+    };
+  }
+}
 
 // ============================================================
 // EXPONER FUNCIONES PÚBLICAS

@@ -1,7 +1,7 @@
 /**
  * Águila Inventario Pro - Cloud Functions
- * Versión: 2.1.7 (Model Fix: Gemini 1.5 Flash)
- * Lógica para Proxy Seguro y cálculo de promedios de venta.
+ * Versión: 2.2.0 (Multimodal Vision Support)
+ * Lógica para Proxy Seguro, analíticas y Auditoría Visual.
  */
 
 const { onValueCreated } = require("firebase-functions/v2/database");
@@ -44,7 +44,7 @@ exports.syncSalesAnalytics = onValueCreated("/movimientos/{storeId}/{movId}", as
 });
 
 /**
- * 🦅 FUNCION: geminiProxyV3
+ * 🦅 FUNCION: geminiProxyV3 (MULTIMODAL)
  */
 exports.geminiProxyV3 = onRequest({ 
     region: "us-central1",
@@ -65,18 +65,36 @@ exports.geminiProxyV3 = onRequest({
             const API_KEY = process.env.GEMINI_KEY;
             if (!API_KEY) throw new Error("LLAVE_NO_CONFIGURADA");
 
-            const { userName } = req.body;
-            // MODELO: Gemini 2.5 Flash Lite (Dashboard 2026)
+            const { userName, image, mode } = req.body;
             const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
             
-            const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${userName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
+            let contents = [];
+            
+            if (mode === 'shelf_analysis' && image) {
+                // Modo Auditoría Visual
+                contents = [{
+                    role: "user",
+                    parts: [
+                        { text: "Analiza esta foto de anaquel de botanas. Cuenta cuántos frentes (facings) totales hay en la imagen y cuántos pertenecen a marcas de PepsiCo (Sabritas, Gamesa, Quaker, Sonric's). Responde ÚNICAMENTE en formato JSON: {\"total_frentes\": numero, \"pepsico_frentes\": numero, \"competencia_frentes\": numero, \"mensaje\": \"resumen corto\"}" },
+                        { inline_data: { mime_type: "image/jpeg", data: image } }
+                    ]
+                }];
+            } else {
+                // Modo Frase Motivacional
+                const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${userName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
+                contents = [{ role: "user", parts: [{ text: prompt }] }];
+            }
 
             const geminiResponse = await fetch(GEMINI_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.9, maxOutputTokens: 100 }
+                    contents: contents,
+                    generationConfig: { 
+                        temperature: mode === 'shelf_analysis' ? 0.1 : 0.9, 
+                        maxOutputTokens: 300,
+                        response_mime_type: mode === 'shelf_analysis' ? "application/json" : "text/plain"
+                    }
                 })
             });
 
@@ -90,7 +108,18 @@ exports.geminiProxyV3 = onRequest({
                 });
             }
 
-            const phrase = data.candidates[0].content.parts[0].text.trim().replace(/^["']|["']$/g, '');
+            const rawText = data.candidates[0].content.parts[0].text.trim();
+            
+            if (mode === 'shelf_analysis') {
+                try {
+                    const analysis = JSON.parse(rawText.replace(/```json|```/g, ""));
+                    return res.status(200).json(analysis);
+                } catch(e) {
+                    return res.status(200).json({ error: "Error procesando JSON de visión", raw: rawText });
+                }
+            }
+
+            const phrase = rawText.replace(/^["']|["']$/g, '');
             return res.status(200).json({ phrase });
 
         } catch (error) {
