@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es-MX" dir="ltr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
+  <meta name="author" content="José A. G. Betancourt">
+  <meta name="theme-color" content="#004aad">
+  <title>🦅 Águila Inventario Pro</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Águila Pro">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
+
+  <link rel="stylesheet" href="styles.css?v=1.2">
+  <link rel="stylesheet" href="custom-styles.css?v=1.2">
+  <link rel="stylesheet" href="tailwind-built.css?v=1.2">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+</head>
+
+<body>
+  <div class="toast-container" role="alert" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ============================================================
+       ESCÁNER MODAL
+       ============================================================ -->
+  <div id="scanner-modal" class="scanner-modal hidden">
+    <div class="scanner-container">
+      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;background:var(--primary);">
+        <h3 style="color:white;margin:0;font-size:1.1em;">📷 Escáner de Código de Barras</h3>
+      </div>
+      <div class="scanner-video-wrapper">
+        <video id="scanner-video" autoplay playsinline></video>
+        <div class="scanner-overlay">
+          <div class="scanner-frame"></div>
+          <div class="scanner-instruction">Apunta la cámara al código de barras</div>
+        </div>
+      </div>
+      <button id="close-scanner" class="scanner-close-btn">Cerrar Escáner</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL CREAR PRODUCTO NUEVO
+       ============================================================ -->
+  <div id="create-product-modal" class="modal-overlay hidden"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="max-width: 500px; padding: 24px; position: relative;">
+      <button
+        style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;"
+        onclick="cerrarModalCrearProducto()">✕</button>
+
+      <h3 style="color: #004aad; margin-bottom: 20px;">📝 Crear Nuevo Producto</h3>
+
+      <div class="form-group">
+        <label for="create-product-barcode">Código de Barras</label>
+        <input id="create-product-barcode" type="text" readonly style="background: #f0f9ff;" />
+      </div>
+
+      <div class="form-group">
+        <label for="create-product-name">Nombre del Producto *</label>
+        <input id="create-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+      </div>
+
+      <div class="form-group">
+        <label for="create-product-marca">Marca</label>
+        <select id="create-product-marca">
+          <option value="Otra">Otra</option>
+          <option value="Sabritas">Sabritas</option>
+          <option value="Gamesa">Gamesa</option>
+          <option value="Quaker">Quaker</option>
+          <option value="Sonric's">Sonric's</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="create-product-piezas">Piezas por Caja</label>
+        <input id="create-product-piezas" type="number" value="24" min="1" />
+      </div>
+
+      <div class="form-group">
+        <label for="create-product-warehouse">Bodega/Ubicación *</label>
+        <input id="create-product-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+        <button type="button" id="save-product-modal-btn" class="primary">💾 Crear Producto</button>
+        <button type="button" id="close-product-modal-btn" class="secondary"
+          style="background: #e5e7eb; color: #1f2937;">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="main-app">
+
+    <!-- ============================================================
+         PANTALLA AUTH
+         ============================================================ -->
+    <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
+      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Águila Inventario Pro</h2>
+
+      <!-- LOGIN FORM -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="tu.email@empresa.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
+        </div>
+        <button type="button" id="btn-login" class="success" style="width:100%;">Iniciar Sesión</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-forgot-password" style="color:var(--warning);">¿Olvidaste tu contraseña?</a>
+        </p>
+        <p style="text-align:center;">
+          <a href="#" id="show-register" style="color:var(--primary);">¿Eres nuevo? Regístrate aquí</a>
+        </p>
+      </form>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <form id="forgot-password-form" class="hidden">
+        <h3 style="text-align:center;color:var(--primary);">Recuperar Contraseña</h3>
+        <div class="form-group">
+          <label for="forgot-email">Email</label>
+          <input id="forgot-email" type="email" placeholder="tu.email@empresa.com" required />
+        </div>
+        <button type="submit" class="warning" style="width:100%;">Enviar Enlace</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-login-from-forgot" style="color:var(--primary);">Volver al inicio de sesión</a>
+        </p>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="register-form" class="hidden">
+        <h3 style="text-align:center;color:var(--primary);">Registro Inicial</h3>
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" placeholder="tu.email@empresa.com" required />
+        </div>
+        <div class="form-group">
+          <label for="register-password">Contraseña</label>
+          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+        </div>
+        <div class="form-group">
+          <label for="register-determinante">Determinante (Tienda)</label>
+          <input id="register-determinante" type="number" placeholder="Ej: 12345" required />
+        </div>
+        <div class="form-group">
+          <label for="register-store-name">Nombre de la Tienda</label>
+          <input id="register-store-name" type="text" placeholder="Ej: Oxxo Centro" required />
+        </div>
+        <div class="form-group">
+          <label for="register-promoter-name">Nombre del Promotor</label>
+          <input id="register-promoter-name" type="text" placeholder="Ej: Juan Pérez" required />
+        </div>
+        <button type="submit" class="success" style="width:100%;">Registrar y Entrar</button>
+        <p style="text-align:center;margin-top:15px;">
+          <a href="#" id="show-login" style="color:var(--primary);">Ya tengo cuenta</a>
+        </p>
+      </form>
+    </section>
+
+    <!-- ============================================================
+         APLICACIÓN PRINCIPAL
+         ============================================================ -->
+    <section id="app-container" style="display:none;">
+
+      <!-- HEADER APP -->
+      <div class="app-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="app-title">🦅 Águila Inventario Pro</div>
+          <p id="motivational-phrase"
+            style="color: var(--muted); font-size: 12px; font-style: italic; text-align: center; flex-grow: 1;"></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;"> <button class="btn-icon"
+            id="btn-offline-status">📡</button>
+          <button class="btn-icon" id="btn-logout">🚪</button>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAVIGATION -->
+      <nav class="bottom-nav">
+        <a href="#" class="nav-btn active" data-tab="inventory">
+          <span style="font-size:20px;">📦</span>
+          <span>Stock</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="add">
+          <span style="font-size:20px;">➕</span>
+          <span>Añadir</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="refill">
+          <span style="font-size:20px;">🔄</span>
+          <span>Rellenar</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="audit">
+          <span style="font-size:20px;">✓</span>
+          <span>Auditar</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="analytics">
+          <span style="font-size:20px;">📊</span>
+          <span>Datos</span>
+        </a>
+        <a href="#" class="nav-btn" data-tab="system">
+          <span style="font-size:20px;">⚙️</span>
+          <span>Ajustes</span>
+        </a>
+      </nav>
+
+      <!-- CONTENIDO PRINCIPAL -->
+      <div class="main-content">
+
+        <!-- TAB: INVENTARIO -->
+        <div id="tab-inventory" class="tab-content active">
+          <div class="card">
+            <h2>📦 Inventario por Marca</h2>
+            <div id="inventory-list" style="margin-top:20px;">
+              <p style="color:var(--muted);">Cargando inventario...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: AGREGAR PRODUCTO -->
+        <div id="tab-add" class="tab-content hidden">
+          <div class="card">
+            <h2>➕ Agregar Producto</h2>
+            <form id="add-product-form" style="margin-top:20px;">
+              <div class="form-group">
+                <label for="add-barcode">Código de Barras</label>
+                <div style="display:flex;gap:8px;">
+                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
+                  <button type="button" id="btn-scan-add" class="success"
+                    style="width:auto;padding:12px 16px;">📷</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="add-product-name">Nombre del Producto</label>
+                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-brand">Marca</label>
+                <select id="add-brand" required>
+                  <option value="">-- Selecciona una marca --</option>
+                  <option value="Sabritas">Sabritas</option>
+                  <option value="Gamesa">Gamesa</option>
+                  <option value="Quaker">Quaker</option>
+                  <option value="Sonric's">Sonric's</option>
+                  <option value="Otra">Otra</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="add-pieces-per-box">Piezas por Caja</label>
+                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-warehouse">Ubicación/Almacén</label>
+                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-expiry-date">Fecha de Caducidad</label>
+                <input id="add-expiry-date" type="date" required />
+              </div>
+
+              <div class="form-group">
+                <label for="add-boxes">Cantidad de Cajas</label>
+                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
+              </div>
+
+              <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB: RELLENO -->
+        <div id="tab-refill" class="tab-content hidden">
+          <div class="card">
+            <h2>🔄 Reabastecimiento Inteligente</h2>
+            <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
+
+            <div id="refill-mode-selector"
+              style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">🔄 Salida (Rellenar
+                Exhibidor)</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">➕ Entrada (Añadir
+                Stock)</button>
+            </div>
+
+            <form id="refill-form" style="margin-top: 20px;">
+              <div class="form-group">
+                <label for="refill-barcode">Código de Barras</label>
+                <div style="display:flex;gap:8px;">
+                  <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
+                  <button type="button" id="btn-scan-refill" class="success"
+                    style="width:auto;padding:12px 16px;">📷</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="refill-nombre">Nombre del Producto</label>
+                <input id="refill-nombre" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-marca">Marca</label>
+                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-piezas">Piezas por Caja</label>
+                <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group">
+                <label for="refill-warehouse">Bodega/Ubicación</label>
+                <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
+              </div>
+
+              <div class="form-group" id="refill-expiry-date-group" style="display: none;">
+                <label for="refill-expiry-date">Fecha de Caducidad</label>
+                <input id="refill-expiry-date" type="date" />
+              </div>
+
+              <div id="refill-product-info"
+                style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
+                <p id="refill-product-name"></p>
+                <p id="refill-current-stock" style="color:var(--muted);"></p>
+              </div>
+
+              <div class="form-group">
+                <label id="refill-boxes-label" for="refill-boxes">Cantidad de Cajas a Mover</label>
+                <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
+              </div>
+
+              <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
+            </form>
+
+            <div style="margin-top:30px;">
+              <h3>📊 Movimientos Hoy</h3>
+              <p style="font-size:24px;font-weight:700;color:var(--success);">
+                <span id="total-movements">0</span> cajas
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: AUDITORÍA -->
+        <div id="tab-audit" class="tab-content hidden">
+          <div class="card">
+            <h2>✓ Auditoría</h2>
+
+            <div style="margin: 20px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+              <button id="btn-quick-audit-mode" class="secondary" style="width:100%;">⚡ Activar Modo de Auditoría
+                Rápida</button>
+            </div>
+
+            <div id="audit-normal-form">
+              <form id="audit-form" style="margin-top:20px;">
+                <div class="form-group">
+                  <label for="audit-warehouse">Bodega a Auditar</label>
+                  <div style="display:flex;gap:8px;">
+                    <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
+                    <button type="button" id="save-warehouse-btn" class="success"
+                      style="width:auto;padding:12px 16px;">✓</button>
+                  </div>
+                </div>
+
+                <div id="current-warehouse-display"
+                  style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
+                  Ninguna bodega seleccionada
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-barcode">Código de Barras</label>
+                  <div style="display:flex;gap:8px;">
+                    <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
+                    <button type="button" id="btn-scan-audit" class="success"
+                      style="width:auto;padding:12px 16px;">📷</button>
+                  </div>
+                </div>
+
+                <div id="audit-stock-info" style="display:none;"></div>
+
+                <div class="form-group">
+                  <label for="audit-nombre">Nombre del Producto</label>
+                  <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-marca">Marca</label>
+                  <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-piezas">Piezas por Caja</label>
+                  <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
+                </div>
+
+                <div id="audit-product-info"
+                  style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
+                  <p id="audit-product-name"></p>
+                  <p id="audit-product-brand" style="color:var(--muted);"></p>
+                </div>
+
+                <div class="form-group">
+                  <label for="audit-boxes">Cantidad Contada (Cajas)</label>
+                  <input id="audit-boxes" type="number" placeholder="Cantidad física" min="0" />
+                </div>
+
+                <button type="submit" class="primary" style="width:100%;">✅ Registrar Conteo</button>
+              </form>
+
+              <button id="finish-audit-btn" class="warning" style="width:100%;margin-top:15px;">
+                🏁 Terminar Auditoría
+              </button>
+            </div>
+
+            <div id="audit-quick-scan-container" class="hidden" style="margin-top:20px;">
+              <h3 style="color: var(--primary);">⚡ Resultados de Auditoría Rápida</h3>
+              <p style="color: #6b7280; font-size: 13px;">Ajusta las cantidades si es necesario y guarda el conteo
+                final.</p>
+              <div id="quick-audit-list" style="margin-top:20px;">
+                <!-- Los productos escaneados aparecerán aquí -->
+              </div>
+              <button id="btn-save-quick-audit" class="success" style="width:100%; margin-top: 20px;">💾 Guardar Conteo
+                Rápido</button>
+              <button id="btn-cancel-quick-audit" class="secondary" style="width:100%; margin-top: 10px;">❌
+                Cancelar</button>
+            </div>
+
+            <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                <div style="font-size:24px;font-weight:700;color:var(--primary);" id="audit-total-count">0</div>
+                <div style="color:var(--muted);font-size:12px;">cajas auditadas</div>
+              </div>
+              <div style="padding:15px;background:var(--bg);border-radius:8px;text-align:center;">
+                <div style="font-size:24px;font-weight:700;color:var(--success);" id="audit-products-count">0</div>
+                <div style="color:var(--muted);font-size:12px;">productos</div>
+              </div>
+            </div>
+
+            <div id="audit-history" style="margin-top:20px;">
+              <p style="color:var(--muted);">Historial vacío</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: ANALYTICS (CORREGIDO - SOLO CONTAINER) -->
+        <div id="tab-analytics" class="tab-content hidden">
+          <div id="stats-container">
+            <!-- El JS renderizará aquí la nueva interfaz de Analytics -->
+          </div>
+        </div>
+
+        <!-- TAB: SISTEMA / PERFIL -->
+        <div id="tab-system" class="tab-content hidden">
+          <div id="profile-container">
+            <div style="text-align: center; padding: 40px; color: var(--muted);">
+              <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+              <p>Cargando perfil...</p>
+            </div>
+          </div>
+
+          <!-- Administrador de Frases Motivacionales -->
+          <div id="motivational-phrases-manager" class="card">
+            <h3 style="color: var(--primary); margin-bottom: 20px;">💬 Mis Frases Motivacionales</h3>
+            <form id="add-phrase-form" style="display: flex; gap: 8px; margin-bottom: 20px;">
+              <input id="new-phrase-input" type="text" placeholder="Escribe una nueva frase..." style="flex-grow: 1;"
+                required />
+              <button type="submit" class="success" style="width: auto; padding: 12px 16px;">Añadir</button>
+            </form>
+            <div id="phrases-list">
+              <p style="color: var(--muted);">Cargando frases...</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer style="background:var(--card-bg);text-align:center;border-top:2px solid var(--border);margin-top:40px;">
+    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.6</p>
+    <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt - Todos los derechos
+      reservados</p>
+  </footer>
+
+  <!-- ============================================================
+       FIREBASE SCRIPTS
+       ============================================================ -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- ============================================================
+       LIBRERÍA DE ENCRIPTACIÓN (CRYPTOJS)
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <!-- ============================================================
+       CHART.JS (SOLO UNA VEZ)
+       ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
+  <!-- ============================================================
+       CONFIGURACIÓN Y UI BASE
+       ============================================================ -->
+  <script src="firebase-config.js?v=1.2"></script>
+  <script src="security-utils.js?v=1.2"></script>
+  <script src="date-utils.js?v=1.2"></script>
+  <script src="ui.js?v=1.2"></script>
+
+  <!-- ============================================================
+       GESTIÓN DE LISTENERS (FASE 2.1 - MEMORY LEAK FIX)
+       ============================================================ -->
+  <script src="listener-manager.js?v=2.0"></script>
+
+  <!-- ============================================================
+       ESCÁNER
+       ============================================================ -->
+  <script src="scanner-mlkit.js?v=1.2"></script>
+  <script src="scanner-events.js?v=1.2"></script>
+
+  <!-- ============================================================
+       CONTROLLERS (NUEVO)
+       ============================================================ -->
+  <script src="search-controller.js?v=2.0"></script>
+
+  <!-- ============================================================
+       INVENTARIO (FASE 2.1) - Renderizado y estado base
+       ============================================================ -->
+  <script src="inventory.js?v=2.0"></script>
+  <script src="inventory-ui.js?v=2.0"></script>
+
+  <!-- ============================================================
+       INVENTORY-CORE V2 - Nueva arquitectura por código de barras
+       Reemplaza la lógica de escritura de inventory.js
+       Ruta: productos/{det}/{codigoBarras} en vez de push()
+       ============================================================ -->
+  <script src="inventory-core.js?v=2.0"></script>
+
+  <!-- ============================================================
+       OPERACIONES (V2 - REFACTORIZADO)
+       refill-safe.js reemplaza refill-enhanced.js
+       ============================================================ -->
+  <!-- <script src="refill-enhanced.js?v=1.2"></script>  DESACTIVADO: reemplazado por refill-safe.js -->
+  <script src="refill-safe.js?v=2.2"></script>
+  <script src="audit.js?v=2.0"></script>
+  <script src="audit-pro-ui.js?v=2.0"></script>
+  <script src="audit-sync.js?v=2.0"></script>
+
+  <!-- ============================================================
+       SISTEMA Y PERFIL (FASE 2.2)
+       ============================================================ -->
+  <script src="system.js?v=1.2"></script>
+  <script src="system-events.js?v=1.2"></script>
+  <script src="weather.js?v=1.2"></script>
+  <script src="profile.js?v=1.2"></script>
+  <script src="profile-ui.js?v=1.2"></script>
+
+  <!-- ============================================================
+       ANALYTICS (FASE 2.3) - DESPUÉS DE PROFILE
+       ============================================================ -->
+  <script src="analytics.js?v=1.2"></script>
+  <script src="analytics-ui.js?v=1.2"></script>
+
+  <!-- ============================================================
+       FRASES MOTIVACIONALES (NUEVO)
+       ============================================================ -->
+  <script src="ai-phrases.js?v=1.2"></script>
+  <script src="phrases.js?v=1.2"></script>
+
+  <!-- ============================================================
+       MIGRACIÓN V2 (TEMPORAL - quitar después de migrar)
+       Ejecutar migrarInventarioAV2() desde consola del navegador
+       ============================================================ -->
+  <script src="migrate-to-v2.js?v=2.0"></script>
+
+  <!-- ============================================================
+       AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
+       ============================================================ -->
+  <script src="auth.js?v=2.0"></script>
+  <script src="app.js?v=2.0"></script>
+
+  <!-- ============================================================
+       SERVICE WORKER
+       ============================================================ -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('✅ Service Worker registrado'))
+          .catch(err => console.error('⚠️ SW no disponible:', err));
+      });
+    }
+  </script>
+
+  <!-- ============================================================
+       SISTEMA DE NAVEGACIÓN MOBILE
+       ============================================================ -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('🎯 Sistema de navegación iniciando...');
+
+      const navButtons = document.querySelectorAll('.nav-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      navButtons.forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const tabName = this.getAttribute('data-tab');
+          console.log('📑 Navegando a:', tabName);
+
+          navButtons.forEach(b => b.classList.remove('active'));
+          tabContents.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(t => t.classList.add('hidden'));
+
+          this.classList.add('active');
+          const tab = document.getElementById('tab-' + tabName);
+          if (tab) {
+            tab.classList.remove('hidden');
+            tab.classList.add('active');
+          }
+        });
+      });
+
+      console.log('✅ Navegación lista');
+    });
+  </script>
+</body>
+
+</html>

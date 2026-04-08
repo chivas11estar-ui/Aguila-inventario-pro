@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "HTTP Server (Python 3)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "HTTP Server (Node.js)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "-p", "8080", "-c-1"],
+      "port": 8080
+    },
+    {
+      "name": "Live Server (Auto-reload)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["live-server", "--port=3000", "--no-browser"],
+      "port": 3000
+    },
+    {
+      "name": "Build Tailwind (Watch Mode)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "build", "--", "--watch"],
+      "port": null
+    },
+    {
+      "name": "Netlify Dev (Full Stack)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["netlify", "dev"],
+      "port": 8888
+    }
+  ]
+}
