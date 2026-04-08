@@ -66,8 +66,8 @@ exports.geminiProxy = onRequest({
             if (!API_KEY) throw new Error("LLAVE_NO_CONFIGURADA");
 
             const { userName } = req.body;
-            // CAMBIO DE MODELO A gemini-2.0-flash (v1beta)
-            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            // CAMBIO DE MODELO A gemini-1.5-flash (v1 estable en 2026)
+            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
             
             const prompt = `Genera una frase motivacional corta (máximo 15 palabras) para ${userName}, promotor de ventas. Usa tono profesional de México y 2 emojis. No uses comillas.`;
 
