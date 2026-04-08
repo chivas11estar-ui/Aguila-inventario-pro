@@ -221,7 +221,13 @@
         <!-- TAB: INVENTARIO -->
         <div id="tab-inventory" class="tab-content active">
           <div class="card">
-            <h2>📦 Inventario por Marca</h2>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2>📦 Inventario por Marca</h2>
+              <button id="btn-visual-scan" class="success" style="width:auto; padding: 10px 15px; border-radius: 50px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons-round">photo_camera</span>
+                Auditoría Visual
+              </button>
+            </div>
             <div id="inventory-list" style="margin-top:20px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
