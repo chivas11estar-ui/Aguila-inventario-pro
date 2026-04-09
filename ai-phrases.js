@@ -1,6 +1,7 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: ai-phrases.js (HARDENED V2)
-// Frases cortas + contexto de clima + control de longitud
+// Águila Inventario Pro - Módulo: ai-phrases.js (HARDENED)
+// Generación de Frases Motivacionales con IA y Capa de Seguridad
+// OPTIMIZADO: frases cortas + clima + control de longitud
 // Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
@@ -18,9 +19,7 @@ const AIService = (function() {
      */
     function sanitize(text) {
         if (!text) return "";
-        return text.toString()
-            .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "")
-            .substring(0, 30);
+        return text.toString().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "").substring(0, 30);
     }
 
     async function generate(userName) {
@@ -41,7 +40,7 @@ const AIService = (function() {
                 dayOfWeek: days[now.getDay()],
                 weather: window.PROFILE_STATE?.weather || null,
                 city: window.PROFILE_STATE?.weather?.city || 'México',
-                style: "short" // 🔥 Forzar frases cortas en backend
+                style: "short" // 🔥 Indica al backend que la frase sea corta
             };
 
             const response = await fetch(PROXY_URL, {
@@ -61,8 +60,8 @@ const AIService = (function() {
             }
 
             const data = await response.json();
-
-            // 🛡️ Control final: limitar longitud (máx 12 palabras)
+            
+            // 🛡️ CONTROL FINAL: limitar longitud (máx 12 palabras)
             let phrase = data.phrase || "";
             phrase = phrase.split(" ").slice(0, 12).join(" ");
 
@@ -129,7 +128,7 @@ async function displayDailyAIPhrase() {
 }
 
 // ============================================================
-// FALLBACK INTELIGENTE CON CLIMA
+// FALLBACK CON CLIMA (MEJORADO)
 // ============================================================
 function getFallbackPhrase(userName) {
     const weatherDesc = (window.PROFILE_STATE?.weather?.description || "").toLowerCase();
@@ -154,9 +153,9 @@ function getFallbackPhrase(userName) {
 }
 
 // ============================================================
-// EXPORTAR FUNCIONES
+// EXPORTAR FUNCIONES SEGURAS
 // ============================================================
 window.getDailyAIPhrase = getDailyAIPhrase;
 window.displayDailyAIPhrase = displayDailyAIPhrase;
 
-console.log('🛡️ ai-phrases.js V2 listo: frases cortas + clima + control.');
+console.log('🛡️ ai-phrases.js optimizado: corto + clima + control.');
