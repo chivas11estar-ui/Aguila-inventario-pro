@@ -1,27 +1,31 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory-ui.js
 // Fase 2 - Módulo 2.1: Inventario Inteligente por Marca
-// RENDER HTML - Solo UI
+// RENDER HTML - Soporte para múltiples contenedores (Stock vs Agotados)
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 // ============================================================
 // RENDERIZAR INVENTARIO COMPLETO
 // ============================================================
-function renderInventoryUI(productos) {
-  const listElement = document.getElementById('inventory-list');
+function renderInventoryUI(productos, targetId = 'inventory-list') {
+  const listElement = document.getElementById(targetId);
   if (!listElement) {
-    console.warn('⚠️ Elemento inventory-list no encontrado');
+    console.warn(`⚠️ Elemento ${targetId} no encontrado`);
     return;
   }
 
-  console.log('🎨 Renderizando inventario:', productos.length, 'productos');
+  console.log(`🎨 Renderizando ${targetId}:`, productos.length, 'productos');
 
   // Validar que hay productos
   if (productos.length === 0) {
+    const emptyMsg = targetId === 'inventory-list' 
+      ? '✅ Sin productos con stock disponible' 
+      : '✨ No hay productos agotados';
+      
     listElement.innerHTML = `
       <p style="color: var(--muted); text-align: center; padding: 40px;">
-        ✅ Sin productos con stock disponible
+        ${emptyMsg}
       </p>
     `;
     return;
@@ -41,7 +45,7 @@ function renderInventoryUI(productos) {
   let html = '';
 
   marcasOrdenadas.forEach(marca => {
-    html += renderBrandSection(marca, productosPorMarca[marca]);
+    html += renderBrandSection(marca, productosPorMarca[marca], targetId);
   });
 
   listElement.innerHTML = html;
@@ -52,24 +56,24 @@ function renderInventoryUI(productos) {
   // 6. Aplicar estados de marcas (expandidas/contraídas)
   applyBrandStates();
 
-  console.log('✅ Inventario renderizado');
+  console.log(`✅ ${targetId} renderizado correctamente`);
 }
 
 // ============================================================
 // RENDERIZAR SECCIÓN DE MARCA
 // ============================================================
-function renderBrandSection(marca, productos) {
+function renderBrandSection(marca, productos, targetId) {
   const totales = window.calculateBrandTotals(productos);
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
   let html = `
-    <div data-brand-section="${marca}" style="margin-bottom: 24px;">
+    <div data-brand-section="${marca}" data-container="${targetId}" style="margin-bottom: 24px;">
       <!-- Header de marca -->
       <div 
         data-brand-header 
         data-brand-name="${marca}"
         style="
-          background: linear-gradient(135deg, var(--primary), #003a8a);
+          background: ${targetId === 'inventory-list' ? 'linear-gradient(135deg, var(--primary), #003a8a)' : 'linear-gradient(135deg, #4b5563, #1f2937)'};
           color: white;
           padding: 12px 16px;
           border-radius: 8px;
@@ -84,7 +88,7 @@ function renderBrandSection(marca, productos) {
         "
       >
         <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 16px;">🏷️ ${marca}</span>
+          <span style="font-size: 16px;">${targetId === 'inventory-list' ? '🏷️' : '🚫'} ${marca}</span>
           <span style="font-size: 12px; opacity: 0.9;">
             ${totales.totalProductos} productos • ${totales.totalCajas} cajas
           </span>
@@ -102,7 +106,7 @@ function renderBrandSection(marca, productos) {
           transition: all 0.3s ease;
         "
       >
-        ${productos.map(product => renderProductCard(product)).join('')}
+        ${productos.map(product => renderProductCard(product, targetId)).join('')}
       </div>
     </div>
   `;
@@ -113,7 +117,7 @@ function renderBrandSection(marca, productos) {
 // ============================================================
 // RENDERIZAR TARJETA DE PRODUCTO
 // ============================================================
-function renderProductCard(product) {
+function renderProductCard(product, targetId) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
   const isOutOfStock = (product.totalCajas || 0) <= 0;
   
@@ -160,14 +164,14 @@ function renderProductCard(product) {
         border-left: 4px solid ${isOutOfStock ? '#9ca3af' : 'var(--primary)'};
         margin-bottom: 10px;
         transition: all 0.3s ease;
-        opacity: ${isOutOfStock ? '0.7' : '1'};
+        opacity: ${isOutOfStock ? '0.85' : '1'};
       "
     >
       <!-- Header del producto -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px;">
         <div style="flex: 1;">
-          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? 'var(--text-muted)' : 'var(--primary)'}; font-size: 16px; font-weight: 700;">
-            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:var(--bg-muted); padding:2px 6px; border-radius:4px; margin-left:8px; color: var(--text-muted);">AGOTADO</span>' : ''}
+          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 16px; font-weight: 700;">
+            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-left:8px; color: #6b7280;">AGOTADO</span>' : ''}
           </h4>
           <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
             <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
@@ -192,16 +196,16 @@ function renderProductCard(product) {
 
       <!-- Bodegas -->
       ${tieneMuchasBodegas 
-        ? renderMultipleWarehouses(product) 
-        : renderSingleWarehouse(product)
+        ? renderMultipleWarehouses(product, salesAvg) 
+        : renderSingleWarehouse(product, salesAvg)
       }
 
-      <!-- Botón editar -->
-      <div style="margin-top: 12px;">
+      <!-- Botón acciones -->
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
         <button 
           onclick="window.editarProducto('${product.bodegas[0].id}')"
           style="
-            width: 100%;
+            flex: 1;
             padding: 10px;
             background: #2563eb;
             color: white;
@@ -212,11 +216,27 @@ function renderProductCard(product) {
             font-weight: 600;
             transition: all 0.2s ease;
           "
-          onmouseover="this.style.background='#1d4ed8'"
-          onmouseout="this.style.background='#2563eb'"
         >
-          ✏️ Editar Producto
+          ✏️ Editar
         </button>
+        ${isOutOfStock ? `
+          <button 
+            onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
+            style="
+              flex: 1;
+              padding: 10px;
+              background: #10b981;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 600;
+            "
+          >
+            ➕ Resurtir
+          </button>
+        ` : ''}
       </div>
     </div>
   `;
@@ -227,11 +247,11 @@ function renderProductCard(product) {
 // ============================================================
 function renderMultipleWarehouses(product, salesAvg = 0) {
   return `
-    <details class="bodega-details" style="margin-top: 12px;">
-      <summary style="cursor: pointer; font-weight: 600; color: #2563eb; padding: 5px;">
-        📍 Bodegas (${product.bodegas.length})
+    <details class="bodega-details" style="margin-top: 12px; background: #f8fafc; border-radius: 8px; padding: 4px;">
+      <summary style="cursor: pointer; font-weight: 600; color: #2563eb; padding: 8px; font-size: 13px;">
+        📍 Ver stock en ${product.bodegas.length} ubicaciones
       </summary>
-      <ul class="bodega-list" style="list-style: none; padding: 10px 0 0 0; margin: 0;">
+      <ul class="bodega-list" style="list-style: none; padding: 8px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.map(bodega => {
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
@@ -240,35 +260,22 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
 
           return `
             <li style="
-              padding: 8px;
-              margin: 5px 0;
-              background: #f8fafc;
+              padding: 10px;
+              background: white;
               border-left: 3px solid #2563eb;
-              border-radius: 4px;
+              border-radius: 6px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             ">
-              <strong>${bodega.ubicacion}:</strong> ${bodega.cajas} cajas
+              <div style="display: flex; justify-content: space-between;">
+                <strong>${bodega.ubicacion}</strong>
+                <span style="font-weight: 700; color: #2563eb;">${bodega.cajas} cajas</span>
+              </div>
               <div style="color:var(--primary); font-weight:600; font-size:11px; margin-top:2px;">📈 Venta prom: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <small style="color: #64748b; font-size: 0.85em;">
-                  Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
-                </small>
+                <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
+                  📅 Caducidad: ${bodega.fechaCaducidad} (${bodegaDays} días)
+                </div>
               ` : ''}
-              <br>
-              <button 
-                onclick="window.editarProducto('${bodega.id}')"
-                style="
-                  margin-top: 6px;
-                  padding: 4px 8px;
-                  background: #2563eb;
-                  color: white;
-                  border: none;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 11px;
-                "
-              >
-                ✏️ Editar
-              </button>
             </li>
           `;
         }).join('')}
@@ -284,11 +291,13 @@ function renderSingleWarehouse(product, salesAvg = 0) {
   const bodega = product.bodegas[0];
   
   return `
-    <div style="margin-top: 10px; font-size: 13px; color: #6b7280;">
-      <strong>🏢 Bodega:</strong> ${bodega.ubicacion}
+    <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #1f2937; border: 1px solid #e5e7eb;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span><strong>🏢 Bodega:</strong> ${bodega.ubicacion}</span>
+      </div>
       <div style="color:var(--primary); font-weight:600; font-size:12px; margin-top:4px;">📈 Venta prom: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <strong>📅 Caducidad:</strong> ${bodega.fechaCaducidad}
+        <div style="margin-top: 4px; color: #64748b;">📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong></div>
       ` : ''}
     </div>
   `;
@@ -302,6 +311,7 @@ function setupBrandClickEvents() {
   
   brandHeaders.forEach(header => {
     const brandName = header.getAttribute('data-brand-name');
+    const container = header.closest('[data-container]')?.getAttribute('data-container');
     
     if (!brandName) return;
 
@@ -311,59 +321,22 @@ function setupBrandClickEvents() {
 
     // Agregar nuevo listener
     newHeader.addEventListener('click', () => {
-      toggleBrandUI(brandName);
-    });
-
-    // Hover effect
-    newHeader.addEventListener('mouseenter', () => {
-      newHeader.style.transform = 'translateY(-1px)';
-      newHeader.style.boxShadow = '0 4px 12px rgba(0, 74, 173, 0.2)';
-    });
-
-    newHeader.addEventListener('mouseleave', () => {
-      newHeader.style.transform = '';
-      newHeader.style.boxShadow = '';
+      toggleBrandUI(brandName, container);
     });
   });
-
-  console.log('✅ Eventos de marca configurados');
 }
 
 // ============================================================
 // TOGGLE MARCA (UI)
 // ============================================================
-function toggleBrandUI(brandName) {
-  // Actualizar estado en lógica
+function toggleBrandUI(brandName, containerId) {
   const isExpanded = window.toggleBrandState(brandName);
 
-  // Actualizar UI
-  const section = document.querySelector(`[data-brand-section="${brandName}"]`);
-  if (!section) return;
-
-  const productsList = section.querySelector('[data-products-list]');
-  const arrow = section.querySelector('[data-brand-arrow]');
-
-  if (productsList) {
-    productsList.style.display = isExpanded ? 'block' : 'none';
-  }
-
-  if (arrow) {
-    arrow.textContent = isExpanded ? '▼' : '▶';
-  }
-
-  console.log(`🔄 UI actualizado: ${brandName} → ${isExpanded ? 'expandida' : 'contraída'}`);
-}
-
-// ============================================================
-// APLICAR ESTADOS DE MARCAS (AL CARGAR)
-// ============================================================
-function applyBrandStates() {
-  Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
-    const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
-    const section = document.querySelector(`[data-brand-section="${marca}"]`);
-    
-    if (!section) return;
-
+  // Actualizar todos los headers de esa marca en el contenedor específico
+  const selector = containerId ? `[data-container="${containerId}"] [data-brand-section="${brandName}"]` : `[data-brand-section="${brandName}"]`;
+  const sections = document.querySelectorAll(selector);
+  
+  sections.forEach(section => {
     const productsList = section.querySelector('[data-products-list]');
     const arrow = section.querySelector('[data-brand-arrow]');
 
@@ -375,8 +348,29 @@ function applyBrandStates() {
       arrow.textContent = isExpanded ? '▼' : '▶';
     }
   });
+}
 
-  console.log('✅ Estados de marcas aplicados');
+// ============================================================
+// APLICAR ESTADOS DE MARCAS (AL CARGAR)
+// ============================================================
+function applyBrandStates() {
+  Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
+    const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
+    const sections = document.querySelectorAll(`[data-brand-section="${marca}"]`);
+    
+    sections.forEach(section => {
+      const productsList = section.querySelector('[data-products-list]');
+      const arrow = section.querySelector('[data-brand-arrow]');
+
+      if (productsList) {
+        productsList.style.display = isExpanded ? 'block' : 'none';
+      }
+
+      if (arrow) {
+        arrow.textContent = isExpanded ? '▼' : '▶';
+      }
+    });
+  });
 }
 
 // ============================================================
@@ -386,8 +380,6 @@ function setupSearchBar() {
   console.log('🔍 [UI] Inyectando Buscador Híbrido Pro...');
   if (window.SearchController) {
     window.SearchController.renderGlobalSearch('tab-inventory');
-  } else {
-    console.error('❌ SearchController no disponible');
   }
 }
 
@@ -397,10 +389,9 @@ function setupSearchBar() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🎨 Inicializando módulo de inventario (UI)...');
 
-  // Configurar buscador híbrido después de un breve delay para asegurar el DOM
   setTimeout(() => {
     setupSearchBar();
-    setupVisualScan(); // Iniciar Ojo de Águila
+    setupVisualScan(); 
   }, 1000);
 });
 
@@ -409,24 +400,15 @@ function setupVisualScan() {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
-    console.log('📸 Iniciando Auditoría Visual...');
-    
     if (typeof openScanner === 'function') {
-      // 1. Abrir escáner
       openScanner({
         continuous: true,
-        onScan: async (code) => {
-          console.log("🔍 Código visto en auditoría:", code);
-        }
+        onScan: async (code) => { console.log("🔍 Código visto:", code); }
       });
 
-      // 2. Limpiar UI del escáner tradicional para el modo Visión
       const overlay = document.querySelector('.scanner-overlay');
-      if (overlay) {
-        overlay.style.display = 'none'; // Ocultar cuadro y texto de guía
-      }
+      if (overlay) overlay.style.display = 'none';
 
-      // 3. Inyectar botón de captura
       injectCaptureButton();
     }
   });
@@ -434,9 +416,7 @@ function setupVisualScan() {
 
 function injectCaptureButton() {
   const modal = document.getElementById('scanner-modal');
-  if (!modal) return;
-
-  if (document.getElementById('btn-capture-shelf')) return;
+  if (!modal || document.getElementById('btn-capture-shelf')) return;
 
   const btn = document.createElement('button');
   btn.id = 'btn-capture-shelf';
@@ -454,7 +434,7 @@ function injectCaptureButton() {
     if (!video) return;
 
     btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Analizando...';
+    btn.innerHTML = '🧠 Analizando...';
     btn.style.background = '#4b5563';
 
     const canvas = document.createElement('canvas');
@@ -466,7 +446,12 @@ function injectCaptureButton() {
     if (window.VisionAI) {
       const results = await window.VisionAI.analyzeShelf(dataUrl);
       if (results) {
-        mostrarResultadoAuditoria(results);
+        if (typeof showToast === 'function') showToast(`📊 Pepsico: ${results.pepsico_frentes} frentes`, "success");
+        alert(`🔎 RESULTADO DE AUDITORÍA:\n\n` +
+              `📦 Frentes PepsiCo: ${results.pepsico_frentes}\n` +
+              `🚫 Competencia: ${results.competencia_frentes}\n` +
+              `📈 Total en Anaquel: ${results.total_frentes}\n\n` +
+              `💬 IA dice: ${results.mensaje || 'Buen trabajo'}`);
       }
     }
 
@@ -477,32 +462,18 @@ function injectCaptureButton() {
 
   modal.appendChild(btn);
 
-  // Limpiar al cerrar
   const closeBtn = document.getElementById('close-scanner');
   if (closeBtn) {
     const originalClose = closeBtn.onclick;
     closeBtn.onclick = () => {
       btn.remove();
       const overlay = document.querySelector('.scanner-overlay');
-      if (overlay) overlay.style.display = 'flex'; // Restaurar overlay
+      if (overlay) overlay.style.display = 'flex';
       if (originalClose) originalClose();
       if (window.ScannerService) window.ScannerService.hardStop();
       modal.classList.add('hidden');
     };
   }
-}
-
-function mostrarResultadoAuditoria(res) {
-  if (typeof showToast === 'function') {
-    showToast(`📊 Pepsico: ${res.pepsico_frentes} frentes`, "success");
-  }
-  
-  // Opcional: Crear un modal de resultados más detallado
-  alert(`🔎 RESULTADO DE AUDITORÍA:\n\n` +
-        `📦 Frentes PepsiCo: ${res.pepsico_frentes}\n` +
-        `🚫 Competencia: ${res.competencia_frentes}\n` +
-        `📈 Total en Anaquel: ${res.total_frentes}\n\n` +
-        `💬 IA dice: ${res.mensaje || 'Buen trabajo'}`);
 }
 
 // ============================================================
@@ -511,4 +482,4 @@ function mostrarResultadoAuditoria(res) {
 window.renderInventoryUI = renderInventoryUI;
 window.setupSearchBar = setupSearchBar;
 
-console.log('✅ inventory-ui.js (Fase 2 - Render HTML) cargado correctamente');
+console.log('✅ inventory-ui.js (V3 - Multi-Container) cargado');
