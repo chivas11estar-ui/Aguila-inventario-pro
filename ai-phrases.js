@@ -78,26 +78,40 @@ const AIService = (function() {
 })();
 
 // ============================================================
-// OBTENER FRASE DEL DÍA (con caché y seguridad)
+// OBTENER FRASE DINÁMICA (Límite 10/día, refresco cada 2 horas)
 // ============================================================
 async function getDailyAIPhrase(userId, userName) {
     const today = new Date().toISOString().split('T')[0];
+    const phraseRef = firebase.database().ref(`usuarios/${userId}/frasesIA/${today}`);
 
     try {
-        const phraseRef = firebase.database().ref(`usuarios/${userId}/frasesIA/${today}`);
         const snapshot = await phraseRef.once('value');
+        const data = snapshot.val() || { count: 0, lastPhrase: "", lastUpdate: 0 };
 
-        if (snapshot.exists()) return snapshot.val();
+        const ahora = Date.now();
+        const dosHoras = 2 * 60 * 60 * 1000;
 
-        // Si no existe, intentar generar con Rate Limiting
-        const newPhrase = await AIService.generate(userName);
-        await phraseRef.set(newPhrase);
-        return newPhrase;
+        // ¿Necesitamos frase nueva? 
+        // 1. Menos de 10 frases hoy AND 2. Pasaron más de 2 horas (o es la primera)
+        if (data.count < 10 && (ahora - data.lastUpdate > dosHoras)) {
+            console.log("🧠 Generando nueva frase por bloque de tiempo...");
+            const newPhrase = await AIService.generate(userName);
+            
+            const newData = {
+                count: data.count + 1,
+                lastPhrase: newPhrase,
+                lastUpdate: ahora
+            };
+            
+            await phraseRef.set(newData);
+            return newPhrase;
+        }
+
+        // Si no, devolver la última guardada
+        return data.lastPhrase || getFallbackPhrase(userName);
 
     } catch (error) {
-        if (error.message === "RATE_LIMIT_EXCEEDED") {
-            console.log("🛡️ Usando fallback por límite de cuota");
-        }
+        console.error("🛡️ Fallo en lógica de frases:", error);
         return getFallbackPhrase(userName);
     }
 }

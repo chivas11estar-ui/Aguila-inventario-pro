@@ -80,22 +80,22 @@ exports.geminiProxyV3 = onRequest({
                     ]
                 }];
             } else {
-                // Modo Frase Motivacional (HIPER-PERSONALIZADA)
-                const { date, dayOfWeek, weather, city } = req.body;
+                // Modo Frase Motivacional (HIPER-PERSONALIZADA + HORA)
+                const { date, dayOfWeek, weather, city, time } = req.body;
                 const weatherContext = weather ? `el clima es ${weather.condition} con ${weather.temperature}°C` : 'clima desconocido';
                 
                 const prompt = `Actúa como una socia digital motivadora y apasionada para ${userName}, un promotor de ventas en México. 
-                Contexto de hoy:
+                Contexto actual:
                 - Fecha: ${date} (${dayOfWeek})
+                - Hora actual: ${time}
                 - Ubicación: ${city || 'México'}
                 - Clima: ${weatherContext}
                 
                 Instrucciones:
-                1. Saluda por su nombre de forma cariñosa pero profesional.
-                2. Menciona si hoy hay alguna festividad importante en México o el Santo del día (Santoral Mexicano).
-                3. Haz una breve referencia al clima actual.
-                4. Da una frase motivacional corta (máximo 25 palabras totales) relacionada con las ventas o el éxito.
-                5. Usa 2 emojis y tono mexicano (sin exagerar). No uses comillas.`;
+                1. Saluda por su nombre considerando la hora (mañana, tarde, noche).
+                2. Menciona algo del clima o el santoral si es relevante.
+                3. Da una frase motivacional de ventas muy corta.
+                4. Usa 2 emojis. Tono mexicano coqueto pero profesional. Máximo 25 palabras.`;
                 
                 contents = [{ role: "user", parts: [{ text: prompt }] }];
             }
