@@ -1,6 +1,6 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: ai-phrases.js (HARDENED)
-// Generación de Frases Motivacionales con IA y Capa de Seguridad
+// Águila Inventario Pro - Módulo: ai-phrases.js (HARDENED V2)
+// Frases cortas + contexto de clima + control de longitud
 // Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
@@ -8,12 +8,9 @@
 
 /**
  * CIERRE SEGURO (CLOSURE) PARA LLAVES DE IA
- * Protege la llave del scope global y evita que sea accesible vía consola.
  */
 const AIService = (function() {
-    // ELIMINADO: API_KEY expuesta y ofuscación (AHORA EN CLOUD FUNCTION)
     
-    // Configuración del Proxy (Cloud Function V2) - ACTUALIZADO A V3
     const PROXY_URL = 'https://us-central1-promosentry.cloudfunctions.net/geminiProxyV3';
 
     /**
@@ -21,7 +18,9 @@ const AIService = (function() {
      */
     function sanitize(text) {
         if (!text) return "";
-        return text.toString().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "").substring(0, 30);
+        return text.toString()
+            .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "")
+            .substring(0, 30);
     }
 
     async function generate(userName) {
@@ -33,18 +32,18 @@ const AIService = (function() {
 
             const idToken = await user.getIdToken();
 
-            // Recopilar contexto para la Súper Frase
             const now = new Date();
             const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
             const context = {
                 userName: safeName,
                 date: now.toLocaleDateString('es-MX'),
                 dayOfWeek: days[now.getDay()],
                 weather: window.PROFILE_STATE?.weather || null,
-                city: window.PROFILE_STATE?.weather?.city || 'México'
+                city: window.PROFILE_STATE?.weather?.city || 'México',
+                style: "short" // 🔥 Forzar frases cortas en backend
             };
 
-            // b) Llamar a la Cloud Function proxy V3
             const response = await fetch(PROXY_URL, {
                 method: 'POST',
                 headers: { 
@@ -62,13 +61,16 @@ const AIService = (function() {
             }
 
             const data = await response.json();
-            
-            // Retornar la frase recibida
-            return data.phrase;
+
+            // 🛡️ Control final: limitar longitud (máx 12 palabras)
+            let phrase = data.phrase || "";
+            phrase = phrase.split(" ").slice(0, 12).join(" ");
+
+            return phrase;
 
         } catch (error) {
             console.error("🛡️ Error IA (vía Proxy):", error.message);
-            throw error; // getDailyAIPhrase manejará el fallback
+            throw error;
         }
     }
   
@@ -78,40 +80,25 @@ const AIService = (function() {
 })();
 
 // ============================================================
-// OBTENER FRASE DINÁMICA (Límite 10/día, refresco cada 2 horas)
+// OBTENER FRASE DEL DÍA (con caché y seguridad)
 // ============================================================
 async function getDailyAIPhrase(userId, userName) {
     const today = new Date().toISOString().split('T')[0];
-    const phraseRef = firebase.database().ref(`usuarios/${userId}/frasesIA/${today}`);
 
     try {
+        const phraseRef = firebase.database().ref(`usuarios/${userId}/frasesIA/${today}`);
         const snapshot = await phraseRef.once('value');
-        const data = snapshot.val() || { count: 0, lastPhrase: "", lastUpdate: 0 };
 
-        const ahora = Date.now();
-        const dosHoras = 2 * 60 * 60 * 1000;
+        if (snapshot.exists()) return snapshot.val();
 
-        // ¿Necesitamos frase nueva? 
-        // 1. Menos de 10 frases hoy AND 2. Pasaron más de 2 horas (o es la primera)
-        if (data.count < 10 && (ahora - data.lastUpdate > dosHoras)) {
-            console.log("🧠 Generando nueva frase por bloque de tiempo...");
-            const newPhrase = await AIService.generate(userName);
-            
-            const newData = {
-                count: data.count + 1,
-                lastPhrase: newPhrase,
-                lastUpdate: ahora
-            };
-            
-            await phraseRef.set(newData);
-            return newPhrase;
-        }
-
-        // Si no, devolver la última guardada
-        return data.lastPhrase || getFallbackPhrase(userName);
+        const newPhrase = await AIService.generate(userName);
+        await phraseRef.set(newPhrase);
+        return newPhrase;
 
     } catch (error) {
-        console.error("🛡️ Fallo en lógica de frases:", error);
+        if (error.message === "RATE_LIMIT_EXCEEDED") {
+            console.log("🛡️ Usando fallback por límite de cuota");
+        }
         return getFallbackPhrase(userName);
     }
 }
@@ -141,17 +128,35 @@ async function displayDailyAIPhrase() {
     }
 }
 
+// ============================================================
+// FALLBACK INTELIGENTE CON CLIMA
+// ============================================================
 function getFallbackPhrase(userName) {
+    const weatherDesc = (window.PROFILE_STATE?.weather?.description || "").toLowerCase();
+
+    let climateHint = "";
+
+    if (weatherDesc.includes("lluvia")) {
+        climateHint = "aunque llueva";
+    } else if (weatherDesc.includes("nube") || weatherDesc.includes("nublado")) {
+        climateHint = "aunque el cielo esté gris";
+    } else if (weatherDesc.includes("sol") || weatherDesc.includes("despejado")) {
+        climateHint = "con este gran sol";
+    }
+
     const phrases = [
-        `¡${userName}, hoy es tu día para brillar! 🌟`,
-        `${userName}, cada venta cuenta. ¡Vamos con todo! 💪`,
-        `¡Hoy será un gran día, ${userName}! Dale con todo 🦅`
+        `¡${userName}, brilla ${climateHint}! 🌟`,
+        `${userName}, hoy vendes fuerte ${climateHint} 💪`,
+        `${userName}, avanza ${climateHint} 🦅`
     ];
+
     return phrases[Math.floor(Math.random() * phrases.length)];
 }
 
-// Exportar funciones seguras
+// ============================================================
+// EXPORTAR FUNCIONES
+// ============================================================
 window.getDailyAIPhrase = getDailyAIPhrase;
 window.displayDailyAIPhrase = displayDailyAIPhrase;
 
-console.log('🛡️ ai-phrases.js endurecido con Rate Limiting.');
+console.log('🛡️ ai-phrases.js V2 listo: frases cortas + clima + control.');
