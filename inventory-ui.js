@@ -132,7 +132,21 @@ function renderProductCard(product) {
   ` : '';
 
   // Metadata Pro (desde Firestore/RTDB sincronizado)
-  const salesAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
+  let salesAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
+  const lastSale = product.last_sale_date || (product.analytics ? product.analytics.last_sale_date : null);
+
+  // EFECTO DE DESGASTE (DECAY): Bajar el promedio visualmente si pasan los días sin ventas
+  if (salesAvg > 0 && lastSale) {
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceLast = Math.max(0, (Date.now() - new Date(lastSale).getTime()) / msPerDay);
+      
+      if (daysSinceLast > 1) {
+          const alpha = 2 / (30 + 1);
+          // Aplicar decay: promedio * (1 - alpha)^días
+          salesAvg = salesAvg * Math.pow(1 - alpha, daysSinceLast);
+          salesAvg = Math.round(salesAvg * 100) / 100;
+      }
+  }
 
   return `
     <div 

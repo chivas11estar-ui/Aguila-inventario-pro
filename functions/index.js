@@ -1,6 +1,6 @@
 /**
  * Águila Inventario Pro - Cloud Functions
- * Versión: 2.2.0 (Multimodal Vision Support)
+ * Versión: 2.3.0 (Real Daily Sales Average)
  * Lógica para Proxy Seguro, analíticas y Auditoría Visual.
  */
 
@@ -14,31 +14,54 @@ const db = admin.firestore();
 const rtdb = admin.database();
 
 /**
- * 📈 FUNCION: syncSalesAnalytics
+ * 📈 FUNCION: syncSalesAnalytics (PROMEDIO REAL DIARIO)
  */
 exports.syncSalesAnalytics = onValueCreated("/movimientos/{storeId}/{movId}", async (event) => {
     const movData = event.data.val();
     if (movData.tipo !== "salida") return;
+
     const { productoCodigo, piezasMovidas } = movData;
     const storeId = event.params.storeId;
     const barcode = productoCodigo.trim();
     const productFsRef = db.doc(`stores/${storeId}/products/${barcode}`);
     const productRtdbRef = rtdb.ref(`productos/${storeId}/${barcode}`);
+
     try {
         await db.runTransaction(async (transaction) => {
             const doc = await transaction.get(productFsRef);
             let oldAvg = 0;
-            if (doc.exists) oldAvg = doc.data().analytics?.daily_sales_avg || 0;
-            const alpha = 2 / (30 + 1);
-            const newAvg = (parseInt(piezasMovidas) * alpha) + (oldAvg * (1 - alpha));
+            let lastSaleDate = Date.now();
+
+            if (doc.exists) {
+                const data = doc.data().analytics || {};
+                oldAvg = data.daily_sales_avg || 0;
+                lastSaleDate = data.last_sale_date?.toMillis() || Date.now() - (24 * 60 * 60 * 1000);
+            }
+
+            // Calcular días transcurridos (mínimo 1 para evitar división por cero)
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const daysElapsed = Math.max(1, (Date.now() - lastSaleDate) / msPerDay);
+            
+            // La tasa real de hoy es piezas / días que pasaron
+            const dailyRate = parseInt(piezasMovidas) / daysElapsed;
+
+            // Fórmula EMA (Suavizado exponencial)
+            const alpha = 2 / (30 + 1); // Ventana de 30 días
+            const newAvg = (dailyRate * alpha) + (oldAvg * (1 - alpha));
             const roundedAvg = Math.round(newAvg * 100) / 100;
+
             transaction.set(productFsRef, {
                 analytics: {
                     daily_sales_avg: roundedAvg,
-                    last_sale_date: admin.firestore.FieldValue.serverTimestamp()
+                    last_sale_date: admin.firestore.FieldValue.serverTimestamp(),
+                    last_pieces_moved: piezasMovidas
                 }
             }, { merge: true });
-            await productRtdbRef.update({ daily_sales_avg: roundedAvg });
+
+            await productRtdbRef.update({ 
+                daily_sales_avg: roundedAvg,
+                last_sale_date: Date.now() 
+            });
         });
     } catch (e) { console.error("❌ Error Analytics:", e); }
 });
@@ -65,13 +88,12 @@ exports.geminiProxyV3 = onRequest({
             const API_KEY = process.env.GEMINI_KEY;
             if (!API_KEY) throw new Error("LLAVE_NO_CONFIGURADA");
 
-            const { userName, image, mode } = req.body;
+            const { userName, image, mode, date, dayOfWeek, weather, city, time } = req.body;
             const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
             
             let contents = [];
             
             if (mode === 'shelf_analysis' && image) {
-                // Modo Auditoría Visual
                 contents = [{
                     role: "user",
                     parts: [
@@ -80,10 +102,7 @@ exports.geminiProxyV3 = onRequest({
                     ]
                 }];
             } else {
-                // Modo Frase Motivacional (HIPER-PERSONALIZADA + HORA)
-                const { date, dayOfWeek, weather, city, time } = req.body;
                 const weatherContext = weather ? `el clima es ${weather.condition} con ${weather.temperature}°C` : 'clima desconocido';
-                
                 const prompt = `Actúa como una socia digital motivadora y apasionada para ${userName}, un promotor de ventas en México. 
                 Contexto actual:
                 - Fecha: ${date} (${dayOfWeek})
