@@ -1,225 +1,214 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: refill-safe.js
-// REFACTORIZACIÓN COMPLETA del módulo de relleno
-// Copyright © 2025 José A. G. Betancourt
-//
-// CAMBIOS CRÍTICOS vs refill-enhanced.js:
-// 1. NUNCA permite stock negativo (validación por transacción)
-// 2. Relleno inteligente cuando stock === 0 (entrada_directa_anaquel)
-// 3. Usa la nueva ruta productos/{det}/{codigo} de inventory-core.js
-// 4. Muestra analytics cuando el producto está en 0
+// Águila Inventario Pro - refill-safe.js (V3 - Multi-Lote)
+// Soporta múltiples bodegas y fechas por producto
+// Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
 'use strict';
 
 let refillCurrentProduct = null;
-let refillMode = 'exit'; // 'exit' (salida) o 'entry' (entrada)
+let refillCurrentLoteId = null;
+let refillMode = 'exit';
 let refillTodayCajas = 0;
 let refillTodayPiezas = 0;
 
-console.log('🔄 [REFILL-SAFE] Módulo de relleno seguro iniciando...');
+console.log('🔄 [REFILL V3] Módulo multi-lote iniciando...');
 
 // ============================================================
-// GESTIÓN DE MODO (ENTRADA/SALIDA)
+// MODO ENTRADA / SALIDA
 // ============================================================
 function setRefillModeSafe(mode) {
   refillMode = mode;
-  console.log(`📂 [REFILL-SAFE] Modo: ${mode}`);
 
   const btnEntry = document.getElementById('btn-refill-mode-entry');
-  const btnExit = document.getElementById('btn-refill-mode-exit');
-  const expiryGroup = document.getElementById('refill-expiry-date-group');
+  const btnExit  = document.getElementById('btn-refill-mode-exit');
+  const expiryGroup   = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
-  const boxesLabel = document.getElementById('refill-boxes-label');
-  const submitBtn = document.querySelector('#refill-form button[type="submit"]');
+  const boxesLabel    = document.getElementById('refill-boxes-label');
+  const submitBtn     = document.querySelector('#refill-form button[type="submit"]');
 
   if (mode === 'entry') {
     btnEntry?.classList.replace('secondary', 'primary');
     if (btnEntry) btnEntry.style.opacity = 1;
     btnExit?.classList.replace('primary', 'secondary');
     if (btnExit) btnExit.style.opacity = 0.6;
-
     if (expiryGroup) expiryGroup.style.display = 'block';
-    if (warehouseInput) {
-      warehouseInput.readOnly = false;
-      warehouseInput.style.background = '#fff';
-    }
-    if (boxesLabel) boxesLabel.textContent = 'Cantidad de Cajas a AÑADIR';
-    if (submitBtn) {
-      submitBtn.textContent = '➕ Registrar Entrada de Stock';
-      submitBtn.classList.replace('primary', 'success');
-    }
+    if (warehouseInput) { warehouseInput.readOnly = false; warehouseInput.style.background = '#fff'; }
+    if (boxesLabel) boxesLabel.textContent = 'Cajas a AÑADIR';
+    if (submitBtn) { submitBtn.textContent = '➕ Registrar Entrada'; submitBtn.classList.replace('primary','success'); }
   } else {
     btnExit?.classList.replace('secondary', 'primary');
     if (btnExit) btnExit.style.opacity = 1;
     btnEntry?.classList.replace('primary', 'secondary');
     if (btnEntry) btnEntry.style.opacity = 0.6;
-
     if (expiryGroup) expiryGroup.style.display = 'none';
-    if (warehouseInput) {
-      warehouseInput.readOnly = true;
-      warehouseInput.style.background = '#f8fafc';
-    }
-    if (boxesLabel) boxesLabel.textContent = 'Cantidad de Cajas a MOVER';
-    if (submitBtn) {
-      submitBtn.textContent = '✅ Registrar Movimiento';
-      submitBtn.classList.replace('success', 'primary');
-    }
-  }
-
-  // Re-evaluar producto si hay uno cargado
-  if (refillCurrentProduct && refillCurrentProduct._exists) {
-    renderRefillProductInfo();
+    if (warehouseInput) { warehouseInput.readOnly = true; warehouseInput.style.background = '#f8fafc'; }
+    if (boxesLabel) boxesLabel.textContent = 'Cajas a MOVER';
+    if (submitBtn) { submitBtn.textContent = '✅ Registrar Movimiento'; submitBtn.classList.replace('success','primary'); }
   }
 }
 
 // ============================================================
-// BUSCAR PRODUCTO PARA RELLENO
+// BUSCAR PRODUCTO
 // ============================================================
 async function searchProductForRefillSafe(barcode) {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🔍 [REFILL-SAFE][${refillMode.toUpperCase()}] Buscando: ${barcode}`);
-
   if (!barcode || barcode.trim().length < 8) {
     showToast('⚠️ Código inválido (mínimo 8 dígitos)', 'warning');
     return;
   }
 
   try {
-    // Usa la función de inventory-core.js — lectura O(1) por key
     const producto = await buscarProductoPorCodigo(barcode);
 
-    if (!producto) {
-      showToast('❌ Error al buscar el producto', 'error');
-      return;
-    }
-
-    if (producto._exists) {
-      console.log('✅ [REFILL-SAFE] Producto encontrado');
-      refillCurrentProduct = producto;
-
-      // Rellenar campos del formulario con texto plano
-      document.getElementById('refill-nombre').value = producto.nombre || '';
-      document.getElementById('refill-marca').value = producto.marca || '';
-      document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
+    if (!producto || !producto._exists) {
+      refillCurrentProduct = { codigoBarras: barcode.trim(), _exists: false };
 
       if (refillMode === 'exit') {
-        document.getElementById('refill-warehouse').value = producto.ubicacion || '';
-      }
-
-      renderRefillProductInfo();
-      document.getElementById('refill-boxes').focus();
-
-    } else {
-      // Producto no existe en el sistema
-      refillCurrentProduct = producto; // tiene _exists: false y _ref
-
-      if (refillMode === 'exit') {
-        showToast('❌ Producto no existe. Cambia a modo "Entrada" para agregarlo.', 'error');
+        showToast('❌ Producto no existe. Usa modo Entrada para agregarlo.', 'error');
         limpiarFormularioRefillSafe();
         return;
       }
 
-      // Modo entrada: permitir creación
       habilitarCamposCreacion();
-      showToast('🆕 Producto nuevo. Completa los datos para la ENTRADA.', 'info');
-      document.getElementById('refill-nombre').focus();
+      showToast('🆕 Producto nuevo. Completa los datos.', 'info');
+      document.getElementById('refill-nombre')?.focus();
+      return;
     }
 
+    refillCurrentProduct = producto;
+
+    // Llenar campos base
+    document.getElementById('refill-nombre').value  = producto.nombre || '';
+    document.getElementById('refill-marca').value   = producto.marca  || '';
+    document.getElementById('refill-piezas').value  = producto.piezasPorCaja || '';
+
+    // Renderizar selector de lotes si hay más de uno
+    renderLoteSelector(producto.lotes || []);
+
   } catch (error) {
-    console.error('❌ [REFILL-SAFE] Error buscando producto:', error);
+    console.error('❌ [REFILL V3]', error);
     showToast('❌ Error al buscar: ' + error.message, 'error');
     limpiarFormularioRefillSafe();
   }
 }
 
 // ============================================================
-// RENDERIZAR INFO DEL PRODUCTO (CON ANALYTICS SI ESTÁ EN 0)
+// SELECTOR DE LOTES — muestra bodegas disponibles
 // ============================================================
-async function renderRefillProductInfo() {
+function renderLoteSelector(lotes) {
   const infoDiv = document.getElementById('refill-product-info');
-  if (!infoDiv || !refillCurrentProduct) return;
+  if (!infoDiv) return;
 
   infoDiv.style.display = 'block';
-  const stock = parseInt(refillCurrentProduct.stockTotal) || 0;
-  const productName = refillCurrentProduct.nombre || 'Producto';
 
-  if (stock === 0) {
-    // ── PRODUCTO EN 0: mostrar analytics enriquecidos ──
-    const analytics = await consultarProductoEnCero(refillCurrentProduct.codigoBarras);
-
-    const promedio = analytics ? analytics.promedioDiarioVenta : 0;
-    const ultimoRelleno = analytics ? analytics.ultimoRelleno : 'Sin registro';
-    const fechaFormateada = ultimoRelleno !== 'Sin registro'
-      ? new Date(ultimoRelleno).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
-      : 'Sin registro';
-
-    if (refillMode === 'exit') {
-      // En modo salida y stock 0 → mostrar alerta pero NO bloquear
-      // porque el relleno inteligente convertirá esto en entrada_directa_anaquel
-      infoDiv.innerHTML = `
-        <div style="padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;margin:16px 0;">
-          <div style="font-size:16px;font-weight:700;color:#92400e;margin-bottom:8px;">
-            ⚠️ ${productName} — STOCK EN 0
-          </div>
-          <div style="color:#b45309;font-size:13px;margin-bottom:4px;">
-            📊 Venta promedio: <strong>${promedio} piezas/día</strong>
-          </div>
-          <div style="color:#b45309;font-size:13px;margin-bottom:8px;">
-            📅 Último relleno: <strong>${fechaFormateada}</strong>
-          </div>
-          <div style="background:#fff7ed;padding:10px;border-radius:6px;font-size:12px;color:#9a3412;border:1px dashed #fb923c;">
-            💡 Si ingresas cajas, se registrarán como <strong>entrada directa a anaquel</strong>
-            (mercancía que llegó y fue directo al estante).
-          </div>
-        </div>
-      `;
-    } else {
-      // Modo entrada y stock 0
-      infoDiv.innerHTML = `
-        <div style="padding:16px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:8px;margin:16px 0;">
-          <div style="font-size:16px;font-weight:700;color:#1e40af;margin-bottom:8px;">
-            📥 ${productName} — STOCK EN 0
-          </div>
-          <div style="color:#1d4ed8;font-size:13px;margin-bottom:4px;">
-            📊 Venta promedio: <strong>${promedio} piezas/día</strong>
-          </div>
-          <div style="color:#1d4ed8;font-size:13px;">
-            📅 Último relleno: <strong>${fechaFormateada}</strong>
-          </div>
-        </div>
-      `;
-    }
-  } else {
-    // ── PRODUCTO CON STOCK NORMAL ──
-    const stockColor = '#10b981';
-    const stockBg = '#d1fae5';
-    const icon = refillMode === 'entry' ? '📥' : '✅';
-    const msg = refillMode === 'entry'
-      ? `Añadirás stock a las ${stock} cajas existentes.`
-      : `${stock} cajas disponibles para mover`;
-
+  if (lotes.length === 0) {
     infoDiv.innerHTML = `
-      <div style="padding:16px;background:${stockBg};border-left:4px solid ${stockColor};border-radius:8px;margin:16px 0;">
-        <div style="font-size:16px;font-weight:700;color:#065f46;margin-bottom:8px;">
-          ${icon} ${productName}
-        </div>
-        <div style="color:#047857;font-size:14px;">
-          📦 <strong>${msg}</strong>
-        </div>
-      </div>
-    `;
+      <div style="padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;">
+        <strong style="color:#92400e;">⚠️ Sin stock en ninguna bodega</strong>
+      </div>`;
+    refillCurrentLoteId = null;
+    return;
   }
 
-  showToast(`${productName} — ${stock} cajas en sistema`, stock > 0 ? 'success' : 'warning');
+  // Si solo hay un lote, seleccionarlo automáticamente
+  if (lotes.length === 1) {
+    refillCurrentLoteId = lotes[0].loteId;
+    const l = lotes[0];
+    const stockColor = l.stock === 0 ? '#f59e0b' : '#10b981';
+    const stockBg    = l.stock === 0 ? '#fef3c7' : '#d1fae5';
+
+    infoDiv.innerHTML = `
+      <div style="padding:14px;background:${stockBg};border-left:4px solid ${stockColor};border-radius:8px;">
+        <div style="font-weight:700;color:${l.stock===0?'#92400e':'#065f46'};margin-bottom:6px;">
+          📍 ${l.bodega}
+        </div>
+        <div style="font-size:13px;color:${l.stock===0?'#b45309':'#047857'};">
+          📦 Stock: <strong>${l.stock} cajas</strong>
+          ${l.fechaCaducidad ? ` · 📅 Vence: ${l.fechaCaducidad}` : ''}
+        </div>
+      </div>`;
+
+    if (refillMode === 'exit') {
+      document.getElementById('refill-warehouse').value = l.bodega;
+    }
+    return;
+  }
+
+  // Múltiples lotes — mostrar selector
+  const totalStock = lotes.reduce((s, l) => s + l.stock, 0);
+
+  infoDiv.innerHTML = `
+    <div style="padding:14px;background:#e0f2fe;border-left:4px solid #0284c7;border-radius:8px;margin-bottom:8px;">
+      <div style="font-weight:700;color:#0c4a6e;margin-bottom:8px;">
+        📦 Stock total: ${totalStock} cajas en ${lotes.length} ubicaciones
+      </div>
+      <div style="font-size:13px;color:#075985;margin-bottom:10px;">
+        ${refillMode === 'exit' ? 'Selecciona de cuál bodega mover:' : 'Selecciona bodega destino:'}
+      </div>
+      <div id="lote-selector" style="display:flex;flex-direction:column;gap:8px;">
+        ${lotes.map(l => `
+          <div 
+            onclick="seleccionarLote('${l.loteId}', '${l.bodega}', '${l.fechaCaducidad}', ${l.stock})"
+            style="
+              padding:10px 12px;
+              border-radius:8px;
+              border:2px solid ${l.stock === 0 ? '#fca5a5' : '#86efac'};
+              background:${l.stock === 0 ? '#fef2f2' : '#f0fdf4'};
+              cursor:pointer;
+              transition:all 0.2s;
+            "
+            id="lote-btn-${l.loteId}"
+          >
+            <div style="font-weight:600;color:#1f2937;font-size:14px;">
+              📍 ${l.bodega}
+            </div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">
+              ${l.stock} cajas
+              ${l.fechaCaducidad ? ` · Vence: ${l.fechaCaducidad}` : ''}
+              ${l.stock === 0 ? ' · <span style="color:#ef4444;font-weight:600;">AGOTADO</span>' : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+
+  // Seleccionar automáticamente el primer lote con stock
+  const primerConStock = lotes.find(l => l.stock > 0);
+  if (primerConStock) {
+    seleccionarLote(
+      primerConStock.loteId,
+      primerConStock.bodega,
+      primerConStock.fechaCaducidad,
+      primerConStock.stock
+    );
+  }
 }
 
 // ============================================================
-// MANEJADOR PRINCIPAL DE SUBMIT
+// SELECCIONAR LOTE ACTIVO
+// ============================================================
+window.seleccionarLote = function(loteId, bodega, fecha, stock) {
+  refillCurrentLoteId = loteId;
+
+  // Highlight visual
+  document.querySelectorAll('[id^="lote-btn-"]').forEach(el => {
+    el.style.border = `2px solid ${el.id === 'lote-btn-' + loteId ? '#2563eb' : '#e5e7eb'}`;
+    el.style.background = el.id === 'lote-btn-' + loteId ? '#eff6ff' : '';
+  });
+
+  if (refillMode === 'exit') {
+    const warehouseInput = document.getElementById('refill-warehouse');
+    if (warehouseInput) warehouseInput.value = bodega;
+  }
+
+  showToast(`📍 Lote seleccionado: ${bodega} (${stock} cajas)`, 'info');
+};
+
+// ============================================================
+// SUBMIT
 // ============================================================
 async function handleRefillSubmitSafe(event) {
   event.preventDefault();
-
   if (refillMode === 'entry') {
     await handleRefillEntrySafe();
   } else {
@@ -228,165 +217,117 @@ async function handleRefillSubmitSafe(event) {
 }
 
 // ============================================================
-// LÓGICA DE SALIDA — CON RELLENO INTELIGENTE CUANDO STOCK = 0
+// SALIDA DE STOCK
 // ============================================================
 async function handleRefillExitSafe() {
-  console.log('📤 [REFILL-SAFE] Procesando salida...');
-
-  if (!refillCurrentProduct || !refillCurrentProduct._exists) {
-    showToast('⚠️ Primero escanea un producto existente', 'warning');
+  if (!refillCurrentProduct?._exists) {
+    showToast('⚠️ Escanea un producto existente', 'warning');
     return;
   }
 
-  // DEFINICIÓN CRÍTICA PARA ALERTAS Y LOGS
-  const productName = (typeof window.decryptData === 'function') 
-    ? (window.decryptData(refillCurrentProduct.nombre) || refillCurrentProduct.nombre)
-    : (refillCurrentProduct.nombre || 'Producto');
-
   const cajasAMover = parseInt(document.getElementById('refill-boxes').value);
   if (isNaN(cajasAMover) || cajasAMover <= 0) {
-    showToast('❌ Ingresa una cantidad de cajas válida', 'error');
+    showToast('❌ Ingresa una cantidad válida', 'error');
+    return;
+  }
+
+  if (!refillCurrentLoteId) {
+    showToast('⚠️ Selecciona una bodega primero', 'warning');
     return;
   }
 
   const det = await getCachedDeterminante();
-  if (!det) {
-    showToast('❌ Error: Sin información de tienda', 'error');
-    return;
-  }
+  if (!det) { showToast('❌ Error: Sin información de tienda', 'error'); return; }
 
-  const stockActual = parseInt(refillCurrentProduct.stockTotal) || 0;
-  const timestamp = Date.now();
-  const usuario = firebase.auth().currentUser?.email || 'sistema';
-  const codigo = refillCurrentProduct.codigoBarras;
+  const loteActual = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
+  const stockActual = loteActual?.stock || 0;
+  const productName = refillCurrentProduct.nombre;
+  const timestamp   = Date.now();
+  const usuario     = firebase.auth().currentUser?.email || 'sistema';
+  const codigo      = refillCurrentProduct.codigoBarras;
 
-  // ────────────────────────────────────────────────────────
-  // CASO ESPECIAL: RELLENO INTELIGENTE (stock === 0)
-  // ────────────────────────────────────────────────────────
+  // Relleno inteligente si stock === 0
   if (stockActual === 0) {
-    console.log('💡 [REFILL-SAFE] Stock en 0 → Activando RELLENO INTELIGENTE');
-
     try {
-      const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar');
-
-      const ref = getProductRef(det, codigo);
-      await ref.update({
-        ultimoRelleno: timestamp,
-        fechaActualizacion: timestamp,
-        actualizadoPor: usuario
-      });
-
-      const movimiento = {
-        tipo: 'entrada_directa_anaquel',
-        productoNombre: refillCurrentProduct.nombre,
-        productoCodigo: codigo,
-        marca: refillCurrentProduct.marca || 'Otra',
-        cajasMovidas: cajasAMover,
-        piezasMovidas: cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
-        stockAnterior: 0,
-        stockNuevo: nuevoStock,
-        timestamp: timestamp,
-        realizadoPor: usuario,
-        motivo: 'Mercancía recibida directo a anaquel'
-      };
+      const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar', refillCurrentLoteId);
 
       await firebase.database()
-        .ref(`movimientos/${det}`)
-        .push(movimiento);
+        .ref(`movimientos/${det}`).push({
+          tipo: 'entrada_directa_anaquel',
+          productoNombre: refillCurrentProduct.nombre,
+          productoCodigo: codigo,
+          marca: refillCurrentProduct.marca || 'Otra',
+          cajasMovidas: cajasAMover,
+          piezasMovidas: cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
+          bodega: loteActual?.bodega || 'General',
+          loteId: refillCurrentLoteId,
+          stockAnterior: 0,
+          stockNuevo: nuevoStock,
+          timestamp,
+          realizadoPor: usuario
+        });
 
-      // Actualizar contadores del día
       refillTodayCajas += cajasAMover;
       refillTodayPiezas += cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0);
       updateRefillTodayUI();
 
-      showToast(
-        `💡 ${cajasAMover} cajas de ${productName} → directo a anaquel (stock: 0 → ${nuevoStock})`,
-        'success'
-      );
-
+      showToast(`💡 ${cajasAMover} cajas de ${productName} → anaquel directo`, 'success');
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       limpiarFormularioRefillSafe();
-      document.getElementById('refill-barcode').focus();
-
+      document.getElementById('refill-barcode')?.focus();
     } catch (error) {
-      console.error('❌ [REFILL-SAFE] Error en relleno inteligente:', error);
       showToast('❌ Error: ' + error.message, 'error');
     }
-
-    return; // Salir, no continuar con la lógica normal de salida
+    return;
   }
 
-  // ────────────────────────────────────────────────────────
-  // CASO NORMAL: SALIDA DE STOCK (con validación anti-negativos)
-  // ────────────────────────────────────────────────────────
-  // Primero validar ANTES de intentar la transacción
   if (cajasAMover > stockActual) {
-    showToast(
-      `❌ Stock insuficiente. Tienes ${stockActual} cajas, intentas mover ${cajasAMover}.`,
-      'error'
-    );
+    showToast(`❌ Solo hay ${stockActual} cajas en ${loteActual?.bodega}`, 'error');
     return;
   }
 
   try {
-    // Transacción atómica: si alguien más modificó el stock entre
-    // la lectura y ahora, la transacción lo detecta y reintenta.
-    const nuevoStock = await modificarStock(codigo, cajasAMover, 'restar');
-
-    // Actualizar metadatos del producto
-    const ref = getProductRef(det, codigo);
-    await ref.update({
-      ultimoRelleno: timestamp,
-      fechaActualizacion: timestamp,
-      actualizadoPor: usuario
-    });
-
-    // Registrar movimiento
+    const nuevoStock = await modificarStock(codigo, cajasAMover, 'restar', refillCurrentLoteId);
     const piezasMovidas = cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0);
-    const movimiento = {
-      tipo: 'salida',
-      productoNombre: refillCurrentProduct.nombre,
-      productoCodigo: codigo,
-      marca: refillCurrentProduct.marca || 'Otra',
-      cajasMovidas: cajasAMover,
-      piezasMovidas: piezasMovidas,
-      stockAnterior: stockActual,
-      stockNuevo: nuevoStock,
-      fecha: timestamp,
-      realizadoPor: usuario,
-      motivo: 'Relleno de exhibidor'
-    };
 
     await firebase.database()
-      .ref(`movimientos/${det}`)
-      .push(movimiento);
+      .ref(`movimientos/${det}`).push({
+        tipo: 'salida',
+        productoNombre: refillCurrentProduct.nombre,
+        productoCodigo: codigo,
+        marca: refillCurrentProduct.marca || 'Otra',
+        cajasMovidas,
+        piezasMovidas,
+        bodega: loteActual?.bodega || 'General',
+        loteId: refillCurrentLoteId,
+        stockAnterior: stockActual,
+        stockNuevo: nuevoStock,
+        fecha: timestamp,
+        realizadoPor: usuario
+      });
 
-    // Actualizar contadores del día
-    refillTodayCajas += cajasAMover;
+    refillTodayCajas  += cajasAMover;
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
     showToast(`📤 ${cajasAMover} cajas de ${productName} movidas (quedan ${nuevoStock})`, 'success');
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
-    document.getElementById('refill-barcode').focus();
+    document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
     if (error.message === 'STOCK_INSUFICIENTE') {
-      showToast('❌ Otro usuario modificó el stock. Reescanea el producto.', 'error');
+      showToast('❌ Stock cambió. Reescanea el producto.', 'error');
     } else {
-      console.error('❌ [REFILL-SAFE] Error en salida:', error);
       showToast('❌ Error: ' + error.message, 'error');
     }
   }
 }
 
 // ============================================================
-// LÓGICA DE ENTRADA DE STOCK
+// ENTRADA DE STOCK
 // ============================================================
 async function handleRefillEntrySafe() {
-  console.log('📥 [REFILL-SAFE] Procesando entrada...');
-
   if (!refillCurrentProduct) {
     showToast('⚠️ Primero escanea un producto', 'warning');
     return;
@@ -394,121 +335,113 @@ async function handleRefillEntrySafe() {
 
   const cajasAAgregar = parseInt(document.getElementById('refill-boxes').value);
   if (isNaN(cajasAAgregar) || cajasAAgregar <= 0) {
-    showToast('❌ Ingresa una cantidad de cajas válida', 'error');
+    showToast('❌ Ingresa una cantidad válida', 'error');
     return;
   }
 
   const det = await getCachedDeterminante();
-  if (!det) {
-    showToast('❌ Error: Sin información de tienda', 'error');
-    return;
-  }
+  if (!det) { showToast('❌ Sin información de tienda', 'error'); return; }
 
-  const timestamp = getLocalISOString();
-  const usuario = firebase.auth().currentUser?.email || 'sistema';
+  const timestamp = Date.now();
+  const usuario   = firebase.auth().currentUser?.email || 'sistema';
 
   try {
     if (!refillCurrentProduct._exists) {
-      // ── PRODUCTO NUEVO: crear con guardarProducto ──
+      // Producto nuevo
       const formData = {
         codigoBarras: refillCurrentProduct.codigoBarras,
-        nombre: document.getElementById('refill-nombre').value.trim(),
-        marca: document.getElementById('refill-marca').value,
+        nombre:       document.getElementById('refill-nombre').value.trim(),
+        marca:        document.getElementById('refill-marca').value,
         piezasPorCaja: parseInt(document.getElementById('refill-piezas').value),
-        ubicacion: document.getElementById('refill-warehouse').value.trim(),
+        ubicacion:    document.getElementById('refill-warehouse').value.trim(),
         fechaCaducidad: document.getElementById('refill-expiry-date').value,
-        cajas: cajasAAgregar
+        cajas:        cajasAAgregar
       };
 
-      if (!formData.nombre || !formData.marca || !formData.piezasPorCaja || !formData.ubicacion) {
-        showToast('❌ Completa todos los campos para crear el producto', 'error');
+      if (!formData.nombre || !formData.ubicacion) {
+        showToast('❌ Completa nombre y bodega', 'error');
         return;
       }
 
       await guardarProducto(formData);
 
-      // Registrar movimiento
-      const movimiento = {
+      await firebase.database().ref(`movimientos/${det}`).push({
         tipo: 'entrada',
         productoNombre: formData.nombre,
         productoCodigo: formData.codigoBarras,
         marca: formData.marca,
         cajasMovidas: cajasAAgregar,
         piezasMovidas: cajasAAgregar * formData.piezasPorCaja,
+        bodega: formData.ubicacion,
         fecha: timestamp,
-        realizadoPor: usuario,
-        motivo: 'Recepción de mercancía (producto nuevo)'
-      };
-      await firebase.database().ref(`movimientos/${det}`).push(movimiento);
-
-      showToast(`🆕 ${formData.nombre} creado con ${cajasAAgregar} cajas`, 'success');
-
-    } else {
-      // ── PRODUCTO EXISTENTE: sumar stock ──
-      const codigo = refillCurrentProduct.codigoBarras;
-      const stockAnterior = parseInt(refillCurrentProduct.stockTotal) || 0;
-
-      const nuevoStock = await modificarStock(codigo, cajasAAgregar, 'sumar');
-
-      // Actualizar metadatos
-      const ref = getProductRef(det, codigo);
-      await ref.update({
-        ultimoRelleno: timestamp,
-        fechaActualizacion: timestamp,
-        actualizadoPor: usuario,
-        // Actualizar fecha de caducidad si se proporcionó una nueva
-        ...(document.getElementById('refill-expiry-date').value
-          ? { fechaCaducidad: document.getElementById('refill-expiry-date').value }
-          : {})
+        realizadoPor: usuario
       });
 
-      // Registrar movimiento
-      const movimiento = {
+      showToast(`🆕 ${formData.nombre} creado con ${cajasAAgregar} cajas en ${formData.ubicacion}`, 'success');
+
+    } else {
+      // Producto existente — nueva entrada en bodega específica
+      const bodega       = document.getElementById('refill-warehouse').value.trim()
+                        || refillCurrentProduct.lotes?.[0]?.bodega || 'General';
+      const fechaCad     = document.getElementById('refill-expiry-date').value
+                        || refillCurrentProduct.lotes?.[0]?.fechaCaducidad || '';
+      const loteId       = generarLoteId(bodega, fechaCad);
+      const safeCode     = sanitizeBarcode(refillCurrentProduct.codigoBarras);
+
+      // Buscar stock actual de ese lote
+      const loteExistente = refillCurrentProduct.lotes?.find(l => l.loteId === loteId);
+      const stockAnterior = loteExistente?.stock || 0;
+
+      const updates = {};
+      updates[`productos/${det}/${safeCode}/lotes/${loteId}/bodega`]        = bodega;
+      updates[`productos/${det}/${safeCode}/lotes/${loteId}/fechaCaducidad`] = fechaCad;
+      updates[`productos/${det}/${safeCode}/lotes/${loteId}/stock`]          = stockAnterior + cajasAAgregar;
+      updates[`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`]    = timestamp;
+      updates[`productos/${det}/${safeCode}/fechaActualizacion`]             = timestamp;
+      updates[`productos/${det}/${safeCode}/actualizadoPor`]                 = usuario;
+
+      await firebase.database().ref().update(updates);
+
+      await firebase.database().ref(`movimientos/${det}`).push({
         tipo: 'entrada',
         productoNombre: refillCurrentProduct.nombre,
-        productoCodigo: codigo,
+        productoCodigo: refillCurrentProduct.codigoBarras,
         marca: refillCurrentProduct.marca || 'Otra',
         cajasMovidas: cajasAAgregar,
         piezasMovidas: cajasAAgregar * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
-        stockAnterior: stockAnterior,
-        stockNuevo: nuevoStock,
+        bodega,
+        loteId,
+        stockAnterior,
+        stockNuevo: stockAnterior + cajasAAgregar,
         fecha: timestamp,
-        realizadoPor: usuario,
-        motivo: 'Recepción de mercancía'
-      };
-      await firebase.database().ref(`movimientos/${det}`).push(movimiento);
+        realizadoPor: usuario
+      });
 
-      showToast(`📥 ${cajasAAgregar} cajas de ${refillCurrentProduct.nombre} añadidas (total: ${nuevoStock})`, 'success');
+      showToast(`📥 ${cajasAAgregar} cajas añadidas en ${bodega}`, 'success');
     }
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
-    document.getElementById('refill-barcode').focus();
+    document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
-    console.error('❌ [REFILL-SAFE] Error en entrada:', error);
+    console.error('❌ [REFILL V3]', error);
     showToast('❌ Error: ' + error.message, 'error');
   }
 }
 
 // ============================================================
-// HABILITAR CAMPOS PARA CREACIÓN DE PRODUCTO NUEVO
+// HABILITAR CAMPOS PARA PRODUCTO NUEVO
 // ============================================================
 function habilitarCamposCreacion() {
   ['refill-nombre', 'refill-piezas'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.readOnly = false;
-      el.style.background = '#fff';
-    }
+    if (el) { el.readOnly = false; el.style.background = '#fff'; }
   });
   const marca = document.getElementById('refill-marca');
   if (marca) marca.disabled = false;
   const warehouse = document.getElementById('refill-warehouse');
-  if (warehouse) {
-    warehouse.readOnly = false;
-    warehouse.style.background = '#fff';
-  }
+  if (warehouse) { warehouse.readOnly = false; warehouse.style.background = '#fff'; }
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   if (expiryGroup) expiryGroup.style.display = 'block';
 }
@@ -517,25 +450,18 @@ function habilitarCamposCreacion() {
 // LIMPIAR FORMULARIO
 // ============================================================
 function limpiarFormularioRefillSafe() {
-  console.log('🧹 [REFILL-SAFE] Limpiando formulario');
   document.getElementById('refill-form')?.reset();
 
   ['refill-nombre', 'refill-piezas'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.readOnly = true;
-      el.style.background = '#f8fafc';
-    }
+    if (el) { el.readOnly = true; el.style.background = '#f8fafc'; }
   });
 
   const marca = document.getElementById('refill-marca');
   if (marca) marca.disabled = true;
 
   const warehouse = document.getElementById('refill-warehouse');
-  if (warehouse) {
-    warehouse.readOnly = true;
-    warehouse.style.background = '#f8fafc';
-  }
+  if (warehouse) { warehouse.readOnly = true; warehouse.style.background = '#f8fafc'; }
 
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   if (expiryGroup) expiryGroup.style.display = 'none';
@@ -544,20 +470,20 @@ function limpiarFormularioRefillSafe() {
   if (infoDiv) infoDiv.style.display = 'none';
 
   refillCurrentProduct = null;
+  refillCurrentLoteId  = null;
   setRefillModeSafe('exit');
 }
 
 // ============================================================
-// ACTUALIZAR CONTADORES UI
+// UI CONTADOR DIARIO
 // ============================================================
 function updateRefillTodayUI() {
-  const counterElement = document.getElementById('total-movements');
-  if (counterElement) {
-    counterElement.innerHTML = `
+  const el = document.getElementById('total-movements');
+  if (el) {
+    el.innerHTML = `
       <div style="font-size:24px;font-weight:700;color:#10b981;">${refillTodayCajas}</div>
       <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
-      <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${refillTodayPiezas} piezas</div>
-    `;
+      <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${refillTodayPiezas} piezas</div>`;
   }
 }
 
@@ -571,47 +497,39 @@ async function loadTodayMovementsSafe() {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  const movRef = firebase.database()
+  firebase.database()
     .ref('movimientos/' + det)
     .orderByChild('fecha')
-    .startAt(getLocalDayStart(hoy));
-
-  movRef.on('value', (snapshot) => {
-    if (snapshot.exists()) {
-      const movimientos = [];
-      snapshot.forEach(child => { movimientos.push(child.val()); });
-
-      // Contar salidas + entradas directas a anaquel
-      const relevantes = movimientos.filter(m =>
-        m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel'
-      );
-      refillTodayCajas = relevantes.reduce((sum, m) => sum + (m.cajasMovidas || 0), 0);
-      refillTodayPiezas = relevantes.reduce((sum, m) => sum + (m.piezasMovidas || 0), 0);
-    } else {
-      refillTodayCajas = 0;
-      refillTodayPiezas = 0;
-    }
-    updateRefillTodayUI();
-  });
+    .startAt(hoy.getTime())
+    .on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        const movs = [];
+        snapshot.forEach(c => movs.push(c.val()));
+        const relevantes = movs.filter(m =>
+          m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel'
+        );
+        refillTodayCajas  = relevantes.reduce((s, m) => s + (m.cajasMovidas || 0), 0);
+        refillTodayPiezas = relevantes.reduce((s, m) => s + (m.piezasMovidas || 0), 0);
+      } else {
+        refillTodayCajas  = 0;
+        refillTodayPiezas = 0;
+      }
+      updateRefillTodayUI();
+    });
 }
 
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 [REFILL-SAFE] Inicializando módulo de relleno seguro...');
-
-  // Listeners de modo
   document.getElementById('btn-refill-mode-exit')
     ?.addEventListener('click', () => setRefillModeSafe('exit'));
   document.getElementById('btn-refill-mode-entry')
     ?.addEventListener('click', () => setRefillModeSafe('entry'));
 
-  // Submit del formulario
   document.getElementById('refill-form')
     ?.addEventListener('submit', handleRefillSubmitSafe);
 
-  // Enter en barcode
   document.getElementById('refill-barcode')
     ?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
@@ -620,24 +538,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-  // Cargar datos al autenticarse
   firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-      loadTodayMovementsSafe();
-    }
+    if (user) loadTodayMovementsSafe();
   });
 
-  // Estado inicial
   setRefillModeSafe('exit');
-  console.log('✅ [REFILL-SAFE] Módulo listo.');
+  console.log('✅ [REFILL V3] Módulo multi-lote listo.');
 });
 
 // ============================================================
-// EXPONER FUNCIONES
+// EXPONER
 // ============================================================
 window.searchProductForRefillSafe = searchProductForRefillSafe;
-window.handleRefillSubmitSafe = handleRefillSubmitSafe;
-window.setRefillModeSafe = setRefillModeSafe;
+window.handleRefillSubmitSafe     = handleRefillSubmitSafe;
+window.setRefillModeSafe          = setRefillModeSafe;
 window.limpiarFormularioRefillSafe = limpiarFormularioRefillSafe;
 
-console.log('✅ refill-safe.js (Relleno seguro + inteligente) cargado');
+console.log('✅ refill-safe.js V3 (Multi-Lote) cargado');
