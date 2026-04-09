@@ -225,7 +225,7 @@ function renderProductCard(product) {
 // ============================================================
 // RENDERIZAR MÚLTIPLES BODEGAS (COLAPSABLE)
 // ============================================================
-function renderMultipleWarehouses(product) {
+function renderMultipleWarehouses(product, salesAvg = 0) {
   return `
     <details class="bodega-details" style="margin-top: 12px;">
       <summary style="cursor: pointer; font-weight: 600; color: #2563eb; padding: 5px;">
@@ -247,8 +247,8 @@ function renderMultipleWarehouses(product) {
               border-radius: 4px;
             ">
               <strong>${bodega.ubicacion}:</strong> ${bodega.cajas} cajas
+              <div style="color:var(--primary); font-weight:600; font-size:11px; margin-top:2px;">📈 Venta prom: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <br>
                 <small style="color: #64748b; font-size: 0.85em;">
                   Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
                 </small>
@@ -280,14 +280,15 @@ function renderMultipleWarehouses(product) {
 // ============================================================
 // RENDERIZAR BODEGA ÚNICA
 // ============================================================
-function renderSingleWarehouse(product) {
+function renderSingleWarehouse(product, salesAvg = 0) {
   const bodega = product.bodegas[0];
   
   return `
     <div style="margin-top: 10px; font-size: 13px; color: #6b7280;">
       <strong>🏢 Bodega:</strong> ${bodega.ubicacion}
+      <div style="color:var(--primary); font-weight:600; font-size:12px; margin-top:4px;">📈 Venta prom: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <br><strong>📅 Caducidad:</strong> ${bodega.fechaCaducidad}
+        <strong>📅 Caducidad:</strong> ${bodega.fechaCaducidad}
       ` : ''}
     </div>
   `;

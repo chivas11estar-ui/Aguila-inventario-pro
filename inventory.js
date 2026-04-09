@@ -260,14 +260,15 @@ function applyFiltersAndRender() {
     window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
   }
 
-  // V2.1: Mostrar todos los productos filtrados (incluyendo stock 0) 
-  // para permitir ver metadata y analítica pro.
-  const productsToShow = [...window.INVENTORY_STATE.productosFiltrados];
+  // V2.1: Separar productos con stock de los agotados
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => p.stockTotal > 0);
+  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => p.stockTotal <= 0);
 
-  console.log('📊 Total productos a mostrar:', productsToShow.length);
+  console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
 
   if (typeof window.renderInventoryUI === 'function') {
-    window.renderInventoryUI(productsToShow);
+    window.renderInventoryUI(productsWithStock, 'inventory-list');
+    window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
   } else {
     console.warn('⚠️ renderInventoryUI no está disponible');
   }
