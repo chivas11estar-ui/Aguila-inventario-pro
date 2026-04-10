@@ -261,13 +261,15 @@ function applyFiltersAndRender() {
   }
 
   // V2.1: Separar productos con stock de los agotados
-  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => p.stockTotal > 0);
-  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => p.stockTotal <= 0);
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) > 0);
+  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) <= 0);
 
   console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
 
   if (typeof window.renderInventoryUI === 'function') {
+    // Renderizar en el contenedor de Stock
     window.renderInventoryUI(productsWithStock, 'inventory-list');
+    // Renderizar en el contenedor de Agotados
     window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
   } else {
     console.warn('⚠️ renderInventoryUI no está disponible');

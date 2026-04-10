@@ -1,7 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory-ui.js
 // Fase 2 - Módulo 2.1: Inventario Inteligente por Marca
-// RENDER HTML - Soporte para múltiples contenedores (Stock vs Agotados)
+// RENDER HTML - Versión Pro Multi-Tab (Stock y Agotados)
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
@@ -76,7 +76,7 @@ function renderBrandSection(marca, productos, targetId) {
           background: ${targetId === 'inventory-list' ? 'linear-gradient(135deg, var(--primary), #003a8a)' : 'linear-gradient(135deg, #4b5563, #1f2937)'};
           color: white;
           padding: 12px 16px;
-          border-radius: 8px;
+          border-radius: 12px;
           margin-bottom: 12px;
           font-weight: 700;
           font-size: 14px;
@@ -85,12 +85,13 @@ function renderBrandSection(marca, productos, targetId) {
           justify-content: space-between;
           align-items: center;
           transition: all 0.3s ease;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         "
       >
         <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 16px;">${targetId === 'inventory-list' ? '🏷️' : '🚫'} ${marca}</span>
-          <span style="font-size: 12px; opacity: 0.9;">
-            ${totales.totalProductos} productos • ${totales.totalCajas} cajas
+          <span style="font-size: 18px;">${targetId === 'inventory-list' ? '🏷️' : '🚫'} ${marca}</span>
+          <span style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 20px;">
+            ${totales.totalProductos} ítems • ${totales.totalCajas} cajas
           </span>
         </div>
         <span data-brand-arrow style="font-size: 12px; transition: transform 0.3s;">
@@ -139,14 +140,13 @@ function renderProductCard(product, targetId) {
   let salesAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
   const lastSale = product.last_sale_date || (product.analytics ? product.analytics.last_sale_date : null);
 
-  // EFECTO DE DESGASTE (DECAY): Bajar el promedio visualmente si pasan los días sin ventas
+  // EFECTO DE DESGASTE (DECAY)
   if (salesAvg > 0 && lastSale) {
       const msPerDay = 24 * 60 * 60 * 1000;
       const daysSinceLast = Math.max(0, (Date.now() - new Date(lastSale).getTime()) / msPerDay);
       
       if (daysSinceLast > 1) {
           const alpha = 2 / (30 + 1);
-          // Aplicar decay: promedio * (1 - alpha)^días
           salesAvg = salesAvg * Math.pow(1 - alpha, daysSinceLast);
           salesAvg = Math.round(salesAvg * 100) / 100;
       }
@@ -161,97 +161,138 @@ function renderProductCard(product, targetId) {
       style="
         background: ${isOutOfStock ? 'var(--bg-muted, #f3f4f6)' : 'var(--card-bg, #ffffff)'};
         color: var(--text-main, #1f2937);
-        border-left: 4px solid ${isOutOfStock ? '#9ca3af' : 'var(--primary)'};
-        margin-bottom: 10px;
+        border-left: 6px solid ${isOutOfStock ? '#9ca3af' : 'var(--primary)'};
+        margin-bottom: 15px;
         transition: all 0.3s ease;
-        opacity: ${isOutOfStock ? '0.85' : '1'};
+        opacity: ${isOutOfStock ? '0.9' : '1'};
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 12px;
+        overflow: hidden;
       "
     >
-      <!-- Header del producto -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px;">
         <div style="flex: 1;">
-          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 16px; font-weight: 700;">
-            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-left:8px; color: #6b7280;">AGOTADO</span>' : ''}
+          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">
+            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 8px; border-radius:4px; margin-left:8px; color: #6b7280; vertical-align:middle;">AGOTADO</span>' : ''}
           </h4>
-          <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
-            <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
-            <div>🏷️ Marca: <strong>${brandName}</strong></div>
+          <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">
+            <div>📍 Código: <strong style="color:var(--text-main);">${product.codigoBarras || 'N/A'}</strong></div>
             <div>📦 ${product.piezasPorCaja} piezas/caja</div>
-            <div style="color:var(--primary); font-weight:600;">📈 Venta prom: ${salesAvg} pzas/día</div>
+            <div style="color:var(--primary); font-weight:700; margin-top:4px; display:flex; align-items:center; gap:4px;">
+              <span class="material-icons-round" style="font-size:16px;">trending_up</span>
+              Venta prom: ${salesAvg} pzas/día
+            </div>
             ${expiryTag}
           </div>
         </div>
 
-        <!-- Total de cajas -->
-        <div style="text-align: right; min-width: 100px;">
-          <div style="font-size: 32px; font-weight: 700; color: ${isOutOfStock ? '#ef4444' : 'var(--success)'};">
+        <div style="text-align: right; min-width: 90px; background: ${isOutOfStock ? '#f9fafb' : '#f0f7ff'}; padding: 10px; border-radius: 10px; border: 1px solid ${isOutOfStock ? '#e5e7eb' : '#dbeafe'};">
+          <div style="font-size: 32px; font-weight: 800; color: ${isOutOfStock ? '#ef4444' : 'var(--success)'}; line-height: 1;">
             ${product.totalCajas}
           </div>
-          <div style="font-size: 12px; color: var(--muted);">cajas totales</div>
-          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">
-            ${product.totalPiezas} piezas
+          <div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-top: 4px;">cajas</div>
+          <div style="font-size: 12px; color: var(--text-main); font-weight: 700; margin-top: 4px;">
+            ${product.totalPiezas} <span style="font-weight:400; font-size:10px; color:var(--muted);">pzas</span>
           </div>
         </div>
       </div>
 
-      <!-- Bodegas -->
-      ${tieneMuchasBodegas 
-        ? renderMultipleWarehouses(product, salesAvg) 
-        : renderSingleWarehouse(product, salesAvg)
-      }
+      <div style="padding: 0 16px 16px 16px;">
+        <!-- Detalle Bodegas -->
+        ${tieneMuchasBodegas 
+          ? renderMultipleWarehouses(product, salesAvg) 
+          : renderSingleWarehouse(product, salesAvg)
+        }
 
-      <!-- Botón acciones -->
-      <div style="margin-top: 12px; display: flex; gap: 8px;">
-        <button 
-          onclick="window.editarProducto('${product.bodegas[0].id}')"
-          style="
-            flex: 1;
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-          "
-        >
-          ✏️ Editar
-        </button>
-        ${isOutOfStock ? `
+        <!-- Botones de Acción -->
+        <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
-            onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
+            onclick="window.editarProducto('${product.bodegas[0].id}')"
             style="
               flex: 1;
-              padding: 10px;
-              background: #10b981;
-              color: white;
-              border: none;
-              border-radius: 6px;
+              padding: 12px;
+              background: #f3f4f6;
+              color: #374151;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
               cursor: pointer;
               font-size: 13px;
-              font-weight: 600;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+              transition: all 0.2s;
             "
           >
-            ➕ Resurtir
+            <span class="material-icons-round" style="font-size:18px;">edit</span>
+            Editar
           </button>
-        ` : ''}
+          
+          ${isOutOfStock ? `
+            <button 
+              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
+              style="
+                flex: 1.5;
+                padding: 12px;
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+              "
+            >
+              <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span>
+              Resurtir
+            </button>
+          ` : `
+            <button 
+              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('exit'); }, 100);"
+              style="
+                flex: 1.5;
+                padding: 12px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                box-shadow: 0 4px 10px rgba(0, 74, 173, 0.2);
+              "
+            >
+              <span class="material-icons-round" style="font-size:18px;">sync_alt</span>
+              Mover
+            </button>
+          `}
+        </div>
       </div>
     </div>
   `;
 }
 
 // ============================================================
-// RENDERIZAR MÚLTIPLES BODEGAS (COLAPSABLE)
+// RENDERIZAR MÚLTIPLES BODEGAS
 // ============================================================
 function renderMultipleWarehouses(product, salesAvg = 0) {
   return `
-    <details class="bodega-details" style="margin-top: 12px; background: #f8fafc; border-radius: 8px; padding: 4px;">
-      <summary style="cursor: pointer; font-weight: 600; color: #2563eb; padding: 8px; font-size: 13px;">
-        📍 Ver stock en ${product.bodegas.length} ubicaciones
+    <details class="bodega-details" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+      <summary style="cursor: pointer; font-weight: 700; color: #2563eb; padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+        <span class="material-icons-round" style="font-size:18px;">place</span>
+        Ubicado en ${product.bodegas.length} bodegas
       </summary>
-      <ul class="bodega-list" style="list-style: none; padding: 8px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+      <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.map(bodega => {
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
@@ -259,21 +300,15 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
             : null;
 
           return `
-            <li style="
-              padding: 10px;
-              background: white;
-              border-left: 3px solid #2563eb;
-              border-radius: 6px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            ">
-              <div style="display: flex; justify-content: space-between;">
-                <strong>${bodega.ubicacion}</strong>
-                <span style="font-weight: 700; color: #2563eb;">${bodega.cajas} cajas</span>
+            <li style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
+                <span style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
               </div>
-              <div style="color:var(--primary); font-weight:600; font-size:11px; margin-top:2px;">📈 Venta prom: ${salesAvg} pzas/día</div>
+              <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
-                  📅 Caducidad: ${bodega.fechaCaducidad} (${bodegaDays} días)
+                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
+                  📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
                 </div>
               ` : ''}
             </li>
@@ -289,129 +324,128 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
 // ============================================================
 function renderSingleWarehouse(product, salesAvg = 0) {
   const bodega = product.bodegas[0];
+  const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
+  const bodegaDays = bodegaExpiry 
+    ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
   
   return `
-    <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #1f2937; border: 1px solid #e5e7eb;">
+    <div style="padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span><strong>🏢 Bodega:</strong> ${bodega.ubicacion}</span>
+        <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
+          <span class="material-icons-round" style="font-size:16px;">business</span>
+          <strong>Bodega:</strong> ${bodega.ubicacion}
+        </span>
       </div>
-      <div style="color:var(--primary); font-weight:600; font-size:12px; margin-top:4px;">📈 Venta prom: ${salesAvg} pzas/día</div>
+      <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <div style="margin-top: 4px; color: #64748b;">📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong></div>
+        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
+          📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong> (${bodegaDays || '?'} días)
+        </div>
       ` : ''}
     </div>
   `;
 }
 
 // ============================================================
-// CONFIGURAR EVENTOS DE CLICK EN MARCAS
+// EDITAR PRODUCTO (GLOBAL WINDOW)
+// ============================================================
+window.editarProducto = async function(productId) {
+  console.log('✏️ Editando producto:', productId);
+
+  const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
+
+  if (!product) {
+    if (typeof showToast === 'function') showToast('❌ Producto no encontrado', 'error');
+    return;
+  }
+
+  if (typeof window.switchTab === 'function') window.switchTab('add');
+
+  setTimeout(() => {
+    document.getElementById('add-barcode').value = product.codigoBarras || '';
+    document.getElementById('add-product-name').value = product.nombre || '';
+    document.getElementById('add-brand').value = product.marca || '';
+    document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
+    document.getElementById('add-warehouse').value = product.ubicacion || '';
+    document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
+    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
+
+    const formTitle = document.querySelector('#tab-add h2');
+    if (formTitle) formTitle.textContent = '✏️ Editar Producto';
+
+    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = '💾 Actualizar Producto';
+      submitBtn.style.background = '#f59e0b';
+    }
+
+    window.EDITING_PRODUCT_ID = productId;
+    if (typeof showToast === 'function') showToast('✏️ Editando: ' + product.nombre, 'info');
+  }, 100);
+};
+
+// ============================================================
+// HELPERS UI
 // ============================================================
 function setupBrandClickEvents() {
-  const brandHeaders = document.querySelectorAll('[data-brand-header]');
-  
-  brandHeaders.forEach(header => {
+  document.querySelectorAll('[data-brand-header]').forEach(header => {
     const brandName = header.getAttribute('data-brand-name');
     const container = header.closest('[data-container]')?.getAttribute('data-container');
-    
     if (!brandName) return;
 
-    // Remover listeners anteriores (prevenir duplicados)
     const newHeader = header.cloneNode(true);
     header.parentNode.replaceChild(newHeader, header);
 
-    // Agregar nuevo listener
     newHeader.addEventListener('click', () => {
       toggleBrandUI(brandName, container);
     });
   });
 }
 
-// ============================================================
-// TOGGLE MARCA (UI)
-// ============================================================
 function toggleBrandUI(brandName, containerId) {
   const isExpanded = window.toggleBrandState(brandName);
-
-  // Actualizar todos los headers de esa marca en el contenedor específico
   const selector = containerId ? `[data-container="${containerId}"] [data-brand-section="${brandName}"]` : `[data-brand-section="${brandName}"]`;
-  const sections = document.querySelectorAll(selector);
   
-  sections.forEach(section => {
+  document.querySelectorAll(selector).forEach(section => {
     const productsList = section.querySelector('[data-products-list]');
     const arrow = section.querySelector('[data-brand-arrow]');
-
-    if (productsList) {
-      productsList.style.display = isExpanded ? 'block' : 'none';
-    }
-
-    if (arrow) {
-      arrow.textContent = isExpanded ? '▼' : '▶';
-    }
+    if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';
+    if (arrow) arrow.textContent = isExpanded ? '▼' : '▶';
   });
 }
 
-// ============================================================
-// APLICAR ESTADOS DE MARCAS (AL CARGAR)
-// ============================================================
 function applyBrandStates() {
   Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
     const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
-    const sections = document.querySelectorAll(`[data-brand-section="${marca}"]`);
-    
-    sections.forEach(section => {
+    document.querySelectorAll(`[data-brand-section="${marca}"]`).forEach(section => {
       const productsList = section.querySelector('[data-products-list]');
       const arrow = section.querySelector('[data-brand-arrow]');
-
-      if (productsList) {
-        productsList.style.display = isExpanded ? 'block' : 'none';
-      }
-
-      if (arrow) {
-        arrow.textContent = isExpanded ? '▼' : '▶';
-      }
+      if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';
+      if (arrow) arrow.textContent = isExpanded ? '▼' : '▶';
     });
   });
 }
 
-// ============================================================
-// CONFIGURAR BUSCADOR (V4 - HYBRID PRO)
-// ============================================================
 function setupSearchBar() {
-  console.log('🔍 [UI] Inyectando Buscador Híbrido Pro...');
-  if (window.SearchController) {
-    window.SearchController.renderGlobalSearch('tab-inventory');
-  }
+  if (window.SearchController) window.SearchController.renderGlobalSearch('tab-inventory');
 }
-
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🎨 Inicializando módulo de inventario (UI)...');
-
-  setTimeout(() => {
-    setupSearchBar();
-    setupVisualScan(); 
-  }, 1000);
-});
 
 function setupVisualScan() {
   const btn = document.getElementById('btn-visual-scan');
   if (!btn) return;
 
-  btn.addEventListener('click', async () => {
+  btn.onclick = async () => {
     if (typeof openScanner === 'function') {
       openScanner({
         continuous: true,
         onScan: async (code) => { console.log("🔍 Código visto:", code); }
       });
-
       const overlay = document.querySelector('.scanner-overlay');
       if (overlay) overlay.style.display = 'none';
-
       injectCaptureButton();
     }
-  });
+  };
 }
 
 function injectCaptureButton() {
@@ -432,14 +466,10 @@ function injectCaptureButton() {
   btn.onclick = async () => {
     const video = document.getElementById('scanner-video');
     if (!video) return;
-
     btn.disabled = true;
     btn.innerHTML = '🧠 Analizando...';
-    btn.style.background = '#4b5563';
-
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg');
 
@@ -447,21 +477,14 @@ function injectCaptureButton() {
       const results = await window.VisionAI.analyzeShelf(dataUrl);
       if (results) {
         if (typeof showToast === 'function') showToast(`📊 Pepsico: ${results.pepsico_frentes} frentes`, "success");
-        alert(`🔎 RESULTADO DE AUDITORÍA:\n\n` +
-              `📦 Frentes PepsiCo: ${results.pepsico_frentes}\n` +
-              `🚫 Competencia: ${results.competencia_frentes}\n` +
-              `📈 Total en Anaquel: ${results.total_frentes}\n\n` +
-              `💬 IA dice: ${results.mensaje || 'Buen trabajo'}`);
+        alert(`🔎 RESULTADO DE AUDITORÍA:\n\n📦 Frentes PepsiCo: ${results.pepsico_frentes}\n🚫 Competencia: ${results.competencia_frentes}\n📈 Total en Anaquel: ${results.total_frentes}\n\n💬 IA dice: ${results.mensaje || 'Buen trabajo'}`);
       }
     }
-
     btn.disabled = false;
     btn.innerHTML = '<span class="material-icons-round" style="font-size:28px;">analytics</span><br>Analizar Anaquel';
-    btn.style.background = '#10b981';
   };
 
   modal.appendChild(btn);
-
   const closeBtn = document.getElementById('close-scanner');
   if (closeBtn) {
     const originalClose = closeBtn.onclick;
@@ -477,9 +500,19 @@ function injectCaptureButton() {
 }
 
 // ============================================================
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    setupSearchBar();
+    setupVisualScan(); 
+  }, 1000);
+});
+
+// ============================================================
 // EXPONER FUNCIONES PÚBLICAS
 // ============================================================
 window.renderInventoryUI = renderInventoryUI;
 window.setupSearchBar = setupSearchBar;
 
-console.log('✅ inventory-ui.js (V3 - Multi-Container) cargado');
+console.log('✅ inventory-ui.js V3 (Pro Multi-Container) cargado');
