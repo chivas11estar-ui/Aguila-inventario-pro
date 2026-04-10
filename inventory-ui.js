@@ -401,30 +401,19 @@ window.editarProducto = async function(productId) {
 // ============================================================
 // HELPERS UI
 // ============================================================
+let brandClickEventsSetup = false; // Bandera para evitar múltiples listeners
+
 function setupBrandClickEvents() {
-  // Usar delegación de eventos - buscar el header en cualquier elemento clickeado
-  document.addEventListener('click', (e) => {
-    // Buscar el header en el target o en sus padres
-    let header = e.target;
+  if (brandClickEventsSetup) return; // Si ya se configuró, no configurar de nuevo
 
-    // Subir hasta 5 niveles para encontrar el data-brand-header
-    for (let i = 0; i < 5; i++) {
-      if (!header) break;
-      if (header.getAttribute && header.getAttribute('data-brand-header') !== null) {
-        break;
-      }
-      header = header.parentElement;
-    }
-
-    if (!header || !header.getAttribute('data-brand-header')) return;
+  // Usar delegación de eventos en el document
+  document.addEventListener('click', function handleBrandClick(e) {
+    // Buscar el elemento más cercano con data-brand-header
+    const header = e.target.closest('[data-brand-header]');
+    if (!header) return;
 
     const brandName = header.getAttribute('data-brand-name');
-
-    // Buscar el contenedor más cercano
-    let container = header;
-    while (container && !container.getAttribute('data-container')) {
-      container = container.parentElement;
-    }
+    const container = header.closest('[data-container]');
     const containerId = container ? container.getAttribute('data-container') : null;
 
     if (brandName) {
@@ -432,6 +421,9 @@ function setupBrandClickEvents() {
       toggleBrandUI(brandName, containerId);
     }
   });
+
+  brandClickEventsSetup = true;
+  console.log('✅ Brand click events configurados');
 }
 
 function toggleBrandUI(brandName, containerId) {
