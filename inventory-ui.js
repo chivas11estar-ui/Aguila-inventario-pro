@@ -428,13 +428,32 @@ function setupBrandClickEvents() {
 
 function toggleBrandUI(brandName, containerId) {
   const isExpanded = window.toggleBrandState(brandName);
-  const selector = containerId ? `[data-container="${containerId}"] [data-brand-section="${brandName}"]` : `[data-brand-section="${brandName}"]`;
-  
-  document.querySelectorAll(selector).forEach(section => {
+
+  // Buscar TODOS los elementos con data-brand-section que coincidan con la marca
+  const allSections = document.querySelectorAll(`[data-brand-section="${brandName}"]`);
+
+  console.log(`📍 Buscando secciones para marca "${brandName}":`, allSections.length, 'encontradas');
+
+  allSections.forEach(section => {
+    // Si se especificó containerId, solo actualizar si está en ese contenedor
+    if (containerId && section.getAttribute('data-container') !== containerId) {
+      return;
+    }
+
     const productsList = section.querySelector('[data-products-list]');
     const arrow = section.querySelector('[data-brand-arrow]');
-    if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';
-    if (arrow) arrow.textContent = isExpanded ? '▼' : '▶';
+
+    console.log(`  - Actualizando lista de productos:`, !!productsList, 'arrow:', !!arrow);
+
+    if (productsList) {
+      productsList.style.display = isExpanded ? 'block' : 'none';
+      console.log(`    ✅ Display cambiado a: ${isExpanded ? 'block' : 'none'}`);
+    }
+
+    if (arrow) {
+      arrow.textContent = isExpanded ? '▼' : '▶';
+      console.log(`    ✅ Flecha cambiada a: ${isExpanded ? '▼' : '▶'}`);
+    }
   });
 }
 
