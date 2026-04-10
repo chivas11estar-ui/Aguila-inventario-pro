@@ -65,6 +65,11 @@ function switchTab(tabName) {
     if (typeof window.loadInventory === 'function') {
       window.loadInventory();
     }
+  } else if (tabName === 'out-of-stock') {
+    console.log('✅ Navegando a: agotados');
+    if (typeof window.loadInventory === 'function') {
+      window.loadInventory();
+    }
   } else if (tabName === 'audit') {
     // Ejemplo para auditorías, asumiendo que existe loadAuditUI()
     console.log('✅ Navegando a: audit');
