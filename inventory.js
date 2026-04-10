@@ -106,8 +106,8 @@ async function loadInventory() {
         });
 
         console.log(`✅ Inventario cargado y desencriptado: ${window.INVENTORY_STATE.productos.length} productos`);
-        applyFiltersAndRender();
         loadBrandStates();
+        applyFiltersAndRender();
       } else {
         window.INVENTORY_STATE.productos = [];
         console.log('⚠️ Inventario vacío');
