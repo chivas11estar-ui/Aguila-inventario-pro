@@ -50,11 +50,15 @@ window.SearchController = {
 
         if (!input || !btn || !video || !overlay) return;
 
-        // Búsqueda por texto (Bridge directo a inventory.js)
+        // Búsqueda por texto con debounce (300ms) para evitar re-renders excesivos
+        let searchTimeout;
         input.addEventListener('input', (e) => {
-            if (typeof window.setSearchTerm === 'function') {
-                window.setSearchTerm(e.target.value);
-            }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (typeof window.setSearchTerm === 'function') {
+                    window.setSearchTerm(e.target.value);
+                }
+            }, 300);
         });
 
         // Disparar Escáner (V4.2 - Bridge Integrado)

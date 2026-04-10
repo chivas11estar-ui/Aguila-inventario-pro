@@ -277,11 +277,19 @@ function applyFiltersAndRender() {
 }
 
 // ============================================================
-// ESTABLECER TÉRMINO DE BÚSQUEDA
+// ESTABLECER TÉRMINO DE BÚSQUEDA (CON DEBOUNCE)
 // ============================================================
+let searchDebounceTimeout = null;
+
 function setSearchTerm(term) {
   window.INVENTORY_STATE.searchTerm = term;
-  applyFiltersAndRender();
+  
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
+  
+  searchDebounceTimeout = setTimeout(() => {
+      console.log('🔍 Filtrando por:', term);
+      applyFiltersAndRender();
+  }, 300); // Esperar 300ms antes de procesar
 }
 
 // ============================================================

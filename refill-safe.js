@@ -226,8 +226,8 @@ async function handleRefillExitSafe() {
   }
 
   const cajasAMover = parseInt(document.getElementById('refill-boxes').value);
-  if (isNaN(cajasAMover) || cajasAMover <= 0) {
-    showToast('❌ Ingresa una cantidad válida', 'error');
+  if (isNaN(cajasAMover) || cajasAMover <= 0 || cajasAMover > 9999) {
+    showToast('❌ Cantidad inválida (1-9999 cajas)', 'error');
     return;
   }
 
@@ -334,8 +334,8 @@ async function handleRefillEntrySafe() {
   }
 
   const cajasAAgregar = parseInt(document.getElementById('refill-boxes').value);
-  if (isNaN(cajasAAgregar) || cajasAAgregar <= 0) {
-    showToast('❌ Ingresa una cantidad válida', 'error');
+  if (isNaN(cajasAAgregar) || cajasAAgregar <= 0 || cajasAAgregar > 9999) {
+    showToast('❌ Cantidad inválida (1-9999 cajas)', 'error');
     return;
   }
 
@@ -488,34 +488,64 @@ function updateRefillTodayUI() {
 }
 
 // ============================================================
-// CARGAR MOVIMIENTOS DEL DÍA
+// CARGAR MOVIMIENTOS DEL DÍA (CON CLEANUP)
 // ============================================================
 async function loadTodayMovementsSafe() {
   const det = await getCachedDeterminante();
   if (!det) return;
 
+  // Limpiar listener anterior si existe
+  if (window.LISTENERS_MANAGER) {
+    window.LISTENERS_MANAGER.unsubscribe('refill_movements_listener');
+  }
+
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  firebase.database()
+  const movRef = firebase.database()
     .ref('movimientos/' + det)
     .orderByChild('fecha')
-    .startAt(hoy.getTime())
-    .on('value', (snapshot) => {
-      if (snapshot.exists()) {
-        const movs = [];
-        snapshot.forEach(c => movs.push(c.val()));
-        const relevantes = movs.filter(m =>
-          m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel'
-        );
-        refillTodayCajas  = relevantes.reduce((s, m) => s + (m.cajasMovidas || 0), 0);
-        refillTodayPiezas = relevantes.reduce((s, m) => s + (m.piezasMovidas || 0), 0);
-      } else {
-        refillTodayCajas  = 0;
-        refillTodayPiezas = 0;
-      }
-      updateRefillTodayUI();
-    });
+    .startAt(hoy.getTime());
+
+  // Registrar listener con LISTENERS_MANAGER para evitar memory leaks
+  const callback = (snapshot) => {
+    if (snapshot.exists()) {
+      const movs = [];
+      snapshot.forEach(c => movs.push(c.val()));
+      const relevantes = movs.filter(m =>
+        m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel'
+      );
+      refillTodayCajas  = relevantes.reduce((s, m) => s + (m.cajasMovidas || 0), 0);
+      refillTodayPiezas = relevantes.reduce((s, m) => s + (m.piezasMovidas || 0), 0);
+    } else {
+      refillTodayCajas  = 0;
+      refillTodayPiezas = 0;
+    }
+    updateRefillTodayUI();
+  };
+
+  if (window.LISTENERS_MANAGER && window.LISTENERS_MANAGER.register) {
+    window.LISTENERS_MANAGER.register(movRef, 'refill_movements_listener', callback);
+  } else {
+    // Fallback si LISTENERS_MANAGER no está disponible
+    movRef.on('value', callback);
+  }
+}
+
+// ============================================================
+// VALIDACIÓN DE CANTIDADES
+// ============================================================
+function validateQty(val) {
+    const n = parseInt(val);
+    if (isNaN(n) || n < 0) {
+        showToast('⚠️ Ingresa una cantidad válida (0 o más)', 'warning');
+        return false;
+    }
+    if (n > 1000) {
+        showToast('⚠️ ¿Más de 1000 cajas? Revisa el número', 'warning');
+        return false;
+    }
+    return true;
 }
 
 // ============================================================
