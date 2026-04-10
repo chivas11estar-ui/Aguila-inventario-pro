@@ -138,6 +138,16 @@ function renderProductCard(product, targetId) {
 
   // Metadata Pro (desde Firestore/RTDB sincronizado)
   let salesAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
+
+  // Buscar estadísticas en ANALYTICS_STATE si no están en el producto
+  if (!salesAvg && typeof window.ANALYTICS_STATE !== 'undefined') {
+    const analyticsData = window.ANALYTICS_STATE?.resumen?.dailyAveragePiecesPerProduct || [];
+    const productStats = analyticsData.find(p => p.nombre === productName);
+    if (productStats) {
+      salesAvg = productStats.dailyAverage;
+    }
+  }
+
   const lastSale = product.last_sale_date || (product.analytics ? product.analytics.last_sale_date : null);
 
   // EFECTO DE DESGASTE (DECAY)
@@ -178,9 +188,12 @@ function renderProductCard(product, targetId) {
           <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">
             <div>📍 Código: <strong style="color:var(--text-main);">${product.codigoBarras || 'N/A'}</strong></div>
             <div>📦 ${product.piezasPorCaja} piezas/caja</div>
-            <div style="color:var(--primary); font-weight:700; margin-top:4px; display:flex; align-items:center; gap:4px;">
-              <span class="material-icons-round" style="font-size:16px;">trending_up</span>
-              Venta prom: ${salesAvg} pzas/día
+            <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+              <div style="color:var(--primary); font-weight:700; display:flex; align-items:center; gap:4px; flex:1;">
+                <span class="material-icons-round" style="font-size:16px;">trending_up</span>
+                Prom: ${salesAvg} pzas/día
+              </div>
+              ${salesAvg > 0 ? `<span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;">📈 ${salesAvg}x</span>` : ''}
             </div>
             ${expiryTag}
           </div>
@@ -389,17 +402,18 @@ window.editarProducto = async function(productId) {
 // HELPERS UI
 // ============================================================
 function setupBrandClickEvents() {
-  document.querySelectorAll('[data-brand-header]').forEach(header => {
+  // Usar delegación de eventos en lugar de attachar a cada header
+  // Esto funciona incluso si el DOM se re-renderiza
+  document.addEventListener('click', (e) => {
+    const header = e.target.closest('[data-brand-header]');
+    if (!header) return;
+
     const brandName = header.getAttribute('data-brand-name');
     const container = header.closest('[data-container]')?.getAttribute('data-container');
-    if (!brandName) return;
 
-    const newHeader = header.cloneNode(true);
-    header.parentNode.replaceChild(newHeader, header);
-
-    newHeader.addEventListener('click', () => {
+    if (brandName) {
       toggleBrandUI(brandName, container);
-    });
+    }
   });
 }
 
