@@ -162,9 +162,35 @@ function renderProductCard(product, targetId) {
       }
   }
 
+  // Calcular días de inventario
+  const diasInventario = salesAvg > 0 ? Math.ceil(product.totalPiezas / salesAvg) : 0;
+
+  // Determinar color de riesgo basado en días de inventario
+  let riskColor = '#10b981'; // Verde: >30 días
+  let riskBg = '#d1fae5';
+  let riskLabel = 'Abundante';
+
+  if (diasInventario > 30) {
+    riskColor = '#10b981';
+    riskBg = '#d1fae5';
+    riskLabel = 'Abundante';
+  } else if (diasInventario >= 15) {
+    riskColor = '#f59e0b';
+    riskBg = '#fef3c7';
+    riskLabel = 'Normal';
+  } else if (diasInventario > 0) {
+    riskColor = '#ef4444';
+    riskBg = '#fee2e2';
+    riskLabel = 'Crítico';
+  } else {
+    riskColor = '#6b7280';
+    riskBg = '#f3f4f6';
+    riskLabel = 'Agotado';
+  }
+
   return `
-    <div 
-      data-product-item 
+    <div
+      data-product-item
       data-product-name="${productName}"
       data-product-code="${product.codigoBarras}"
       class="card"
@@ -188,13 +214,23 @@ function renderProductCard(product, targetId) {
           <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">
             <div>📍 Código: <strong style="color:var(--text-main);">${product.codigoBarras || 'N/A'}</strong></div>
             <div>📦 ${product.piezasPorCaja} piezas/caja</div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-              <div style="color:var(--primary); font-weight:700; display:flex; align-items:center; gap:4px; flex:1;">
-                <span class="material-icons-round" style="font-size:16px;">trending_up</span>
-                Prom: ${salesAvg} pzas/día
+
+            <!-- Estadísticas: Promedio Diario y Días de Inventario -->
+            <div style="display:flex; gap:12px; margin-top:10px; flex-wrap:wrap;">
+              <!-- Promedio Diario -->
+              <div style="background:#f0f7ff; padding:8px 12px; border-radius:8px; border-left:3px solid var(--primary);">
+                <div style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase;">Venta Diaria</div>
+                <div style="font-size:16px; font-weight:800; color:var(--primary); margin-top:2px;">${salesAvg} pzs</div>
               </div>
-              ${salesAvg > 0 ? `<span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;">📈 ${salesAvg}x</span>` : ''}
+
+              <!-- Días de Inventario -->
+              <div style="background:${riskBg}; padding:8px 12px; border-radius:8px; border-left:3px solid ${riskColor};">
+                <div style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase;">Stock x Días</div>
+                <div style="font-size:16px; font-weight:800; color:${riskColor}; margin-top:2px;">${diasInventario} días</div>
+                <div style="font-size:10px; color:${riskColor}; font-weight:700; margin-top:2px;">⚡ ${riskLabel}</div>
+              </div>
             </div>
+
             ${expiryTag}
           </div>
         </div>
