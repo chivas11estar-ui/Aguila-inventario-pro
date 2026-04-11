@@ -263,7 +263,7 @@ async function handleRefillExitSafe() {
           loteId: refillCurrentLoteId,
           stockAnterior: 0,
           stockNuevo: nuevoStock,
-          timestamp,
+          fecha: timestamp,
           realizadoPor: usuario
         });
 
@@ -527,7 +527,7 @@ async function loadTodayMovementsSafe() {
   if (window.LISTENERS_MANAGER && window.LISTENERS_MANAGER.register) {
     window.LISTENERS_MANAGER.register(movRef, 'refill_movements_listener', callback);
   } else {
-    // Fallback si LISTENERS_MANAGER no está disponible
+    // Fallback si LISTENERS_MANAGER no esta disponible
     movRef.on('value', callback);
   }
 }

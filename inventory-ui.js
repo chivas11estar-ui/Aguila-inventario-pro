@@ -208,26 +208,25 @@ function renderProductCard(product, targetId) {
     >
       <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px;">
         <div style="flex: 1;">
-          <h4 style="margin: 0 0 8px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">
-            ${productName} ${isOutOfStock ? '<span style="font-size:10px; background:#e5e7eb; padding:2px 8px; border-radius:4px; margin-left:8px; color: #6b7280; vertical-align:middle;">AGOTADO</span>' : ''}
+          <h4 style="margin: 0 0 4px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 16px; font-weight: 700; letter-spacing: -0.01em;">
+            ${productName} ${isOutOfStock ? '<span style="font-size:9px; background:#e5e7eb; padding:1px 6px; border-radius:4px; margin-left:6px; color: #6b7280; vertical-align:middle;">AGOTADO</span>' : ''}
           </h4>
-          <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.4;">
             <div>📍 Código: <strong style="color:var(--text-main);">${product.codigoBarras || 'N/A'}</strong></div>
-            <div>📦 ${product.piezasPorCaja} piezas/caja</div>
+            <div>📦 ${product.piezasPorCaja} pzs/caj</div>
 
             <!-- Estadísticas: Promedio Diario y Días de Inventario -->
-            <div style="display:flex; gap:12px; margin-top:10px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <!-- Promedio Diario -->
-              <div style="background:#f0f7ff; padding:8px 12px; border-radius:8px; border-left:3px solid var(--primary);">
-                <div style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase;">Venta Diaria</div>
-                <div style="font-size:16px; font-weight:800; color:var(--primary); margin-top:2px;">${salesAvg} pzs</div>
+              <div style="background:#f0f7ff; padding:4px 8px; border-radius:6px; border-left:2px solid var(--primary); flex: 1; min-width: 100px;">
+                <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Venta Diaria</div>
+                <div style="font-size:14px; font-weight:800; color:var(--primary);">${salesAvg} pzs</div>
               </div>
 
               <!-- Días de Inventario -->
-              <div style="background:${riskBg}; padding:8px 12px; border-radius:8px; border-left:3px solid ${riskColor};">
-                <div style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase;">Stock x Días</div>
-                <div style="font-size:16px; font-weight:800; color:${riskColor}; margin-top:2px;">${diasInventario} días</div>
-                <div style="font-size:10px; color:${riskColor}; font-weight:700; margin-top:2px;">⚡ ${riskLabel}</div>
+              <div style="background:${riskBg}; padding:4px 8px; border-radius:6px; border-left:2px solid ${riskColor}; flex: 1; min-width: 100px;">
+                <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Stock x Días</div>
+                <div style="font-size:14px; font-weight:800; color:${riskColor};">${diasInventario} días (${riskLabel})</div>
               </div>
             </div>
 
@@ -235,18 +234,18 @@ function renderProductCard(product, targetId) {
           </div>
         </div>
 
-        <div style="text-align: right; min-width: 90px; background: ${isOutOfStock ? '#f9fafb' : '#f0f7ff'}; padding: 10px; border-radius: 10px; border: 1px solid ${isOutOfStock ? '#e5e7eb' : '#dbeafe'};">
-          <div style="font-size: 32px; font-weight: 800; color: ${isOutOfStock ? '#ef4444' : 'var(--success)'}; line-height: 1;">
+        <div style="text-align: right; min-width: 70px; background: ${isOutOfStock ? '#f9fafb' : '#f0f7ff'}; padding: 6px 10px; border-radius: 8px; border: 1px solid ${isOutOfStock ? '#e5e7eb' : '#dbeafe'};">
+          <div style="font-size: 24px; font-weight: 800; color: ${isOutOfStock ? '#ef4444' : 'var(--success)'}; line-height: 1;">
             ${product.totalCajas}
           </div>
-          <div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-top: 4px;">cajas</div>
-          <div style="font-size: 12px; color: var(--text-main); font-weight: 700; margin-top: 4px;">
-            ${product.totalPiezas} <span style="font-weight:400; font-size:10px; color:var(--muted);">pzas</span>
+          <div style="font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase;">cajas</div>
+          <div style="font-size: 11px; color: var(--text-main); font-weight: 700; margin-top: 2px;">
+            ${product.totalPiezas} <span style="font-weight:400; font-size:9px; color:var(--muted);">pzas</span>
           </div>
         </div>
       </div>
 
-      <div style="padding: 0 16px 16px 16px;">
+      <div style="padding: 0 16px 12px 16px;">
         <!-- Detalle Bodegas -->
         ${tieneMuchasBodegas 
           ? renderMultipleWarehouses(product, salesAvg) 
@@ -254,27 +253,28 @@ function renderProductCard(product, targetId) {
         }
 
         <!-- Botones de Acción -->
-        <div style="margin-top: 16px; display: flex; gap: 10px;">
+        <div style="margin-top: 10px; display: flex; gap: 8px;">
           <button 
             onclick="window.editarProducto('${product.bodegas[0].id}')"
             style="
               flex: 1;
-              padding: 12px;
+              padding: 8px;
               background: #f3f4f6;
               color: #374151;
               border: 1px solid #d1d5db;
-              border-radius: 8px;
+              border-radius: 6px;
               cursor: pointer;
-              font-size: 13px;
+              font-size: 12px;
               font-weight: 700;
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 6px;
+              gap: 4px;
               transition: all 0.2s;
+              margin: 0;
             "
           >
-            <span class="material-icons-round" style="font-size:18px;">edit</span>
+            <span class="material-icons-round" style="font-size:16px;">edit</span>
             Editar
           </button>
           
@@ -283,22 +283,23 @@ function renderProductCard(product, targetId) {
               onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
               style="
                 flex: 1.5;
-                padding: 12px;
+                padding: 8px;
                 background: #10b981;
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 700;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 6px;
-                box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+                gap: 4px;
+                box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+                margin: 0;
               "
             >
-              <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span>
+              <span class="material-icons-round" style="font-size:16px;">add_shopping_cart</span>
               Resurtir
             </button>
           ` : `
@@ -306,22 +307,23 @@ function renderProductCard(product, targetId) {
               onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('exit'); }, 100);"
               style="
                 flex: 1.5;
-                padding: 12px;
+                padding: 8px;
                 background: var(--primary);
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 700;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 6px;
-                box-shadow: 0 4px 10px rgba(0, 74, 173, 0.2);
+                gap: 4px;
+                box-shadow: 0 2px 6px rgba(0, 74, 173, 0.2);
+                margin: 0;
               "
             >
-              <span class="material-icons-round" style="font-size:18px;">sync_alt</span>
+              <span class="material-icons-round" style="font-size:16px;">sync_alt</span>
               Mover
             </button>
           `}

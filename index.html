@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebase.com; ">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
   <meta name="author" content="José A. G. Betancourt">
@@ -137,7 +138,7 @@
         </div>
         <div class="form-group">
           <label for="login-password">Contraseña</label>
-          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
+          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required autocomplete="current-password" />
         </div>
         <button type="button" id="btn-login" class="success" style="width:100%;">Iniciar Sesión</button>
         <p style="text-align:center;margin-top:15px;">
@@ -170,7 +171,7 @@
         </div>
         <div class="form-group">
           <label for="register-password">Contraseña</label>
-          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password" />
         </div>
         <div class="form-group">
           <label for="register-determinante">Determinante (Tienda)</label>
@@ -197,16 +198,16 @@
     <section id="app-container" style="display:none;">
 
       <!-- HEADER APP -->
-      <div class="app-header">
-        <div style="display:flex;align-items:center;gap:12px;">
+      <div class="app-header" style="flex-direction: column; align-items: stretch; gap: 8px; padding-bottom: 12px;">
+        <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
           <div class="app-title">🦅 Águila Inventario Pro</div>
-          <p id="motivational-phrase"
-            style="color: var(--muted); font-size: 12px; font-style: italic; text-align: center; flex-grow: 1;"></p>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button class="btn-icon" id="btn-offline-status">📡</button>
+            <button class="btn-icon" id="btn-logout">🚪</button>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;"> <button class="btn-icon"
-            id="btn-offline-status">📡</button>
-          <button class="btn-icon" id="btn-logout">🚪</button>
-        </div>
+        <p id="motivational-phrase"
+          style="color: var(--muted); font-size: 11px; font-style: italic; text-align: center; margin: 0; width: 100%; white-space: normal; line-height: 1.3;"></p>
       </div>
 
       <!-- BOTTOM NAVIGATION -->

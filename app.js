@@ -1,5 +1,5 @@
 /* ============================================================
-   Águila Inventario Pro - app.js v7.1
+   Águila Inventario Pro - app.js v7.6
    Lógica principal de la aplicación
    Copyright © 2025 José A. G. Betancourt
    ============================================================ */
@@ -147,7 +147,7 @@ document.getElementById('btn-change-password')?.addEventListener('click', () => 
 
 // Inicializar app
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ App Águila Pro v7.1 iniciada');
+  console.log('✅ App Águila Pro v7.6 iniciada');
   updateOfflineStatus();
 });
 
