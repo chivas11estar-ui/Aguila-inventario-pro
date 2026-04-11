@@ -246,6 +246,14 @@ async function handleRefillExitSafe() {
   const usuario     = firebase.auth().currentUser?.email || 'sistema';
   const codigo      = refillCurrentProduct.codigoBarras;
 
+  console.log('🚀 [REFILL] Iniciando salida:', {
+    codigo,
+    det,
+    loteId: refillCurrentLoteId,
+    stockActual,
+    cajasAMover
+  });
+
   // Relleno inteligente si stock === 0
   if (stockActual === 0) {
     try {

@@ -193,27 +193,43 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   const stockRef = firebase.database()
     .ref(`productos/${det}/${safeCode}/lotes/${loteId}/stock`);
 
+  console.log(`🧪 [CORE] Intentando modificar stock en: productos/${det}/${safeCode}/lotes/${loteId}/stock`);
+
   return new Promise((resolve, reject) => {
     stockRef.transaction((currentStock) => {
-      const stock = parseInt(currentStock) || 0;
+      console.log(`🔍 [TRANSACTION] Stock actual en DB:`, currentStock);
+      
+      // Si currentStock es null, el path no existe o esta vacío
+      const stock = (currentStock === null) ? 0 : (parseInt(currentStock) || 0);
       const qty = parseInt(cantidad) || 0;
 
       if (operacion === 'restar') {
         const resultado = stock - qty;
-        return resultado < 0 ? undefined : resultado;
+        if (resultado < 0) {
+          console.error(`❌ [TRANSACTION] Abortado: Stock insuficiente (${stock} < ${qty})`);
+          return undefined; // Aborta la transacción
+        }
+        return resultado;
       }
       if (operacion === 'sumar') return stock + qty;
       if (operacion === 'establecer') return Math.max(0, qty);
       return currentStock;
     }, (error, committed, snapshot) => {
-      if (error) reject(error);
-      else if (!committed) reject(new Error('STOCK_INSUFICIENTE'));
-      else {
+      if (error) {
+        console.error('❌ [TRANSACTION ERROR]', error);
+        reject(error);
+      } else if (!committed) {
+        console.warn('⚠️ [TRANSACTION] No completada (Stock insuficiente o conflicto)');
+        reject(new Error('STOCK_INSUFICIENTE'));
+      } else {
+        const nuevoValor = snapshot.val();
+        console.log('✅ [TRANSACTION] Éxito. Nuevo stock:', nuevoValor);
+        
         // Actualizar timestamp del lote
         firebase.database()
           .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
           .set(Date.now());
-        resolve(snapshot.val());
+        resolve(nuevoValor);
       }
     });
   });
