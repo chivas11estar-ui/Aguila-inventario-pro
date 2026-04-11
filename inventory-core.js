@@ -18,6 +18,12 @@ async function getCachedDeterminante() {
   if (window.INVENTORY_CORE.determinante) {
     return window.INVENTORY_CORE.determinante;
   }
+  // Fallback rápido: usar PROFILE_STATE si ya fue seteado por auth.js
+  // Evita race condition cuando inventory-core.js cargó con defer después de auth.js
+  if (window.PROFILE_STATE?.determinante) {
+    window.INVENTORY_CORE.determinante = window.PROFILE_STATE.determinante;
+    return window.INVENTORY_CORE.determinante;
+  }
   const user = firebase.auth().currentUser;
   if (!user) return null;
   try {
