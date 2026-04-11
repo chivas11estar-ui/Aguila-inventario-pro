@@ -177,17 +177,21 @@ async function loadUserData(userId) {
       
       showApp();
 
-      // 2. CARGAR INVENTARIO (Ahora getDeriveKey() tendrá el determinante)
+      // 🚀 [FAST BOOT] Carga optimizada en paralelo
+      console.log('⚡ [ARCHITECT] Iniciando carga paralela optimizada...');
+      
+      // Lanzar carga de inventario de inmediato (no esperar)
       if (typeof window.loadInventory === 'function') {
-        console.log('📦 [ARCHITECT] Cargando inventario con llave compartida...');
-        await window.loadInventory();
+        window.loadInventory();
       }
 
-      // 3. CARGAR ESTADÍSTICAS (Depende del inventario cargado)
-      if (typeof window.loadStats === 'function') {
-        console.log('📊 [ARCHITECT] Cargando analíticas...');
-        window.loadStats();
-      }
+      // Retrasar analíticas 3 segundos para dar prioridad a la interacción
+      setTimeout(() => {
+        if (typeof window.loadStats === 'function') {
+          console.log('📊 [ARCHITECT] Cargando analíticas en segundo plano...');
+          window.loadStats();
+        }
+      }, 3000);
       
     } else {
       console.warn('⚠️ Perfil incompleto o sin determinante. Redirigiendo a registro.');

@@ -147,7 +147,7 @@ document.getElementById('btn-change-password')?.addEventListener('click', () => 
 
 // Inicializar app
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ App Águila Pro v7.6 iniciada');
+  console.log('✅ App Águila Pro v8.0 iniciada');
   updateOfflineStatus();
 });
 

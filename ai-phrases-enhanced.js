@@ -26,22 +26,9 @@ window.EnhancedPhrases = {
 
     // Obtener santo del día
     async getSaintOfTheDay() {
-        try {
-            const today = new Date();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-
-            const response = await fetch(`https://www.googleapis.com/customsearch/v1?q=santo+del+día+${day}+${month}&key=AIzaSyDjrCAzCxS5yChj5XzZqDz_Ztx0w_KO8Ow`);
-
-            if (response.ok) {
-                const data = await response.json();
-                this.currentSaint = data.items?.[0]?.title || 'Santo del día';
-                console.log('⛪ Santo del día:', this.currentSaint);
-            }
-        } catch (error) {
-            console.warn('⚠️ No se pudo obtener santo del día:', error);
-            this.currentSaint = 'día bendito';
-        }
+        // Desactivado para optimizar velocidad (evita error 400 y latencia de red)
+        this.currentSaint = 'día bendito';
+        return;
     },
 
     // Generar frase contextual (máximo 10 palabras)
