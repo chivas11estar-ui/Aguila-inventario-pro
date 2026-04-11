@@ -304,7 +304,7 @@ async function handleRefillExitSafe() {
         productoNombre: refillCurrentProduct.nombre,
         productoCodigo: codigo,
         marca: refillCurrentProduct.marca || 'Otra',
-        cajasMovidas,
+        cajasMovidas: cajasAMover,
         piezasMovidas,
         bodega: loteActual?.bodega || 'General',
         loteId: refillCurrentLoteId,
