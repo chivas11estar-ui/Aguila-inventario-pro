@@ -1,6 +1,6 @@
 // ============================================================
 // Águila Inventario Pro - refill-safe.js (V3 - Multi-Lote)
-// Soporta múltiples bodegas y fechas por producto
+// Soporta múltiples bodegas y piezas sueltas
 // Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
@@ -225,9 +225,20 @@ async function handleRefillExitSafe() {
     return;
   }
 
-  const cajasAMover = parseInt(document.getElementById('refill-boxes').value);
+  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
+  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
+  
+  if (cajasEnteras === 0 && piezasSueltas === 0) {
+    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
+    return;
+  }
+
+  const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
+  const cajasAMover = parseFloat((cajasEnteras + (piezasSueltas / piezasPorCaja)).toFixed(2));
+  const piezasMovidas = (cajasEnteras * piezasPorCaja) + piezasSueltas;
+
   if (isNaN(cajasAMover) || cajasAMover <= 0 || cajasAMover > 9999) {
-    showToast('❌ Cantidad inválida (1-9999 cajas)', 'error');
+    showToast('❌ Cantidad inválida', 'error');
     return;
   }
 
@@ -251,7 +262,8 @@ async function handleRefillExitSafe() {
     det,
     loteId: refillCurrentLoteId,
     stockActual,
-    cajasAMover
+    cajasAMover,
+    piezasMovidas
   });
 
   // Relleno inteligente si stock === 0
@@ -266,7 +278,7 @@ async function handleRefillExitSafe() {
           productoCodigo: codigo,
           marca: refillCurrentProduct.marca || 'Otra',
           cajasMovidas: cajasAMover,
-          piezasMovidas: cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
+          piezasMovidas: piezasMovidas,
           bodega: loteActual?.bodega || 'General',
           loteId: refillCurrentLoteId,
           stockAnterior: 0,
@@ -276,10 +288,10 @@ async function handleRefillExitSafe() {
         });
 
       refillTodayCajas += cajasAMover;
-      refillTodayPiezas += cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0);
+      refillTodayPiezas += piezasMovidas;
       updateRefillTodayUI();
 
-      showToast(`💡 ${cajasAMover} cajas de ${productName} → anaquel directo`, 'success');
+      showToast(`💡 ${displayValue(cajasAMover)} cajas de ${productName} → anaquel directo`, 'success');
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       limpiarFormularioRefillSafe();
       document.getElementById('refill-barcode')?.focus();
@@ -296,7 +308,6 @@ async function handleRefillExitSafe() {
 
   try {
     const nuevoStock = await modificarStock(codigo, cajasAMover, 'restar', refillCurrentLoteId);
-    const piezasMovidas = cajasAMover * (parseInt(refillCurrentProduct.piezasPorCaja) || 0);
 
     await firebase.database()
       .ref(`movimientos/${det}`).push({
@@ -305,7 +316,7 @@ async function handleRefillExitSafe() {
         productoCodigo: codigo,
         marca: refillCurrentProduct.marca || 'Otra',
         cajasMovidas: cajasAMover,
-        piezasMovidas,
+        piezasMovidas: piezasMovidas,
         bodega: loteActual?.bodega || 'General',
         loteId: refillCurrentLoteId,
         stockAnterior: stockActual,
@@ -318,7 +329,7 @@ async function handleRefillExitSafe() {
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
-    showToast(`📤 ${cajasAMover} cajas de ${productName} movidas (quedan ${nuevoStock})`, 'success');
+    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas (quedan ${nuevoStock})`, 'success');
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
@@ -341,11 +352,17 @@ async function handleRefillEntrySafe() {
     return;
   }
 
-  const cajasAAgregar = parseInt(document.getElementById('refill-boxes').value);
-  if (isNaN(cajasAAgregar) || cajasAAgregar <= 0 || cajasAAgregar > 9999) {
-    showToast('❌ Cantidad inválida (1-9999 cajas)', 'error');
+  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
+  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
+  
+  if (cajasEnteras === 0 && piezasSueltas === 0) {
+    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
     return;
   }
+
+  const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
+  const cajasAAgregar = parseFloat((cajasEnteras + (piezasSueltas / piezasPorCaja)).toFixed(2));
+  const piezasAAgregar = (cajasEnteras * piezasPorCaja) + piezasSueltas;
 
   const det = await getCachedDeterminante();
   if (!det) { showToast('❌ Sin información de tienda', 'error'); return; }
@@ -360,7 +377,7 @@ async function handleRefillEntrySafe() {
         codigoBarras: refillCurrentProduct.codigoBarras,
         nombre:       document.getElementById('refill-nombre').value.trim(),
         marca:        document.getElementById('refill-marca').value,
-        piezasPorCaja: parseInt(document.getElementById('refill-piezas').value),
+        piezasPorCaja: piezasPorCaja,
         ubicacion:    document.getElementById('refill-warehouse').value.trim(),
         fechaCaducidad: document.getElementById('refill-expiry-date').value,
         cajas:        cajasAAgregar
@@ -379,13 +396,13 @@ async function handleRefillEntrySafe() {
         productoCodigo: formData.codigoBarras,
         marca: formData.marca,
         cajasMovidas: cajasAAgregar,
-        piezasMovidas: cajasAAgregar * formData.piezasPorCaja,
+        piezasMovidas: piezasAAgregar,
         bodega: formData.ubicacion,
         fecha: timestamp,
         realizadoPor: usuario
       });
 
-      showToast(`🆕 ${formData.nombre} creado con ${cajasAAgregar} cajas en ${formData.ubicacion}`, 'success');
+      showToast(`🆕 ${formData.nombre} creado con ${displayValue(cajasAAgregar)} cajas en ${formData.ubicacion}`, 'success');
 
     } else {
       // Producto existente — nueva entrada en bodega específica
@@ -416,7 +433,7 @@ async function handleRefillEntrySafe() {
         productoCodigo: refillCurrentProduct.codigoBarras,
         marca: refillCurrentProduct.marca || 'Otra',
         cajasMovidas: cajasAAgregar,
-        piezasMovidas: cajasAAgregar * (parseInt(refillCurrentProduct.piezasPorCaja) || 0),
+        piezasMovidas: piezasAAgregar,
         bodega,
         loteId,
         stockAnterior,
@@ -425,7 +442,7 @@ async function handleRefillEntrySafe() {
         realizadoPor: usuario
       });
 
-      showToast(`📥 ${cajasAAgregar} cajas añadidas en ${bodega}`, 'success');
+      showToast(`📥 ${displayValue(cajasAAgregar)} cajas añadidas en ${bodega}`, 'success');
     }
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -459,6 +476,12 @@ function habilitarCamposCreacion() {
 // ============================================================
 function limpiarFormularioRefillSafe() {
   document.getElementById('refill-form')?.reset();
+  
+  // Reset manual de inputs de cantidad
+  const boxesInput = document.getElementById('refill-boxes');
+  const piecesInput = document.getElementById('refill-pieces');
+  if (boxesInput) boxesInput.value = 0;
+  if (piecesInput) piecesInput.value = 0;
 
   ['refill-nombre', 'refill-piezas'].forEach(id => {
     const el = document.getElementById(id);
@@ -488,8 +511,9 @@ function limpiarFormularioRefillSafe() {
 function updateRefillTodayUI() {
   const el = document.getElementById('total-movements');
   if (el) {
+    const cajasText = Number.isInteger(refillTodayCajas) ? refillTodayCajas : refillTodayCajas.toFixed(2);
     el.innerHTML = `
-      <div style="font-size:24px;font-weight:700;color:#10b981;">${refillTodayCajas}</div>
+      <div style="font-size:24px;font-weight:700;color:#10b981;">${cajasText}</div>
       <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
       <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${refillTodayPiezas} piezas</div>`;
   }
@@ -523,8 +547,8 @@ async function loadTodayMovementsSafe() {
       const relevantes = movs.filter(m =>
         m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel'
       );
-      refillTodayCajas  = relevantes.reduce((s, m) => s + (m.cajasMovidas || 0), 0);
-      refillTodayPiezas = relevantes.reduce((s, m) => s + (m.piezasMovidas || 0), 0);
+      refillTodayCajas  = relevantes.reduce((s, m) => s + (parseFloat(m.cajasMovidas) || 0), 0);
+      refillTodayPiezas = relevantes.reduce((s, m) => s + (parseInt(m.piezasMovidas) || 0), 0);
     } else {
       refillTodayCajas  = 0;
       refillTodayPiezas = 0;
@@ -535,25 +559,15 @@ async function loadTodayMovementsSafe() {
   if (window.LISTENERS_MANAGER && window.LISTENERS_MANAGER.register) {
     window.LISTENERS_MANAGER.register(movRef, 'refill_movements_listener', callback);
   } else {
-    // Fallback si LISTENERS_MANAGER no esta disponible
     movRef.on('value', callback);
   }
 }
 
 // ============================================================
-// VALIDACIÓN DE CANTIDADES
+// HELPERS
 // ============================================================
-function validateQty(val) {
-    const n = parseInt(val);
-    if (isNaN(n) || n < 0) {
-        showToast('⚠️ Ingresa una cantidad válida (0 o más)', 'warning');
-        return false;
-    }
-    if (n > 1000) {
-        showToast('⚠️ ¿Más de 1000 cajas? Revisa el número', 'warning');
-        return false;
-    }
-    return true;
+function displayValue(val) {
+  return Number.isInteger(val) ? val : val.toFixed(2);
 }
 
 // ============================================================
@@ -581,7 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setRefillModeSafe('exit');
-  console.log('✅ [REFILL V3] Módulo multi-lote listo.');
+  console.log('✅ [REFILL V3] Módulo listo.');
 });
 
 // ============================================================
@@ -592,4 +606,4 @@ window.handleRefillSubmitSafe     = handleRefillSubmitSafe;
 window.setRefillModeSafe          = setRefillModeSafe;
 window.limpiarFormularioRefillSafe = limpiarFormularioRefillSafe;
 
-console.log('✅ refill-safe.js V3 (Multi-Lote) cargado');
+console.log('✅ refill-safe.js V3 cargado correctamente');

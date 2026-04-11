@@ -92,7 +92,7 @@ async function buscarProductoPorCodigo(codigoBarras) {
 
     if (data.lotes) {
       Object.entries(data.lotes).forEach(([loteId, lote]) => {
-        const s = parseInt(lote.stock) || 0;
+        const s = parseFloat(lote.stock) || 0;
         stockTotal += s;
         lotesArray.push({
           loteId,
@@ -282,7 +282,7 @@ async function cargarInventario() {
             piezasPorCaja: prod.piezasPorCaja || 0,
             ubicacion: lote.bodega || 'General',
             fechaCaducidad: lote.fechaCaducidad || '',
-            stockTotal: parseInt(lote.stock) || 0,
+            stockTotal: parseFloat(lote.stock) || 0,
             loteId,
             _version: 'v3'
           });
@@ -297,7 +297,7 @@ async function cargarInventario() {
           piezasPorCaja: prod.piezasPorCaja || 0,
           ubicacion: prod.ubicacion || 'General',
           fechaCaducidad: prod.fechaCaducidad || '',
-          stockTotal: parseInt(prod.stockTotal) || 0,
+          stockTotal: parseFloat(prod.stockTotal) || 0,
           _version: 'v2'
         });
       }

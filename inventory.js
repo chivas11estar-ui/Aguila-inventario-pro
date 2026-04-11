@@ -132,7 +132,7 @@ function groupProductsByBarcode(productos) {
   productos.forEach(prod => {
     const codigo = prod.codigoBarras || prod.id;
     // V2: soportar tanto 'stockTotal' (nueva estructura) como 'cajas' (legacy)
-    const cajasProducto = parseInt(prod.stockTotal) || parseInt(prod.cajas) || 0;
+    const cajasProducto = parseFloat(prod.stockTotal) || parseFloat(prod.cajas) || 0;
 
     if (!agrupados[codigo]) {
       agrupados[codigo] = {

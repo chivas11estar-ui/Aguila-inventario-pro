@@ -1,7 +1,12 @@
 🦅 Águila Inventario Pro v8.0
 ============================
 
-> Sistema profesional de gestión de inventario para promotores de tienda, con sincronización en tiempo real, escáner avanzado (Google ML Kit) y soporte PWA con modo offline.
+> Sistema profesional de gestión de inventario para promotores de tienda, con sincronización en tiempo real, escáner avanzado (Google ML Kit), soporte PWA y **manejo híbrido de Stock (Cajas + Piezas Sueltas)**.
+
+### 🌟 Novedades v8.0
+- **Módulo de Piezas Sueltas**: Ahora puedes registrar entradas y salidas de unidades individuales sin necesidad de mover cajas completas.
+- **Cálculo Automático de Fracciones**: El sistema calcula automáticamente el equivalente en cajas (ej. 1 caja + 12 piezas de un producto de 24 = 1.5 cajas).
+- **Historial Detallado**: Los reportes de movimientos ahora muestran el conteo exacto de piezas movidas durante el día.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/aguilainvantario/deploys)
 ![Firebase](https://img.shields.io/badge/Firebase-Realtime_DB-orange)

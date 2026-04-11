@@ -386,9 +386,15 @@
                 <p id="refill-current-stock" style="color:var(--muted);"></p>
               </div>
 
-              <div class="form-group">
-                <label id="refill-boxes-label" for="refill-boxes">Cantidad de Cajas a Mover</label>
-                <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label id="refill-boxes-label" for="refill-boxes">Cajas</label>
+                  <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" value="0" />
+                </div>
+                <div class="form-group">
+                  <label for="refill-pieces">Piezas sueltas</label>
+                  <input id="refill-pieces" type="number" placeholder="Ej: 12" min="0" value="0" />
+                </div>
               </div>
 
               <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
