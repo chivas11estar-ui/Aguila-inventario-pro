@@ -190,14 +190,23 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
     loteId = producto.lotes[0].loteId;
   }
 
-  const stockRef = firebase.database()
-    .ref(`productos/${det}/${safeCode}/lotes/${loteId}/stock`);
+  // Determinar la ruta correcta del stock (Legacy vs V3)
+  let stockPath = `productos/${det}/${safeCode}/lotes/${loteId}/stock`;
+  let timestampPath = `productos/${det}/${safeCode}/lotes/${loteId}/actualizado`;
 
-  console.log(`🧪 [CORE] Intentando modificar stock en: productos/${det}/${safeCode}/lotes/${loteId}/stock`);
+  if (loteId === 'legacy') {
+    stockPath = `productos/${det}/${safeCode}/stockTotal`;
+    timestampPath = `productos/${det}/${safeCode}/fechaActualizacion`;
+    console.log('📜 [CORE] Detectado producto Legacy. Usando stockTotal.');
+  }
+
+  const stockRef = firebase.database().ref(stockPath);
+
+  console.log(`🧪 [CORE] Intentando modificar stock en: ${stockPath}`);
 
   return new Promise((resolve, reject) => {
     stockRef.transaction((currentStock) => {
-      console.log(`🔍 [TRANSACTION] Stock actual en DB:`, currentStock);
+      console.log(`🔍 [TRANSACTION] Stock actual en DB (${stockPath}):`, currentStock);
       
       // Si currentStock es null, el path no existe o esta vacío
       const stock = (currentStock === null) ? 0 : (parseInt(currentStock) || 0);
