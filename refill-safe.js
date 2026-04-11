@@ -317,7 +317,7 @@ async function handleRefillExitSafe() {
 
   } catch (error) {
     if (error.message === 'STOCK_INSUFICIENTE') {
-      showToast('❌ Stock cambió. Reescanea el producto.', 'error');
+      showToast('❌ Stock insuficiente en esta bodega. Reintenta.', 'error');
     } else {
       showToast('❌ Error: ' + error.message, 'error');
     }
