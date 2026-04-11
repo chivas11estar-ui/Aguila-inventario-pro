@@ -4,7 +4,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v3.0";
+const CACHE_NAME = "aguila-pro-v3.1";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
 const APP_SHELL_ASSETS = [
