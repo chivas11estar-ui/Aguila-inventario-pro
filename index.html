@@ -684,38 +684,7 @@
     }
   </script>
 
-  <!-- ============================================================
-       SISTEMA DE NAVEGACIÓN MOBILE
-       ============================================================ -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log('🎯 Sistema de navegación iniciando...');
-
-      const navButtons = document.querySelectorAll('.nav-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      navButtons.forEach(btn => {
-        btn.addEventListener('click', function (e) {
-          e.preventDefault();
-          const tabName = this.getAttribute('data-tab');
-          console.log('📑 Navegando a:', tabName);
-
-          navButtons.forEach(b => b.classList.remove('active'));
-          tabContents.forEach(t => t.classList.remove('active'));
-          tabContents.forEach(t => t.classList.add('hidden'));
-
-          this.classList.add('active');
-          const tab = document.getElementById('tab-' + tabName);
-          if (tab) {
-            tab.classList.remove('hidden');
-            tab.classList.add('active');
-          }
-        });
-      });
-
-      console.log('✅ Navegación lista');
-    });
-  </script>
+  <!-- Navegación delegada a app.js (switchTab) -->
 </body>
 
 </html>

@@ -30,19 +30,21 @@ function updateOfflineStatus() {
 
 // Cambiar de tab
 function switchTab(tabName) {
-  // Ocultar todos los tabs
+  // Ocultar todos los tabs (manejar tanto .active como .hidden del CSS)
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.classList.remove('active');
+    tab.classList.add('hidden');
   });
 
   // Mostrar el tab seleccionado
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) {
+    tab.classList.remove('hidden');
     tab.classList.add('active');
   }
 
-  // Actualizar nav items
-  document.querySelectorAll('.nav-item').forEach(item => {
+  // Actualizar nav buttons (.nav-btn) y sidebar items (.nav-item)
+  document.querySelectorAll('.nav-btn, .nav-item').forEach(item => {
     item.classList.remove('active');
   });
 
@@ -56,11 +58,8 @@ function switchTab(tabName) {
     console.log('✅ Navegando a: analytics');
     if (typeof window.loadStats === 'function') {
       window.loadStats();
-    } else {
-      console.warn('⚠️ window.loadStats no está definido. Asegúrate de que analytics.js se cargue correctamente.');
     }
   } else if (tabName === 'inventory') {
-    // Ejemplo para otras pestañas, asumiendo que existen loadInventory()
     console.log('✅ Navegando a: inventory');
     if (typeof window.loadInventory === 'function') {
       window.loadInventory();
@@ -70,25 +69,26 @@ function switchTab(tabName) {
     if (typeof window.loadInventory === 'function') {
       window.loadInventory();
     }
+  } else if (tabName === 'refill') {
+    console.log('✅ Navegando a: refill');
+    setTimeout(() => {
+      document.getElementById('refill-barcode')?.focus();
+    }, 150);
   } else if (tabName === 'audit') {
-    // Ejemplo para auditorías, asumiendo que existe loadAuditUI()
     console.log('✅ Navegando a: audit');
     if (typeof window.loadAuditUI === 'function') {
       window.loadAuditUI();
     }
-  } else if (tabName === 'system') { // Added for Profile/System tab
+  } else if (tabName === 'system') {
     console.log('✅ Navegando a: system (Perfil)');
     if (typeof window.loadUserProfile === 'function') {
       window.loadUserProfile();
     } else {
-      console.warn('⚠️ window.loadUserProfile no está definido. Intentando de nuevo en breve...');
       setTimeout(() => {
         if (typeof window.loadUserProfile === 'function') {
           window.loadUserProfile();
-        } else {
-          console.error('❌ Fallo persistente: window.loadUserProfile sigue sin estar definido.');
         }
-      }, 500); // Retry after 500ms
+      }, 500);
     }
   }
 
