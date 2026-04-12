@@ -180,14 +180,21 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   const safeCode = sanitizeBarcode(codigoBarras);
   if (!safeCode) throw new Error('Código inválido');
 
-  // Si no se especifica loteId, usar el de caducidad más próxima
+  // Si no se especifica loteId, seleccionar inteligentemente
   if (!loteId) {
     const producto = await buscarProductoPorCodigo(codigoBarras);
     if (!producto || !producto.lotes || producto.lotes.length === 0) {
       throw new Error('Producto sin lotes disponibles');
     }
-    // Usar el primer lote (ya ordenado por caducidad)
-    loteId = producto.lotes[0].loteId;
+    // SMART SELECTION: preferir lote con stock > 0 antes que el primero por caducidad
+    const loteConStock = producto.lotes.find(l => l.stock > 0);
+    if (loteConStock) {
+      loteId = loteConStock.loteId;
+      console.log(`✅ [CORE] Auto-seleccionado lote con stock: ${loteConStock.bodega} (${loteConStock.stock} cajas)`);
+    } else {
+      loteId = producto.lotes[0].loteId;
+      console.warn(`⚠️ [CORE] Todos los lotes agotados. Usando: ${producto.lotes[0].bodega}`);
+    }
   }
 
   // Determinar la ruta correcta del stock (Legacy vs V3)

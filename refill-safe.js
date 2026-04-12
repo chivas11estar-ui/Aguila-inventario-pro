@@ -275,13 +275,28 @@ async function handleRefillExitSafe() {
     piezasMovidas
   });
 
-  // Relleno inteligente si stock === 0
+  // Si el lote seleccionado está agotado, verificar si hay otro con stock
   if (stockActual === 0) {
+    const otroConStock = refillCurrentProduct.lotes?.find(
+      l => l.loteId !== refillCurrentLoteId && l.stock > 0
+    );
+    if (otroConStock) {
+      showToast(
+        `⚠️ Este lote está agotado. Hay stock en: ${otroConStock.bodega} (${otroConStock.stock} cajas)`,
+        'warning'
+      );
+      // Re-renderizar selector para que el promotor elija la bodega correcta
+      renderLoteSelector(refillCurrentProduct.lotes);
+      return;
+    }
+
+    // No hay stock en ningún lote — modo "anaquel directo" (entrada desde bodega externa)
     try {
       const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar', refillCurrentLoteId);
 
-      await firebase.database()
-        .ref(`movimientos/${det}`).push({
+      const movId = firebase.database().ref(`movimientos/${det}`).push().key;
+      await firebase.database().ref().update({
+        [`movimientos/${det}/${movId}`]: {
           tipo: 'entrada_directa_anaquel',
           productoNombre: refillCurrentProduct.nombre,
           productoCodigo: codigo,
@@ -294,7 +309,8 @@ async function handleRefillExitSafe() {
           stockNuevo: nuevoStock,
           fecha: timestamp,
           realizadoPor: usuario
-        });
+        }
+      });
 
       refillTodayCajas += cajasAMover;
       refillTodayPiezas += piezasMovidas;
@@ -452,22 +468,26 @@ async function handleRefillEntrySafe() {
       updates[`productos/${det}/${safeCode}/fechaActualizacion`]             = timestamp;
       updates[`productos/${det}/${safeCode}/actualizadoPor`]                 = usuario;
 
-      await firebase.database().ref().update(updates);
-
-      await firebase.database().ref(`movimientos/${det}`).push({
-        tipo: 'entrada',
-        productoNombre: refillCurrentProduct.nombre,
-        productoCodigo: refillCurrentProduct.codigoBarras,
-        marca: refillCurrentProduct.marca || 'Otra',
-        cajasMovidas: cajasAAgregar,
-        piezasMovidas: piezasAAgregar,
-        bodega,
-        loteId,
-        stockAnterior,
-        stockNuevo: stockAnterior + cajasAAgregar,
-        fecha: timestamp,
-        realizadoPor: usuario
-      });
+      // ATOMIC: stock + movimiento en un solo multi-path update
+      const movId = firebase.database().ref(`movimientos/${det}`).push().key;
+      const atomicUpdates = {
+        ...updates,
+        [`movimientos/${det}/${movId}`]: {
+          tipo: 'entrada',
+          productoNombre: refillCurrentProduct.nombre,
+          productoCodigo: refillCurrentProduct.codigoBarras,
+          marca: refillCurrentProduct.marca || 'Otra',
+          cajasMovidas: cajasAAgregar,
+          piezasMovidas: piezasAAgregar,
+          bodega,
+          loteId,
+          stockAnterior,
+          stockNuevo: stockAnterior + cajasAAgregar,
+          fecha: timestamp,
+          realizadoPor: usuario
+        }
+      };
+      await firebase.database().ref().update(atomicUpdates);
 
       showToast(`📥 ${displayValue(cajasAAgregar)} cajas añadidas en ${bodega}`, 'success');
     }
