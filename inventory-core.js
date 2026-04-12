@@ -207,10 +207,18 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   return new Promise((resolve, reject) => {
     stockRef.transaction((currentStock) => {
       console.log(`🔍 [TRANSACTION] Stock actual en DB (${stockPath}):`, currentStock);
-      
-      // Si currentStock es null, el path no existe o esta vacío
-      const stock = (currentStock === null) ? 0 : (parseInt(currentStock) || 0);
-      const qty = parseInt(cantidad) || 0;
+
+      // BUG FIX B: currentStock === null significa que Firebase aún no tiene el valor
+      // cacheado localmente. En lugar de tratar null como 0 (que aborta 'restar' con
+      // qty > 0 permanentemente), retornamos el valor actual para que Firebase haga
+      // un re-fetch del servidor y reintente con el valor real.
+      if (currentStock === null) {
+        return operacion === 'restar' ? currentStock : 0; // null = no-op → Firebase reintenta
+      }
+
+      // BUG FIX C: usar parseFloat para soportar piezas sueltas (0.5 cajas, etc.)
+      const stock = parseFloat(currentStock) || 0;
+      const qty = parseFloat(cantidad) || 0;
 
       if (operacion === 'restar') {
         const resultado = stock - qty;
@@ -218,9 +226,9 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
           console.error(`❌ [TRANSACTION] Abortado: Stock insuficiente (${stock} < ${qty})`);
           return undefined; // Aborta la transacción
         }
-        return resultado;
+        return parseFloat(resultado.toFixed(4));
       }
-      if (operacion === 'sumar') return stock + qty;
+      if (operacion === 'sumar') return parseFloat((stock + qty).toFixed(4));
       if (operacion === 'establecer') return Math.max(0, qty);
       return currentStock;
     }, (error, committed, snapshot) => {
@@ -233,11 +241,15 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
       } else {
         const nuevoValor = snapshot.val();
         console.log('✅ [TRANSACTION] Éxito. Nuevo stock:', nuevoValor);
-        
-        // Actualizar timestamp del lote
-        firebase.database()
-          .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
-          .set(Date.now());
+
+        // BUG FIX A: NUNCA escribir en lotes/legacy/actualizado — eso crearía un nodo
+        // lotes en productos V2, haciendo que cargarInventario los lea como V3 con stock=0.
+        // Para legacy, el timestamp ya está en la ruta correcta (fechaActualizacion).
+        if (loteId !== 'legacy') {
+          firebase.database()
+            .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
+            .set(Date.now());
+        }
         resolve(nuevoValor);
       }
     });

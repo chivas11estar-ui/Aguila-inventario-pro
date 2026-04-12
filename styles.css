@@ -69,6 +69,28 @@
 }
 
 /* ============================================
+   Dark Mode — override de variables globales
+   Se activa cuando <html> tiene class="dark"
+   ============================================ */
+html.dark {
+  --bg: #111827;
+  --card-bg: #1f2937;
+  --bg-muted: #374151;
+  --text: #f9fafb;
+  --text-main: #f9fafb;
+  --muted: #9ca3af;
+  --border: #374151;
+  --border-dark: #4b5563;
+  --primary-light: #1e3a5f;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ============================================
    Reset general
    ============================================ */
 * {

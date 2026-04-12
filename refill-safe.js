@@ -128,9 +128,8 @@ function renderLoteSelector(lotes) {
         </div>
       </div>`;
 
-    if (refillMode === 'exit') {
-      document.getElementById('refill-warehouse').value = l.bodega;
-    }
+    // Siempre llenar bodega — en salida y en entrada (para que generarLoteId genere el ID correcto)
+    document.getElementById('refill-warehouse').value = l.bodega;
     return;
   }
 
@@ -405,13 +404,31 @@ async function handleRefillEntrySafe() {
       showToast(`🆕 ${formData.nombre} creado con ${displayValue(cajasAAgregar)} cajas en ${formData.ubicacion}`, 'success');
 
     } else {
-      // Producto existente — nueva entrada en bodega específica
-      const bodega       = document.getElementById('refill-warehouse').value.trim()
-                        || refillCurrentProduct.lotes?.[0]?.bodega || 'General';
-      const fechaCad     = document.getElementById('refill-expiry-date').value
-                        || refillCurrentProduct.lotes?.[0]?.fechaCaducidad || '';
-      const loteId       = generarLoteId(bodega, fechaCad);
+      // Producto existente — sumar stock al lote seleccionado o al que coincida con el formulario
       const safeCode     = sanitizeBarcode(refillCurrentProduct.codigoBarras);
+
+      // ERROR 3 FIX: usar el lote que fue seleccionado/mostrado (refillCurrentLoteId) como
+      // fuente de verdad. Solo generar un loteId nuevo si el usuario escribió bodega/fecha
+      // diferente (intención de crear lote nuevo). Esto evita duplicar ubicaciones.
+      let bodega, fechaCad, loteId;
+
+      if (refillCurrentLoteId && refillCurrentLoteId !== 'legacy') {
+        const loteSeleccionado = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
+        // Leer del formulario; si vacío, preservar los datos del lote original
+        bodega   = document.getElementById('refill-warehouse').value.trim()
+                || loteSeleccionado?.bodega || 'General';
+        fechaCad = document.getElementById('refill-expiry-date').value
+                || loteSeleccionado?.fechaCaducidad || '';
+        const generado = generarLoteId(bodega, fechaCad);
+        // Si el usuario no cambió la bodega/fecha, usar el loteId original exacto
+        loteId = (generado === refillCurrentLoteId) ? refillCurrentLoteId : generado;
+      } else {
+        bodega   = document.getElementById('refill-warehouse').value.trim()
+                || refillCurrentProduct.lotes?.[0]?.bodega || 'General';
+        fechaCad = document.getElementById('refill-expiry-date').value
+                || refillCurrentProduct.lotes?.[0]?.fechaCaducidad || '';
+        loteId   = generarLoteId(bodega, fechaCad);
+      }
 
       // Buscar stock actual de ese lote
       const loteExistente = refillCurrentProduct.lotes?.find(l => l.loteId === loteId);

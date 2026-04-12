@@ -17,7 +17,8 @@
         ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
         
         "$codigoBarras": {
-          ".validate": "newData.hasChildren(['nombre', 'codigoBarras', 'stockTotal'])",
+          // V3 usa lotes/{loteId}/stock, legacy usa stockTotal — ambas son válidas
+          ".validate": "newData.hasChildren(['nombre', 'codigoBarras']) && (newData.hasChild('lotes') || newData.hasChild('stockTotal'))",
           "stockTotal": {
             ".validate": "newData.isNumber() && newData.val() >= 0"
           },
