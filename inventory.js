@@ -260,16 +260,37 @@ function applyFiltersAndRender() {
     window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
   }
 
-  // V2.1: Separar productos con stock de los agotados
-  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) > 0);
-  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) <= 0);
+  // V3: Agrupar por código de barras primero, clasificar al nivel de PRODUCTO
+  // (evita que el mismo producto aparezca en Stock y Agotados simultáneamente)
+  const byCode = {};
+  window.INVENTORY_STATE.productosFiltrados.forEach(p => {
+    if (!byCode[p.codigoBarras]) {
+      byCode[p.codigoBarras] = { lotes: [], stockTotal: 0 };
+    }
+    byCode[p.codigoBarras].lotes.push(p);
+    byCode[p.codigoBarras].stockTotal += parseFloat(p.stockTotal) || 0;
+  });
 
-  console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
+  const productsWithStock   = Object.values(byCode).filter(g => g.stockTotal > 0).flatMap(g => g.lotes);
+  const productsOutOfStock  = Object.values(byCode).filter(g => g.stockTotal <= 0).flatMap(g => g.lotes);
+
+  console.log(`📊 Con stock: ${Object.values(byCode).filter(g=>g.stockTotal>0).length} productos | Agotados: ${Object.values(byCode).filter(g=>g.stockTotal<=0).length} productos`);
+
+  // Mostrar contador de resultados de búsqueda
+  const searchTerm = window.INVENTORY_STATE.searchTerm;
+  const resultBadgeEl = document.getElementById('search-result-count');
+  if (resultBadgeEl) {
+    if (searchTerm.length > 0) {
+      const total = window.INVENTORY_STATE.productosFiltrados.length;
+      resultBadgeEl.textContent = total === 0 ? 'Sin resultados' : `${total} resultado${total !== 1 ? 's' : ''}`;
+      resultBadgeEl.style.display = 'inline-block';
+    } else {
+      resultBadgeEl.style.display = 'none';
+    }
+  }
 
   if (typeof window.renderInventoryUI === 'function') {
-    // Renderizar en el contenedor de Stock
     window.renderInventoryUI(productsWithStock, 'inventory-list');
-    // Renderizar en el contenedor de Agotados
     window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
   } else {
     console.warn('⚠️ renderInventoryUI no está disponible');

@@ -128,9 +128,8 @@ function renderLoteSelector(lotes) {
         </div>
       </div>`;
 
-    if (refillMode === 'exit') {
-      document.getElementById('refill-warehouse').value = l.bodega;
-    }
+    // Siempre llenar bodega — en salida y en entrada (para que generarLoteId genere el ID correcto)
+    document.getElementById('refill-warehouse').value = l.bodega;
     return;
   }
 
@@ -209,10 +208,20 @@ window.seleccionarLote = function(loteId, bodega, fecha, stock) {
 // ============================================================
 async function handleRefillSubmitSafe(event) {
   event.preventDefault();
-  if (refillMode === 'entry') {
-    await handleRefillEntrySafe();
-  } else {
-    await handleRefillExitSafe();
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn?.textContent;
+  if (submitBtn) submitBtn.classList.add('btn-loading');
+  try {
+    if (refillMode === 'entry') {
+      await handleRefillEntrySafe();
+    } else {
+      await handleRefillExitSafe();
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.classList.remove('btn-loading');
+      if (originalText) submitBtn.textContent = originalText;
+    }
   }
 }
 
@@ -266,13 +275,28 @@ async function handleRefillExitSafe() {
     piezasMovidas
   });
 
-  // Relleno inteligente si stock === 0
+  // Si el lote seleccionado está agotado, verificar si hay otro con stock
   if (stockActual === 0) {
+    const otroConStock = refillCurrentProduct.lotes?.find(
+      l => l.loteId !== refillCurrentLoteId && l.stock > 0
+    );
+    if (otroConStock) {
+      showToast(
+        `⚠️ Este lote está agotado. Hay stock en: ${otroConStock.bodega} (${otroConStock.stock} cajas)`,
+        'warning'
+      );
+      // Re-renderizar selector para que el promotor elija la bodega correcta
+      renderLoteSelector(refillCurrentProduct.lotes);
+      return;
+    }
+
+    // No hay stock en ningún lote — modo "anaquel directo" (entrada desde bodega externa)
     try {
       const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar', refillCurrentLoteId);
 
-      await firebase.database()
-        .ref(`movimientos/${det}`).push({
+      const movId = firebase.database().ref(`movimientos/${det}`).push().key;
+      await firebase.database().ref().update({
+        [`movimientos/${det}/${movId}`]: {
           tipo: 'entrada_directa_anaquel',
           productoNombre: refillCurrentProduct.nombre,
           productoCodigo: codigo,
@@ -285,7 +309,8 @@ async function handleRefillExitSafe() {
           stockNuevo: nuevoStock,
           fecha: timestamp,
           realizadoPor: usuario
-        });
+        }
+      });
 
       refillTodayCajas += cajasAMover;
       refillTodayPiezas += piezasMovidas;
@@ -405,13 +430,31 @@ async function handleRefillEntrySafe() {
       showToast(`🆕 ${formData.nombre} creado con ${displayValue(cajasAAgregar)} cajas en ${formData.ubicacion}`, 'success');
 
     } else {
-      // Producto existente — nueva entrada en bodega específica
-      const bodega       = document.getElementById('refill-warehouse').value.trim()
-                        || refillCurrentProduct.lotes?.[0]?.bodega || 'General';
-      const fechaCad     = document.getElementById('refill-expiry-date').value
-                        || refillCurrentProduct.lotes?.[0]?.fechaCaducidad || '';
-      const loteId       = generarLoteId(bodega, fechaCad);
+      // Producto existente — sumar stock al lote seleccionado o al que coincida con el formulario
       const safeCode     = sanitizeBarcode(refillCurrentProduct.codigoBarras);
+
+      // ERROR 3 FIX: usar el lote que fue seleccionado/mostrado (refillCurrentLoteId) como
+      // fuente de verdad. Solo generar un loteId nuevo si el usuario escribió bodega/fecha
+      // diferente (intención de crear lote nuevo). Esto evita duplicar ubicaciones.
+      let bodega, fechaCad, loteId;
+
+      if (refillCurrentLoteId && refillCurrentLoteId !== 'legacy') {
+        const loteSeleccionado = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
+        // Leer del formulario; si vacío, preservar los datos del lote original
+        bodega   = document.getElementById('refill-warehouse').value.trim()
+                || loteSeleccionado?.bodega || 'General';
+        fechaCad = document.getElementById('refill-expiry-date').value
+                || loteSeleccionado?.fechaCaducidad || '';
+        const generado = generarLoteId(bodega, fechaCad);
+        // Si el usuario no cambió la bodega/fecha, usar el loteId original exacto
+        loteId = (generado === refillCurrentLoteId) ? refillCurrentLoteId : generado;
+      } else {
+        bodega   = document.getElementById('refill-warehouse').value.trim()
+                || refillCurrentProduct.lotes?.[0]?.bodega || 'General';
+        fechaCad = document.getElementById('refill-expiry-date').value
+                || refillCurrentProduct.lotes?.[0]?.fechaCaducidad || '';
+        loteId   = generarLoteId(bodega, fechaCad);
+      }
 
       // Buscar stock actual de ese lote
       const loteExistente = refillCurrentProduct.lotes?.find(l => l.loteId === loteId);
@@ -425,22 +468,26 @@ async function handleRefillEntrySafe() {
       updates[`productos/${det}/${safeCode}/fechaActualizacion`]             = timestamp;
       updates[`productos/${det}/${safeCode}/actualizadoPor`]                 = usuario;
 
-      await firebase.database().ref().update(updates);
-
-      await firebase.database().ref(`movimientos/${det}`).push({
-        tipo: 'entrada',
-        productoNombre: refillCurrentProduct.nombre,
-        productoCodigo: refillCurrentProduct.codigoBarras,
-        marca: refillCurrentProduct.marca || 'Otra',
-        cajasMovidas: cajasAAgregar,
-        piezasMovidas: piezasAAgregar,
-        bodega,
-        loteId,
-        stockAnterior,
-        stockNuevo: stockAnterior + cajasAAgregar,
-        fecha: timestamp,
-        realizadoPor: usuario
-      });
+      // ATOMIC: stock + movimiento en un solo multi-path update
+      const movId = firebase.database().ref(`movimientos/${det}`).push().key;
+      const atomicUpdates = {
+        ...updates,
+        [`movimientos/${det}/${movId}`]: {
+          tipo: 'entrada',
+          productoNombre: refillCurrentProduct.nombre,
+          productoCodigo: refillCurrentProduct.codigoBarras,
+          marca: refillCurrentProduct.marca || 'Otra',
+          cajasMovidas: cajasAAgregar,
+          piezasMovidas: piezasAAgregar,
+          bodega,
+          loteId,
+          stockAnterior,
+          stockNuevo: stockAnterior + cajasAAgregar,
+          fecha: timestamp,
+          realizadoPor: usuario
+        }
+      };
+      await firebase.database().ref().update(atomicUpdates);
 
       showToast(`📥 ${displayValue(cajasAAgregar)} cajas añadidas en ${bodega}`, 'success');
     }

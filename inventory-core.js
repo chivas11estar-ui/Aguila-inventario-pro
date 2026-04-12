@@ -18,12 +18,6 @@ async function getCachedDeterminante() {
   if (window.INVENTORY_CORE.determinante) {
     return window.INVENTORY_CORE.determinante;
   }
-  // Fallback rápido: usar PROFILE_STATE si ya fue seteado por auth.js
-  // Evita race condition cuando inventory-core.js cargó con defer después de auth.js
-  if (window.PROFILE_STATE?.determinante) {
-    window.INVENTORY_CORE.determinante = window.PROFILE_STATE.determinante;
-    return window.INVENTORY_CORE.determinante;
-  }
   const user = firebase.auth().currentUser;
   if (!user) return null;
   try {
@@ -186,14 +180,21 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   const safeCode = sanitizeBarcode(codigoBarras);
   if (!safeCode) throw new Error('Código inválido');
 
-  // Si no se especifica loteId, usar el de caducidad más próxima
+  // Si no se especifica loteId, seleccionar inteligentemente
   if (!loteId) {
     const producto = await buscarProductoPorCodigo(codigoBarras);
     if (!producto || !producto.lotes || producto.lotes.length === 0) {
       throw new Error('Producto sin lotes disponibles');
     }
-    // Usar el primer lote (ya ordenado por caducidad)
-    loteId = producto.lotes[0].loteId;
+    // SMART SELECTION: preferir lote con stock > 0 antes que el primero por caducidad
+    const loteConStock = producto.lotes.find(l => l.stock > 0);
+    if (loteConStock) {
+      loteId = loteConStock.loteId;
+      console.log(`✅ [CORE] Auto-seleccionado lote con stock: ${loteConStock.bodega} (${loteConStock.stock} cajas)`);
+    } else {
+      loteId = producto.lotes[0].loteId;
+      console.warn(`⚠️ [CORE] Todos los lotes agotados. Usando: ${producto.lotes[0].bodega}`);
+    }
   }
 
   // Determinar la ruta correcta del stock (Legacy vs V3)
@@ -213,10 +214,18 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   return new Promise((resolve, reject) => {
     stockRef.transaction((currentStock) => {
       console.log(`🔍 [TRANSACTION] Stock actual en DB (${stockPath}):`, currentStock);
-      
-      // Si currentStock es null, el path no existe o esta vacío
-      const stock = (currentStock === null) ? 0 : (parseInt(currentStock) || 0);
-      const qty = parseInt(cantidad) || 0;
+
+      // BUG FIX B: currentStock === null significa que Firebase aún no tiene el valor
+      // cacheado localmente. En lugar de tratar null como 0 (que aborta 'restar' con
+      // qty > 0 permanentemente), retornamos el valor actual para que Firebase haga
+      // un re-fetch del servidor y reintente con el valor real.
+      if (currentStock === null) {
+        return operacion === 'restar' ? currentStock : 0; // null = no-op → Firebase reintenta
+      }
+
+      // BUG FIX C: usar parseFloat para soportar piezas sueltas (0.5 cajas, etc.)
+      const stock = parseFloat(currentStock) || 0;
+      const qty = parseFloat(cantidad) || 0;
 
       if (operacion === 'restar') {
         const resultado = stock - qty;
@@ -224,9 +233,9 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
           console.error(`❌ [TRANSACTION] Abortado: Stock insuficiente (${stock} < ${qty})`);
           return undefined; // Aborta la transacción
         }
-        return resultado;
+        return parseFloat(resultado.toFixed(4));
       }
-      if (operacion === 'sumar') return stock + qty;
+      if (operacion === 'sumar') return parseFloat((stock + qty).toFixed(4));
       if (operacion === 'establecer') return Math.max(0, qty);
       return currentStock;
     }, (error, committed, snapshot) => {
@@ -239,11 +248,15 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
       } else {
         const nuevoValor = snapshot.val();
         console.log('✅ [TRANSACTION] Éxito. Nuevo stock:', nuevoValor);
-        
-        // Actualizar timestamp del lote
-        firebase.database()
-          .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
-          .set(Date.now());
+
+        // BUG FIX A: NUNCA escribir en lotes/legacy/actualizado — eso crearía un nodo
+        // lotes en productos V2, haciendo que cargarInventario los lea como V3 con stock=0.
+        // Para legacy, el timestamp ya está en la ruta correcta (fechaActualizacion).
+        if (loteId !== 'legacy') {
+          firebase.database()
+            .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
+            .set(Date.now());
+        }
         resolve(nuevoValor);
       }
     });
@@ -262,6 +275,12 @@ async function cargarInventario() {
   }
 
   const inventoryRef = firebase.database().ref('productos/' + det);
+
+  // Mostrar skeleton mientras llega el primer snapshot de Firebase
+  if (typeof window.showInventorySkeleton === 'function') {
+    window.showInventorySkeleton('inventory-list', 4);
+    window.showInventorySkeleton('out-of-stock-list', 2);
+  }
 
   inventoryRef.on('value', (snapshot) => {
     const productsObject = snapshot.val();
@@ -309,6 +328,16 @@ async function cargarInventario() {
       }
     });
 
+    // Guard: inventory.js (defer) puede no haber ejecutado aún si auth.js
+    // disparó cargarInventario() antes de que los deferred scripts corrieran.
+    if (!window.INVENTORY_STATE) {
+      window.INVENTORY_STATE = {
+        productos: [], productosFiltrados: [], marcasExpandidas: {},
+        searchTerm: '', determinante: null, isLoading: false
+      };
+      console.warn('⚠️ [CORE] INVENTORY_STATE no existía — inicializado de emergencia');
+    }
+
     window.INVENTORY_STATE.productos = productosExpandidos;
     console.log(`✅ [CORE V3] Inventario cargado: ${productosExpandidos.length} entradas`);
 
@@ -327,6 +356,11 @@ async function cargarInventario() {
 // ============================================================
 async function handleAddProductV2(event) {
   if (event) event.preventDefault();
+
+  const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+  const originalText = submitBtn?.textContent;
+  if (submitBtn) submitBtn.classList.add('btn-loading');
+
   try {
     const formData = {
       codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
@@ -349,6 +383,11 @@ async function handleAddProductV2(event) {
     if (typeof window.switchTab === 'function') window.switchTab('inventory');
   } catch (error) {
     showToast('❌ ' + error.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.classList.remove('btn-loading');
+      if (originalText) submitBtn.textContent = originalText;
+    }
   }
 }
 

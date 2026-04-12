@@ -1,54 +1,70 @@
 {
   "rules": {
+
     "usuarios": {
       "$uid": {
-        // Un usuario solo puede leer y escribir su propio perfil
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
-        
-        // Validación de estructura de perfil
-        ".validate": "newData.hasChildren(['email', 'determinante', 'storeName'])"
+        ".read":  "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+
+        "determinante": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9]{4,8}$/)"
+        },
+
+        "frasesIA": {
+          ".read":  "$uid === auth.uid",
+          ".write": "$uid === auth.uid"
+        }
       }
     },
+
     "productos": {
       "$determinante": {
-        // REGLA CRÍTICA: Solo el usuario que tiene este determinante en su perfil puede acceder
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".read":  "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
         ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        
+        ".indexOn": ["nombre", "marca"],
+
         "$codigoBarras": {
-          ".validate": "newData.hasChildren(['nombre', 'codigoBarras', 'stockTotal'])",
-          "stockTotal": {
-            ".validate": "newData.isNumber() && newData.val() >= 0"
-          },
-          "piezasPorCaja": {
-            ".validate": "newData.isNumber() && newData.val() > 0"
-          },
-          "codigoBarras": {
-            ".validate": "newData.isString() && newData.val().length >= 8"
+          ".validate": "newData.hasChildren(['nombre', 'codigoBarras']) && (newData.hasChild('lotes') || newData.hasChild('stockTotal'))",
+
+          "nombre":       { ".validate": "newData.isString()" },
+          "codigoBarras": { ".validate": "newData.isString() && newData.val().length >= 8" },
+          "stockTotal":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "piezasPorCaja":{ ".validate": "newData.isNumber() && newData.val() > 0" },
+
+          "lotes": {
+            "$loteId": {
+              ".indexOn": ["bodega", "fechaCaducidad"],
+              "stock":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+              "bodega": { ".validate": "newData.isString()" }
+            }
           }
         }
       }
     },
+
     "movimientos": {
       "$determinante": {
-        // Bloquea listados globales de movimientos
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".read":  "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
         ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        
-        "$pushId": {
-          ".validate": "newData.hasChildren(['tipo', 'productoCodigo', 'cajasMovidas', 'timestamp'])"
+        ".indexOn": ["fecha"],
+
+        "$movId": {
+          ".validate": "newData.hasChildren(['tipo', 'productoCodigo', 'cajasMovidas', 'fecha'])",
+          "tipo":  { ".validate": "newData.isString() && newData.val().matches(/^(entrada|salida|entrada_directa_anaquel)$/)" },
+          "fecha": { ".validate": "newData.isNumber()" }
         }
       }
     },
+
     "auditorias": {
       "$determinante": {
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante"
+        ".read":  "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
+        ".indexOn": ["fecha"]
       }
     },
-    // DENY ALL: Prohíbe cualquier consulta fuera de los nodos específicos (evita escaneos de base de datos)
-    ".read": false,
+
+    ".read":  false,
     ".write": false
   }
 }
