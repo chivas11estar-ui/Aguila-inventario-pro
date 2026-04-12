@@ -328,6 +328,16 @@ async function cargarInventario() {
       }
     });
 
+    // Guard: inventory.js (defer) puede no haber ejecutado aún si auth.js
+    // disparó cargarInventario() antes de que los deferred scripts corrieran.
+    if (!window.INVENTORY_STATE) {
+      window.INVENTORY_STATE = {
+        productos: [], productosFiltrados: [], marcasExpandidas: {},
+        searchTerm: '', determinante: null, isLoading: false
+      };
+      console.warn('⚠️ [CORE] INVENTORY_STATE no existía — inicializado de emergencia');
+    }
+
     window.INVENTORY_STATE.productos = productosExpandidos;
     console.log(`✅ [CORE V3] Inventario cargado: ${productosExpandidos.length} entradas`);
 

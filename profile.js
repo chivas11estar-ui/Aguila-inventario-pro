@@ -108,9 +108,19 @@ async function loadUserProfile() {
         // Actualizar estado
         window.PROFILE_STATE.userData = data;
 
-        // Cargar preferencias si existen (o usar defaults)
+        // Cargar preferencias: Firebase > localStorage > defaults
         if (data.preferences) {
             window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...data.preferences };
+        } else {
+            // Fallback: restaurar desde localStorage si Firebase no tiene preferences
+            try {
+                const cached = localStorage.getItem('aguila_prefs');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...parsed };
+                    console.log('📦 [PROFILE] Preferencias restauradas desde localStorage');
+                }
+            } catch (_) { /* JSON parse fail — usar defaults */ }
         }
         applyTheme(); // Apply theme based on loaded preferences
 
@@ -202,17 +212,28 @@ async function saveUserPreferences(newPrefs) {
     const userId = firebase.auth().currentUser?.uid;
     if (!userId) return false;
 
+    // Siempre actualizar estado local + localStorage (funciona offline)
+    window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...newPrefs };
+    try {
+        localStorage.setItem('aguila_prefs', JSON.stringify(window.PROFILE_STATE.preferences));
+    } catch (_) { /* quota exceeded — no-op */ }
+
+    applyTheme(); // Aplicar tema inmediatamente sin esperar Firebase
+
     try {
         await firebase.database().ref(`usuarios/${userId}/preferences`).update(newPrefs);
-
-        // Actualizar estado local
-        window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...newPrefs };
-        applyTheme(); // Apply theme immediately after saving preference
-
         if (typeof showToast === 'function') showToast('✅ Preferencias guardadas', 'success');
         return true;
     } catch (error) {
-        console.error('Error guardando preferencias:', error);
+        console.error('⚠️ [PROFILE] Firebase preferences write failed:', error);
+        // Degradación graciosa: las prefs ya están en localStorage y aplicadas localmente.
+        // Esto ocurre cuando las reglas de Firebase no permiten escribir en /preferences.
+        if (error.code === 'PERMISSION_DENIED' || (error.message && error.message.includes('PERMISSION_DENIED'))) {
+            console.warn('📦 [PROFILE] Preferencias guardadas solo en localStorage (deploy security-rules.json para sincronizar)');
+            if (typeof showToast === 'function') showToast('✅ Preferencias aplicadas localmente', 'success');
+            return true; // No es un error fatal — las prefs funcionan localmente
+        }
+        if (typeof showToast === 'function') showToast('⚠️ Error guardando preferencias', 'error');
         return false;
     }
 }
