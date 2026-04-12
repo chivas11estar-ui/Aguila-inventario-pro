@@ -269,6 +269,12 @@ async function cargarInventario() {
 
   const inventoryRef = firebase.database().ref('productos/' + det);
 
+  // Mostrar skeleton mientras llega el primer snapshot de Firebase
+  if (typeof window.showInventorySkeleton === 'function') {
+    window.showInventorySkeleton('inventory-list', 4);
+    window.showInventorySkeleton('out-of-stock-list', 2);
+  }
+
   inventoryRef.on('value', (snapshot) => {
     const productsObject = snapshot.val();
 
@@ -333,6 +339,11 @@ async function cargarInventario() {
 // ============================================================
 async function handleAddProductV2(event) {
   if (event) event.preventDefault();
+
+  const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+  const originalText = submitBtn?.textContent;
+  if (submitBtn) submitBtn.classList.add('btn-loading');
+
   try {
     const formData = {
       codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
@@ -355,6 +366,11 @@ async function handleAddProductV2(event) {
     if (typeof window.switchTab === 'function') window.switchTab('inventory');
   } catch (error) {
     showToast('❌ ' + error.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.classList.remove('btn-loading');
+      if (originalText) submitBtn.textContent = originalText;
+    }
   }
 }
 

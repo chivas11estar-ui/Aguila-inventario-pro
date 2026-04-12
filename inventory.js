@@ -266,10 +266,21 @@ function applyFiltersAndRender() {
 
   console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
 
+  // Mostrar contador de resultados de búsqueda
+  const searchTerm = window.INVENTORY_STATE.searchTerm;
+  const resultBadgeEl = document.getElementById('search-result-count');
+  if (resultBadgeEl) {
+    if (searchTerm.length > 0) {
+      const total = window.INVENTORY_STATE.productosFiltrados.length;
+      resultBadgeEl.textContent = total === 0 ? 'Sin resultados' : `${total} resultado${total !== 1 ? 's' : ''}`;
+      resultBadgeEl.style.display = 'inline-block';
+    } else {
+      resultBadgeEl.style.display = 'none';
+    }
+  }
+
   if (typeof window.renderInventoryUI === 'function') {
-    // Renderizar en el contenedor de Stock
     window.renderInventoryUI(productsWithStock, 'inventory-list');
-    // Renderizar en el contenedor de Agotados
     window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
   } else {
     console.warn('⚠️ renderInventoryUI no está disponible');

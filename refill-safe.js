@@ -208,10 +208,20 @@ window.seleccionarLote = function(loteId, bodega, fecha, stock) {
 // ============================================================
 async function handleRefillSubmitSafe(event) {
   event.preventDefault();
-  if (refillMode === 'entry') {
-    await handleRefillEntrySafe();
-  } else {
-    await handleRefillExitSafe();
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn?.textContent;
+  if (submitBtn) submitBtn.classList.add('btn-loading');
+  try {
+    if (refillMode === 'entry') {
+      await handleRefillEntrySafe();
+    } else {
+      await handleRefillExitSafe();
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.classList.remove('btn-loading');
+      if (originalText) submitBtn.textContent = originalText;
+    }
   }
 }
 

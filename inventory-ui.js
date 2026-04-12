@@ -6,6 +6,27 @@
 // ============================================================
 
 // ============================================================
+// SKELETON LOADER — mostrar placeholders mientras carga Firebase
+// ============================================================
+window.showInventorySkeleton = function(targetId, count = 4) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.innerHTML = Array(count).fill(`
+    <div style="margin-bottom:12px;border-radius:12px;padding:16px;background:var(--card-bg);border:1px solid var(--border);">
+      <div class="loading-skeleton" style="height:18px;width:55%;border-radius:6px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:10px;">
+        <div class="loading-skeleton" style="height:60px;flex:1;border-radius:8px;"></div>
+        <div class="loading-skeleton" style="height:60px;width:64px;border-radius:8px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <div class="loading-skeleton" style="height:36px;flex:1;border-radius:6px;"></div>
+        <div class="loading-skeleton" style="height:36px;flex:1.5;border-radius:6px;"></div>
+      </div>
+    </div>
+  `).join('');
+};
+
+// ============================================================
 // RENDERIZAR INVENTARIO COMPLETO
 // ============================================================
 function renderInventoryUI(productos, targetId = 'inventory-list') {
@@ -252,79 +273,82 @@ function renderProductCard(product, targetId) {
           : renderSingleWarehouse(product, salesAvg)
         }
 
-        <!-- Botones de Acción -->
+        <!-- Botones de Acción — mínimo 44px height para touch -->
         <div style="margin-top: 10px; display: flex; gap: 8px;">
-          <button 
+          <button
             onclick="window.editarProducto('${product.bodegas[0].id}')"
             style="
               flex: 1;
-              padding: 8px;
+              min-height: 44px;
+              padding: 10px 8px;
               background: #f3f4f6;
               color: #374151;
               border: 1px solid #d1d5db;
-              border-radius: 6px;
+              border-radius: 8px;
               cursor: pointer;
-              font-size: 12px;
+              font-size: 13px;
               font-weight: 700;
               display: flex;
               align-items: center;
               justify-content: center;
               gap: 4px;
-              transition: all 0.2s;
+              transition: background 0.15s;
               margin: 0;
             "
           >
-            <span class="material-icons-round" style="font-size:16px;">edit</span>
+            <span class="material-icons-round" style="font-size:18px;">edit</span>
             Editar
           </button>
-          
+
           ${isOutOfStock ? `
-            <button 
+            <button
               onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
               style="
-                flex: 1.5;
-                padding: 8px;
+                flex: 2;
+                min-height: 44px;
+                padding: 10px 8px;
                 background: #10b981;
                 color: white;
                 border: none;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
-                font-size: 12px;
+                font-size: 13px;
                 font-weight: 700;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 4px;
-                box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
                 margin: 0;
               "
             >
-              <span class="material-icons-round" style="font-size:16px;">add_shopping_cart</span>
-              Resurtir
+              <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span>
+              Resurtir ahora
             </button>
           ` : `
-            <button 
+            <button
               onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('exit'); }, 100);"
               style="
-                flex: 1.5;
-                padding: 8px;
+                flex: 2;
+                min-height: 44px;
+                padding: 10px 8px;
                 background: var(--primary);
                 color: white;
                 border: none;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
-                font-size: 12px;
+                font-size: 13px;
                 font-weight: 700;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 4px;
-                box-shadow: 0 2px 6px rgba(0, 74, 173, 0.2);
+                box-shadow: 0 2px 8px rgba(0, 74, 173, 0.25);
                 margin: 0;
               "
             >
-              <span class="material-icons-round" style="font-size:16px;">sync_alt</span>
-              Mover
+              <span class="material-icons-round" style="font-size:18px;">sync_alt</span>
+              Rellenar
             </button>
           `}
         </div>

@@ -232,6 +232,37 @@ button:active {
   transform: translateY(0);
 }
 
+/* Estado de carga en botones de formulario */
+button.btn-loading {
+  pointer-events: none;
+  opacity: 0.75;
+  position: relative;
+}
+
+button.btn-loading::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dark mode skeleton */
+html.dark .loading-skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
 /* ============================================
    APP HEADER
    ============================================ */

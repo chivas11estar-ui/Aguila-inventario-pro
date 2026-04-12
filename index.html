@@ -250,14 +250,17 @@
         <!-- TAB: INVENTARIO -->
         <div id="tab-inventory" class="tab-content active">
           <div class="card">
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <h2>📦 Inventario por Marca</h2>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <h2 style="margin-bottom:4px;">📦 Inventario</h2>
+                <span id="search-result-count" style="display:none; font-size:12px; background:var(--primary); color:white; padding:2px 10px; border-radius:20px; font-weight:700;"></span>
+              </div>
               <button id="btn-visual-scan" class="success" style="width:auto; padding: 10px 15px; border-radius: 50px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
                 <span class="material-icons-round">photo_camera</span>
-                Auditoría Visual
+                Auditar
               </button>
             </div>
-            <div id="inventory-list" style="margin-top:20px;">
+            <div id="inventory-list" style="margin-top:12px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
           </div>
