@@ -39,6 +39,10 @@ function switchTab(tabName) {
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) {
     tab.classList.add('active');
+
+    // 🔧 FIX #2: Reset scroll al cambiar de tab
+    tab.scrollTop = 0;
+    window.scrollTo(0, 0);
   }
 
   // Actualizar nav items

@@ -425,7 +425,15 @@ async function handleRefillEntrySafe() {
       updates[`productos/${det}/${safeCode}/fechaActualizacion`]             = timestamp;
       updates[`productos/${det}/${safeCode}/actualizadoPor`]                 = usuario;
 
-      await firebase.database().ref().update(updates);
+      try {
+        await firebase.database().ref().update(updates);
+      } catch (dbError) {
+        console.error('❌ [REFILL] Error Firebase al actualizar productos:', dbError.code, dbError.message);
+        if (dbError.code === 'PERMISSION_DENIED') {
+          throw new Error('Permiso denegado al actualizar inventario. Contacta al administrador.');
+        }
+        throw dbError;
+      }
 
       await firebase.database().ref(`movimientos/${det}`).push({
         tipo: 'entrada',
