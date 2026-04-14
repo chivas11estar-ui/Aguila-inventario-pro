@@ -110,7 +110,7 @@ async function buscarProductoPorCodigo(codigoBarras) {
       });
     } else if (data.stockTotal !== undefined) {
       // Compatibilidad con productos V2 (estructura plana)
-      stockTotal = parseInt(data.stockTotal) || 0;
+      stockTotal = parseFloat(data.stockTotal) || 0;
       lotesArray.push({
         loteId: 'legacy',
         bodega: data.ubicacion || 'General',
@@ -161,7 +161,7 @@ async function guardarProducto(formData) {
   // Lote específico — bodega + fecha de caducidad
   updates[`productos/${det}/${safeCode}/lotes/${loteId}/bodega`] = formData.ubicacion?.trim() || 'General';
   updates[`productos/${det}/${safeCode}/lotes/${loteId}/fechaCaducidad`] = formData.fechaCaducidad || '';
-  updates[`productos/${det}/${safeCode}/lotes/${loteId}/stock`] = Math.max(0, parseInt(formData.cajas) || 0);
+  updates[`productos/${det}/${safeCode}/lotes/${loteId}/stock`] = Math.max(0, parseFloat(formData.cajas) || 0);
   updates[`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`] = ahora;
 
   await firebase.database().ref().update(updates);
@@ -208,20 +208,19 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
     stockRef.transaction((currentStock) => {
       console.log(`🔍 [TRANSACTION] Stock actual en DB (${stockPath}):`, currentStock);
       
-      // Si currentStock es null, el path no existe o esta vacío
-      const stock = (currentStock === null) ? 0 : (parseInt(currentStock) || 0);
-      const qty = parseInt(cantidad) || 0;
+      const stock = (currentStock === null) ? 0 : (parseFloat(currentStock) || 0);
+      const qty = parseFloat(cantidad) || 0;
 
       if (operacion === 'restar') {
         const resultado = stock - qty;
-        if (resultado < 0) {
+        if (resultado < -0.01) { // Pequeño margen por flotantes
           console.error(`❌ [TRANSACTION] Abortado: Stock insuficiente (${stock} < ${qty})`);
           return undefined; // Aborta la transacción
         }
-        return resultado;
+        return parseFloat(resultado.toFixed(2));
       }
-      if (operacion === 'sumar') return stock + qty;
-      if (operacion === 'establecer') return Math.max(0, qty);
+      if (operacion === 'sumar') return parseFloat((stock + qty).toFixed(2));
+      if (operacion === 'establecer') return Math.max(0, parseFloat(qty.toFixed(2)));
       return currentStock;
     }, (error, committed, snapshot) => {
       if (error) {
@@ -234,9 +233,8 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
         const nuevoValor = snapshot.val();
         console.log('✅ [TRANSACTION] Éxito. Nuevo stock:', nuevoValor);
         
-        // Actualizar timestamp del lote
         firebase.database()
-          .ref(`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`)
+          .ref(timestampPath)
           .set(Date.now());
         resolve(nuevoValor);
       }
@@ -257,7 +255,18 @@ async function cargarInventario() {
 
   const inventoryRef = firebase.database().ref('productos/' + det);
 
+  // 🚀 [V9.0] Timeout para evitar Skeletons infinitos
+  let timeoutId = setTimeout(() => {
+    if (window.INVENTORY_STATE.productos.length === 0) {
+      console.warn('⚠️ [CORE] Timeout: Firebase no responde.');
+      showToast('⚠️ Tiempo de espera agotado. Verifica tu conexión.', 'warning');
+      if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+    }
+  }, 10000);
+
   inventoryRef.on('value', (snapshot) => {
+    clearTimeout(timeoutId);
+    
     const productsObject = snapshot.val();
 
     if (!productsObject) {
@@ -272,7 +281,6 @@ async function cargarInventario() {
       const prod = productsObject[codigoBarras];
 
       if (prod.lotes) {
-        // Producto V3: expandir cada lote como entrada individual
         Object.entries(prod.lotes).forEach(([loteId, lote]) => {
           productosExpandidos.push({
             id: loteId,
@@ -288,7 +296,6 @@ async function cargarInventario() {
           });
         });
       } else {
-        // Producto V2: compatibilidad hacia atrás
         productosExpandidos.push({
           id: codigoBarras,
           codigoBarras,
@@ -307,10 +314,17 @@ async function cargarInventario() {
     console.log(`✅ [CORE V3] Inventario cargado: ${productosExpandidos.length} entradas`);
 
     if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+  }, (error) => {
+    clearTimeout(timeoutId);
+    console.error('❌ [CORE] Error Firebase:', error);
+    if (error.code === 'PERMISSION_DENIED') {
+      showToast('⛔ Error de permisos. Reintenta login.', 'error');
+    }
+    if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
   });
 
   if (window.LISTENERS_MANAGER) {
-    window.LISTENERS_MANAGER.register('inventario_listener', () => {
+    window.LISTENERS_MANAGER.register(inventoryRef, 'inventario_listener', () => {
       inventoryRef.off('value');
     });
   }
@@ -329,7 +343,7 @@ async function handleAddProductV2(event) {
       piezasPorCaja: parseInt(document.getElementById('add-pieces-per-box')?.value || 0),
       ubicacion: document.getElementById('add-warehouse')?.value.trim() || '',
       fechaCaducidad: document.getElementById('add-expiry-date')?.value || '',
-      cajas: parseInt(document.getElementById('add-boxes')?.value || 0)
+      cajas: parseFloat(document.getElementById('add-boxes')?.value || 0)
     };
 
     if (!formData.codigoBarras || !formData.nombre || !formData.ubicacion) {

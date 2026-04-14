@@ -158,16 +158,21 @@ function showForgotForm() {
 async function loadUserData(userId) {
   try {
     console.log('🔐 [ARCHITECT] Iniciando secuencia de arranque sincronizada...');
-    
+
+    // ✅ FIX: Inicializar window.inventoryStore ANTES de usarlo
+    window.inventoryStore = window.inventoryStore || {};
+
     // 1. ESPERAR AL PERFIL (Fuente de la llave de desencriptación)
     const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
     const userData = snapshot.val();
-    
+
     if (userData && userData.determinante) {
       // Inyectar en el estado global ANTES de cualquier desencriptación
       window.PROFILE_STATE = window.PROFILE_STATE || {};
       window.PROFILE_STATE.determinante = userData.determinante;
       window.PROFILE_STATE.nombrePromotor = userData.nombrePromotor;
+      // ✅ FIX: Guardar determinante también en inventoryStore
+      window.inventoryStore.determinante = userData.determinante;
       
       console.log('✅ [ARCHITECT] Determinante listo:', userData.determinante);
       

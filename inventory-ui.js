@@ -120,7 +120,8 @@ function renderBrandSection(marca, productos, targetId) {
 // ============================================================
 function renderProductCard(product, targetId) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
-  const isOutOfStock = (product.totalCajas || 0) <= 0;
+  // ✅ FIX: Verificar AMBOS campos - solo agotado si cajas=0 AND piezas=0
+  const isOutOfStock = (product.totalCajas || 0) <= 0 && (product.totalPiezas || 0) <= 0;
   
   const productName = product.nombre;
   const brandName = product.marca;

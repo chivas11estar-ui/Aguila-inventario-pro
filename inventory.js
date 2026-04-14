@@ -261,8 +261,17 @@ function applyFiltersAndRender() {
   }
 
   // V2.1: Separar productos con stock de los agotados
-  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) > 0);
-  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => (parseInt(p.stockTotal) || 0) <= 0);
+  // ✅ FIX: Verificar AMBOS totalCajas Y totalPiezas (no solo uno)
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
+    const cajas = parseInt(p.totalCajas) || 0;
+    const piezas = parseInt(p.totalPiezas) || 0;
+    return cajas > 0 || piezas > 0;
+  });
+  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
+    const cajas = parseInt(p.totalCajas) || 0;
+    const piezas = parseInt(p.totalPiezas) || 0;
+    return cajas <= 0 && piezas <= 0;
+  });
 
   console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
 
