@@ -9,54 +9,66 @@
 // RENDERIZAR INVENTARIO COMPLETO
 // ============================================================
 function renderInventoryUI(productos, targetId = 'inventory-list') {
-  const listElement = document.getElementById(targetId);
-  if (!listElement) {
-    console.warn(`⚠️ Elemento ${targetId} no encontrado`);
-    return;
+  try {
+    const listElement = document.getElementById(targetId);
+    if (!listElement) {
+      console.warn(`⚠️ Elemento ${targetId} no encontrado`);
+      return;
+    }
+
+    console.log(`🎨 Renderizando ${targetId}:`, productos.length, 'productos');
+
+    // Validar que hay productos
+    if (productos.length === 0) {
+      const emptyMsg = targetId === 'inventory-list'
+        ? '✅ Sin productos con stock disponible'
+        : '✨ No hay productos agotados';
+
+      listElement.innerHTML = `
+        <p style="color: var(--muted); text-align: center; padding: 40px;">
+          ${emptyMsg}
+        </p>
+      `;
+      return;
+    }
+
+    // 1. Agrupar por código de barras
+    const productosAgrupados = window.groupProductsByBarcode(productos);
+
+    // 2. Agrupar por marca
+    const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
+
+    // 3. Ordenar marcas (prioridad predefinida)
+    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra']
+      .filter(marca => productosPorMarca[marca]);
+
+    // 4. Renderizar HTML
+    let html = '';
+
+    marcasOrdenadas.forEach(marca => {
+      html += renderBrandSection(marca, productosPorMarca[marca], targetId);
+    });
+
+    listElement.innerHTML = html;
+
+    // 5. Configurar eventos de click
+    setupBrandClickEvents();
+
+    // 6. Aplicar estados de marcas (expandidas/contraídas)
+    applyBrandStates();
+
+    console.log(`✅ ${targetId} renderizado correctamente`);
+  } catch (error) {
+    console.error(`❌ [RENDER ERROR] ${targetId}:`, error);
+    const listElement = document.getElementById(targetId);
+    if (listElement) {
+      listElement.innerHTML = `
+        <p style="color: var(--muted); text-align: center; padding: 40px;">
+          ⚠️ Error al cargar inventario. Por favor recarga la página.
+        </p>
+      `;
+    }
   }
-
-  console.log(`🎨 Renderizando ${targetId}:`, productos.length, 'productos');
-
-  // Validar que hay productos
-  if (productos.length === 0) {
-    const emptyMsg = targetId === 'inventory-list' 
-      ? '✅ Sin productos con stock disponible' 
-      : '✨ No hay productos agotados';
-      
-    listElement.innerHTML = `
-      <p style="color: var(--muted); text-align: center; padding: 40px;">
-        ${emptyMsg}
-      </p>
-    `;
-    return;
-  }
-
-  // 1. Agrupar por código de barras
-  const productosAgrupados = window.groupProductsByBarcode(productos);
-
-  // 2. Agrupar por marca
-  const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
-
-  // 3. Ordenar marcas (prioridad predefinida)
-  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra']
-    .filter(marca => productosPorMarca[marca]);
-
-  // 4. Renderizar HTML
-  let html = '';
-
-  marcasOrdenadas.forEach(marca => {
-    html += renderBrandSection(marca, productosPorMarca[marca], targetId);
-  });
-
-  listElement.innerHTML = html;
-
-  // 5. Configurar eventos de click
-  setupBrandClickEvents();
-
-  // 6. Aplicar estados de marcas (expandidas/contraídas)
-  applyBrandStates();
-
-  console.log(`✅ ${targetId} renderizado correctamente`);
 }
 
 // ============================================================
@@ -120,8 +132,11 @@ function renderBrandSection(marca, productos, targetId) {
 // ============================================================
 function renderProductCard(product, targetId) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
-  // ✅ FIX: Verificar AMBOS campos - solo agotado si cajas=0 AND piezas=0
-  const isOutOfStock = (product.totalCajas || 0) <= 0 && (product.totalPiezas || 0) <= 0;
+  // ✅ FIX v9.1b: Tolerante a datos legacy (v2, v1, datos antiguos)
+  const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
+  const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
+  const totalAntiguo = parseInt(product.stockTotal) || 0;
+  const isOutOfStock = totalCajas <= 0 && totalPiezas <= 0 && totalAntiguo <= 0;
   
   const productName = product.nombre;
   const brandName = product.marca;

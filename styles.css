@@ -69,6 +69,45 @@
 }
 
 /* ============================================
+   🌙 MODO OSCURO - Variables inversas
+   ============================================ */
+:root.dark {
+  /* Colores */
+  --primary: #0066ff;
+  --primary-dark: #0052cc;
+  --primary-light: #1a3a66;
+  --secondary: #9ca3af;
+  --success: #34d399;
+  --success-dark: #10b981;
+  --warning: #fbbf24;
+  --warning-dark: #f59e0b;
+  --error: #f87171;
+  --error-dark: #ef4444;
+
+  /* Fondos (invertidos) */
+  --bg: #1a1a1a;
+  --card-bg: #2a2a2a;
+
+  /* Texto (invertido) */
+  --text: #ffffff;
+  --muted: #b0b0b0;
+
+  /* Bordes (más claros en modo oscuro) */
+  --border: #444444;
+  --border-dark: #555555;
+
+  /* Sombras (ajustadas para oscuro) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5), 0 8px 10px rgba(0, 0, 0, 0.2);
+  --shadow-primary-hover: 0 4px 12px rgba(0, 102, 255, 0.3);
+  --shadow-success-hover: 0 4px 12px rgba(52, 211, 153, 0.3);
+  --shadow-warning-hover: 0 4px 12px rgba(251, 191, 36, 0.3);
+  --shadow-error-hover: 0 4px 12px rgba(248, 113, 113, 0.3);
+}
+
+/* ============================================
    Reset general
    ============================================ */
 * {

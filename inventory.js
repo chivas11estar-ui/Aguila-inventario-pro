@@ -240,48 +240,64 @@ function calculateExpiryInfo(product, brandConfig) {
 // APLICAR FILTROS Y RENDERIZAR
 // ============================================================
 function applyFiltersAndRender() {
-  const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
+  try {
+    const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
 
-  if (searchTerm.length > 0) {
-    window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
-      const nameMatch = p.nombre && p.nombre.toLowerCase().includes(searchTerm);
-      const brandMatch = p.marca && p.marca.toLowerCase().includes(searchTerm);
-      const fullBarcodeMatch = p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm);
-      
-      // NUEVO: Coincidencia por los últimos 4 dígitos (si el término tiene 4 o más caracteres y es numérico)
-      let suffixMatch = false;
-      if (searchTerm.length >= 4 && /^\d+$/.test(searchTerm)) {
-          suffixMatch = p.codigoBarras && p.codigoBarras.endsWith(searchTerm);
-      }
+    if (searchTerm.length > 0) {
+      window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
+        const nameMatch = p.nombre && p.nombre.toLowerCase().includes(searchTerm);
+        const brandMatch = p.marca && p.marca.toLowerCase().includes(searchTerm);
+        const fullBarcodeMatch = p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm);
 
-      return nameMatch || brandMatch || fullBarcodeMatch || suffixMatch;
-    });
-  } else {
-    window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
-  }
+        // NUEVO: Coincidencia por los últimos 4 dígitos (si el término tiene 4 o más caracteres y es numérico)
+        let suffixMatch = false;
+        if (searchTerm.length >= 4 && /^\d+$/.test(searchTerm)) {
+            suffixMatch = p.codigoBarras && p.codigoBarras.endsWith(searchTerm);
+        }
+
+        return nameMatch || brandMatch || fullBarcodeMatch || suffixMatch;
+      });
+    } else {
+      window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
+    }
 
   // V2.1: Separar productos con stock de los agotados
-  // ✅ FIX: Verificar AMBOS totalCajas Y totalPiezas (no solo uno)
+  // ✅ FIX v9.1b: Tolerancia a datos LEGACY (v2, v1, datos anteriores)
   const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
-    const cajas = parseInt(p.totalCajas) || 0;
-    const piezas = parseInt(p.totalPiezas) || 0;
-    return cajas > 0 || piezas > 0;
+    // Soportar múltiples estructuras de datos:
+    // V3: totalCajas, totalPiezas
+    // V2: cajas, piezas, stockTotal
+    // Legacy: stockTotal, cajas
+    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
+    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
+    const stockAntiguo = parseInt(p.stockTotal) || 0;
+
+    return cajas > 0 || piezas > 0 || stockAntiguo > 0;
   });
+
   const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
-    const cajas = parseInt(p.totalCajas) || 0;
-    const piezas = parseInt(p.totalPiezas) || 0;
-    return cajas <= 0 && piezas <= 0;
+    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
+    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
+    const stockAntiguo = parseInt(p.stockTotal) || 0;
+
+    return cajas <= 0 && piezas <= 0 && stockAntiguo <= 0;
   });
 
-  console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
+    console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
 
-  if (typeof window.renderInventoryUI === 'function') {
-    // Renderizar en el contenedor de Stock
-    window.renderInventoryUI(productsWithStock, 'inventory-list');
-    // Renderizar en el contenedor de Agotados
-    window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
-  } else {
-    console.warn('⚠️ renderInventoryUI no está disponible');
+    if (typeof window.renderInventoryUI === 'function') {
+      // Renderizar en el contenedor de Stock
+      window.renderInventoryUI(productsWithStock, 'inventory-list');
+      // Renderizar en el contenedor de Agotados
+      window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
+    } else {
+      console.warn('⚠️ renderInventoryUI no está disponible');
+    }
+  } catch (error) {
+    console.error('❌ [FILTER ERROR]:', error);
+    if (typeof showToast === 'function') {
+      showToast('⚠️ Error al procesar inventario. Reintenta.', 'error');
+    }
   }
 }
 

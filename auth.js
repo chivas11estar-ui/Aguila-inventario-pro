@@ -162,6 +162,16 @@ async function loadUserData(userId) {
     // ✅ FIX: Inicializar window.inventoryStore ANTES de usarlo
     window.inventoryStore = window.inventoryStore || {};
 
+    // 🌙 FIX: Aplicar preferencia de modo oscuro desde localStorage
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      console.log('🌙 Modo oscuro activado');
+    } else {
+      document.documentElement.classList.remove('dark');
+      console.log('☀️ Modo claro activado');
+    }
+
     // 1. ESPERAR AL PERFIL (Fuente de la llave de desencriptación)
     const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
     const userData = snapshot.val();

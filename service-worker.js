@@ -4,6 +4,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
+// ✅ FIX v9.1c: Incrementar versión para cachear archivos actualizados
 const CACHE_NAME = "aguila-pro-v3.2";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
