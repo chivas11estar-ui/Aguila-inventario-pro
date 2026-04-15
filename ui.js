@@ -23,14 +23,16 @@ window.showToast = function(message, type = 'info') {
   toast.className = 'toast toast-' + type;
   toast.textContent = message;
   toast.style.cssText = `
-    background: white;
+    background: var(--card-bg);
+    color: var(--text);
     padding: 16px 20px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
     border-left: 4px solid ${getToastColor(type)};
     font-size: 14px;
     animation: slideIn 0.3s ease-out;
     cursor: pointer;
+    border: 1px solid var(--border);
   `;
   
   container.appendChild(toast);

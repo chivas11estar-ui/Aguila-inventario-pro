@@ -82,8 +82,16 @@ async function searchProductForRefillSafe(barcode) {
     document.getElementById('refill-marca').value   = producto.marca  || '';
     document.getElementById('refill-piezas').value  = producto.piezasPorCaja || '';
 
+    // ✅ FIX: Limpiar warehouse (especialmente si viene de Agotados)
+    document.getElementById('refill-warehouse').value = '';
+
+    // ✅ FIX: Filtrar lotes - en modo EXIT (Resurtido), solo mostrar con stock actual
+    const lotesValidos = refillMode === 'exit'
+      ? (producto.lotes || []).filter(l => l.stock > 0)
+      : (producto.lotes || []);
+
     // Renderizar selector de lotes si hay más de uno
-    renderLoteSelector(producto.lotes || []);
+    renderLoteSelector(lotesValidos);
 
   } catch (error) {
     console.error('❌ [REFILL V3]', error);
@@ -217,7 +225,7 @@ async function handleRefillSubmitSafe(event) {
 }
 
 // ============================================================
-// SALIDA DE STOCK
+// SALIDA DE STOCK (BODEGA → PISO)
 // ============================================================
 async function handleRefillExitSafe() {
   if (!refillCurrentProduct?._exists) {
@@ -225,17 +233,27 @@ async function handleRefillExitSafe() {
     return;
   }
 
+  // ✅ FIX LÓGICO v9.2: BODEGA = CAJAS ENTERAS SOLO
+  // RESTRICCIÓN: No permitir piezasSueltas cuando se extrae de bodega
   const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
   const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
-  
-  if (cajasEnteras === 0 && piezasSueltas === 0) {
-    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
+
+  // Si hay piezas sueltas, rechazar (no se pueden sacar fracciones de bodega)
+  if (piezasSueltas > 0) {
+    showToast('⚠️ La bodega solo permite sacar Cajas Enteras. Las piezas sueltas van directamente al piso en Entrada.', 'warning');
+    return;
+  }
+
+  if (cajasEnteras === 0) {
+    showToast('⚠️ Ingresa una cantidad de CAJAS a bajar', 'warning');
     return;
   }
 
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
-  const cajasAMover = parseFloat((cajasEnteras + (piezasSueltas / piezasPorCaja)).toFixed(2));
-  const piezasMovidas = (cajasEnteras * piezasPorCaja) + piezasSueltas;
+
+  // ✅ FIX: Las cajas se restan completas, sin fracciones
+  const cajasAMover = cajasEnteras; // SIEMPRE ENTERAS
+  const piezasMovidas = cajasEnteras * piezasPorCaja; // Conversión: cajas → piezas para auditoría
 
   if (isNaN(cajasAMover) || cajasAMover <= 0 || cajasAMover > 9999) {
     showToast('❌ Cantidad inválida', 'error');
@@ -257,13 +275,14 @@ async function handleRefillExitSafe() {
   const usuario     = firebase.auth().currentUser?.email || 'sistema';
   const codigo      = refillCurrentProduct.codigoBarras;
 
-  console.log('🚀 [REFILL] Iniciando salida:', {
+  console.log('🚀 [REFILL v9.2] Iniciando salida BODEGA→PISO:', {
     codigo,
     det,
     loteId: refillCurrentLoteId,
-    stockActual,
-    cajasAMover,
-    piezasMovidas
+    stockActualEnBodega: stockActual,
+    cajasAExtraer: cajasAMover,
+    piezasEquivalentes: piezasMovidas,
+    regla: 'BODEGA=CAJAS_ENTERAS_SOLO'
   });
 
   // Relleno inteligente si stock === 0
@@ -344,7 +363,7 @@ async function handleRefillExitSafe() {
 }
 
 // ============================================================
-// ENTRADA DE STOCK
+// ENTRADA DE STOCK (PROVEEDOR → BODEGA O PISO DIRECTO)
 // ============================================================
 async function handleRefillEntrySafe() {
   if (!refillCurrentProduct) {
@@ -352,17 +371,22 @@ async function handleRefillEntrySafe() {
     return;
   }
 
+  // ✅ FIX LÓGICO v9.2: Separación clara BODEGA vs PISO
   const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
   const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
-  
+
   if (cajasEnteras === 0 && piezasSueltas === 0) {
     showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
     return;
   }
 
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
-  const cajasAAgregar = parseFloat((cajasEnteras + (piezasSueltas / piezasPorCaja)).toFixed(2));
-  const piezasAAgregar = (cajasEnteras * piezasPorCaja) + piezasSueltas;
+
+  // ✅ FIX: En ENTRADA, permitir AMBAS opciones:
+  // - Cajas enteras van a BODEGA
+  // - Piezas sueltas van DIRECTAMENTE al PISO (sin sumarlas a las cajas)
+  const cajasAAgregar = cajasEnteras; // CAJAS ENTERAS a bodega
+  const piezasAAgregar = (cajasEnteras * piezasPorCaja) + piezasSueltas; // Total para auditoría
 
   const det = await getCachedDeterminante();
   if (!det) { showToast('❌ Sin información de tienda', 'error'); return; }
