@@ -360,7 +360,7 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
         Ubicado en ${product.bodegas.length} bodegas
       </summary>
       <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-        ${product.bodegas.map(bodega => {
+        ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
             ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
