@@ -273,56 +273,57 @@
 
         <!-- TAB: AGREGAR PRODUCTO -->
         <div id="tab-add" class="tab-content hidden">
-          <div class="card">
-            <h2>➕ Agregar Producto</h2>
+          <div class="card" style="border-top: 4px solid var(--success);">
+            <h2 style="color: var(--primary); font-weight: 800;">➕ Agregar Producto</h2>
             <form id="add-product-form" style="margin-top:20px;">
               <div class="form-group">
-                <label for="add-barcode">Código de Barras</label>
+                <label for="add-barcode" style="color: #1e293b; font-weight: 700;">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
-                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
+                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" style="color: #000; font-weight: 600;" />
                   <button type="button" id="btn-scan-add" class="success"
                     style="width:auto;padding:12px 16px;">📷</button>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="add-product-name">Nombre del Producto</label>
-                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+                <label for="add-product-name" style="color: #1e293b; font-weight: 700;">Nombre del Producto</label>
+                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-brand">Marca</label>
-                <select id="add-brand" required>
+                <label for="add-brand" style="color: #1e293b; font-weight: 700;">Marca</label>
+                <select id="add-brand" required style="color: #000; font-weight: 600; background: #fff;">
                   <option value="">-- Selecciona una marca --</option>
                   <option value="Sabritas">Sabritas</option>
                   <option value="Gamesa">Gamesa</option>
                   <option value="Quaker">Quaker</option>
                   <option value="Sonric's">Sonric's</option>
                   <option value="Cacahuates">Cacahuates</option>
-                  <option value="Otra">Otra</option>                </select>
+                  <option value="Otra">Otra</option>
+                </select>
               </div>
 
               <div class="form-group">
-                <label for="add-pieces-per-box">Piezas por Caja</label>
-                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
+                <label for="add-pieces-per-box" style="color: #1e293b; font-weight: 700;">Piezas por Caja</label>
+                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-warehouse">Ubicación/Almacén</label>
-                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+                <label for="add-warehouse" style="color: #1e293b; font-weight: 700;">Ubicación/Almacén</label>
+                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-expiry-date">Fecha de Caducidad</label>
-                <input id="add-expiry-date" type="date" required />
+                <label for="add-expiry-date" style="color: #1e293b; font-weight: 700;">Fecha de Caducidad</label>
+                <input id="add-expiry-date" type="date" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-boxes">Cantidad de Cajas</label>
-                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
+                <label for="add-boxes" style="color: #1e293b; font-weight: 700;">Cantidad de Cajas</label>
+                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required style="color: #000; font-weight: 600;" />
               </div>
 
-              <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
+              <button type="submit" class="primary" style="width:100%; padding: 15px; font-weight: 800; font-size: 16px;">✅ Guardar Producto</button>
             </form>
           </div>
         </div>
