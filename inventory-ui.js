@@ -152,56 +152,67 @@ function renderProductCard(product, targetId) {
     </div>
   ` : '';
 
-  // Metadata Pro (desde Firestore/RTDB sincronizado)
-  let salesAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
-
-  // Buscar estadísticas en ANALYTICS_STATE si no están en el producto
-  if (!salesAvg && typeof window.ANALYTICS_STATE !== 'undefined') {
-    const analyticsData = window.ANALYTICS_STATE?.resumen?.dailyAveragePiecesPerProduct || [];
-    const productStats = analyticsData.find(p => p.nombre === productName);
-    if (productStats) {
-      salesAvg = productStats.dailyAverage;
-    }
+  // Metadata Avanzada (Walmart-Style Analytics)
+  let analytics = { daily: 0, weekly: 0, monthly: 0 };
+  const analyticsData = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
+  if (analyticsData[productName]) {
+    analytics = analyticsData[productName];
+  } else {
+    // Fallback: usar el promedio simple si no hay datos avanzados
+    let oldAvg = product.daily_sales_avg || (product.analytics ? product.analytics.daily_sales_avg : 0) || 0;
+    analytics.daily = Math.round(oldAvg);
   }
 
+  const salesAvg = analytics.daily;
   const lastSale = product.last_sale_date || (product.analytics ? product.analytics.last_sale_date : null);
 
-  // EFECTO DE DESGASTE (DECAY)
-  if (salesAvg > 0 && lastSale) {
+  // EFECTO DE DESGASTE (DECAY) - Solo si no tenemos datos de ciclo frescos
+  if (salesAvg > 0 && lastSale && !analyticsData[productName]) {
       const msPerDay = 24 * 60 * 60 * 1000;
       const daysSinceLast = Math.max(0, (Date.now() - new Date(lastSale).getTime()) / msPerDay);
-      
       if (daysSinceLast > 1) {
           const alpha = 2 / (30 + 1);
-          salesAvg = salesAvg * Math.pow(1 - alpha, daysSinceLast);
-          salesAvg = Math.round(salesAvg * 100) / 100;
+          analytics.daily = Math.round(analytics.daily * Math.pow(1 - alpha, daysSinceLast));
       }
   }
 
   // Calcular días de inventario
-  const diasInventario = salesAvg > 0 ? Math.ceil(product.totalPiezas / salesAvg) : 0;
+  const diasInventario = analytics.daily > 0 ? Math.ceil(product.totalPiezas / analytics.daily) : 0;
+
+  // Lógica de Colores "Vizpick"
+  // Blanco: Todo bien, Azul (+): Surtir, Rojo: Crítico
+  let vizpickColor = '#ffffff';
+  let vizpickBorder = 'var(--primary)';
+  let vizpickIcon = '';
+  
+  if (isOutOfStock) {
+    vizpickColor = '#f3f4f6';
+    vizpickBorder = '#ef4444';
+  } else if (analytics.daily > 0) {
+    // Si el stock en anaquel (estimado) es menor a la venta diaria
+    // Como no sabemos el stock en anaquel exacto, usamos una heurística:
+    // Si quedan menos de 2 días de inventario total, es azul (Pick urgente).
+    if (diasInventario <= 2) {
+      vizpickBorder = '#2563eb'; // AZUL VIZPICK
+      vizpickIcon = '<span style="background:#2563eb; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">+ PICK</span>';
+    } else if (diasInventario <= 5) {
+      vizpickBorder = '#10b981'; // VERDE (Bien surtido)
+    }
+  }
 
   // Determinar color de riesgo basado en días de inventario
-  let riskColor = '#10b981'; // Verde: >30 días
+  let riskColor = '#10b981';
   let riskBg = '#d1fae5';
   let riskLabel = 'Abundante';
 
   if (diasInventario > 30) {
-    riskColor = '#10b981';
-    riskBg = '#d1fae5';
-    riskLabel = 'Abundante';
+    riskColor = '#10b981'; riskBg = '#d1fae5'; riskLabel = 'Abundante';
   } else if (diasInventario >= 15) {
-    riskColor = '#f59e0b';
-    riskBg = '#fef3c7';
-    riskLabel = 'Normal';
+    riskColor = '#f59e0b'; riskBg = '#fef3c7'; riskLabel = 'Normal';
   } else if (diasInventario > 0) {
-    riskColor = '#ef4444';
-    riskBg = '#fee2e2';
-    riskLabel = 'Crítico';
+    riskColor = '#ef4444'; riskBg = '#fee2e2'; riskLabel = 'Crítico';
   } else {
-    riskColor = '#6b7280';
-    riskBg = '#f3f4f6';
-    riskLabel = 'Agotado';
+    riskColor = '#6b7280'; riskBg = '#f3f4f6'; riskLabel = 'Agotado';
   }
 
   return `
@@ -211,13 +222,13 @@ function renderProductCard(product, targetId) {
       data-product-code="${product.codigoBarras}"
       class="card"
       style="
-        background: ${isOutOfStock ? 'var(--bg-muted, #f3f4f6)' : 'var(--card-bg, #ffffff)'};
+        background: ${vizpickColor};
         color: var(--text-main, #1f2937);
-        border-left: 6px solid ${isOutOfStock ? '#9ca3af' : 'var(--primary)'};
+        border-left: 8px solid ${vizpickBorder};
         margin-bottom: 15px;
         transition: all 0.3s ease;
         opacity: ${isOutOfStock ? '0.9' : '1'};
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         border-radius: 12px;
         overflow: hidden;
       "
@@ -225,47 +236,55 @@ function renderProductCard(product, targetId) {
       <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px;">
         <div style="flex: 1;">
           <h4 style="margin: 0 0 4px 0; color: ${isOutOfStock ? '#4b5563' : 'var(--primary)'}; font-size: 16px; font-weight: 700; letter-spacing: -0.01em;">
-            ${productName} ${isOutOfStock ? '<span style="font-size:9px; background:#e5e7eb; padding:1px 6px; border-radius:4px; margin-left:6px; color: #6b7280; vertical-align:middle;">AGOTADO</span>' : ''}
+            ${productName} ${vizpickIcon}
           </h4>
           <div style="font-size: 12px; color: var(--muted); line-height: 1.4;">
             <div>📍 Código: <strong style="color:var(--text-main);">${product.codigoBarras || 'N/A'}</strong></div>
             <div>📦 ${product.piezasPorCaja} pzs/caj</div>
 
-            <!-- Estadísticas: Promedio Diario y Días de Inventario -->
-            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-              <!-- Promedio Diario -->
-              <div style="background:#f0f7ff; padding:4px 8px; border-radius:6px; border-left:2px solid var(--primary); flex: 1; min-width: 100px;">
-                <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Venta Diaria</div>
-                <div style="font-size:14px; font-weight:800; color:var(--primary);">${salesAvg} pzs</div>
+            <!-- ANALYTICS AVANZADA (Walmart-Style) -->
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; margin-top:10px;">
+              <div style="background:#f0f9ff; padding:6px; border-radius:8px; text-align:center; border: 1px solid #e0f2fe;">
+                <div style="font-size:9px; color:#0369a1; font-weight:700; text-transform:uppercase;">Día</div>
+                <div style="font-size:13px; font-weight:800; color:#0c4a6e;">${analytics.daily}</div>
               </div>
-
-              <!-- Días de Inventario -->
-              <div style="background:${riskBg}; padding:4px 8px; border-radius:6px; border-left:2px solid ${riskColor}; flex: 1; min-width: 100px;">
-                <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Stock x Días</div>
-                <div style="font-size:14px; font-weight:800; color:${riskColor};">${diasInventario} días (${riskLabel})</div>
+              <div style="background:#f0fdf4; padding:6px; border-radius:8px; text-align:center; border: 1px solid #dcfce7;">
+                <div style="font-size:9px; color:#15803d; font-weight:700; text-transform:uppercase;">Semana</div>
+                <div style="font-size:13px; font-weight:800; color:#14532d;">${analytics.weekly}</div>
+              </div>
+              <div style="background:#fdf2f8; padding:6px; border-radius:8px; text-align:center; border: 1px solid #fce7f3;">
+                <div style="font-size:9px; color:#be185d; font-weight:700; text-transform:uppercase;">Mes</div>
+                <div style="font-size:13px; font-weight:800; color:#831843;">${analytics.monthly}</div>
               </div>
             </div>
 
-            ${expiryTag}
+            <!-- Stock Status -->
+            <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+               <div style="background:${riskBg}; color:${riskColor}; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700;">
+                 ${riskLabel}: ${diasInventario} días
+               </div>
+               ${expiryTag}
+            </div>
           </div>
         </div>
 
-        <div style="text-align: right; min-width: 70px; background: ${isOutOfStock ? '#f9fafb' : '#f0f7ff'}; padding: 6px 10px; border-radius: 8px; border: 1px solid ${isOutOfStock ? '#e5e7eb' : '#dbeafe'};">
-          <div style="font-size: 24px; font-weight: 800; color: ${isOutOfStock ? '#ef4444' : 'var(--success)'}; line-height: 1;">
+        <div style="text-align: right; min-width: 80px; background: ${isOutOfStock ? '#f9fafb' : '#f0f7ff'}; padding: 10px; border-radius: 12px; border: 2px solid ${isOutOfStock ? '#e5e7eb' : '#dbeafe'};">
+          <div style="font-size: 26px; font-weight: 900; color: ${isOutOfStock ? '#ef4444' : 'var(--primary)'}; line-height: 1;">
             ${product.totalCajas}
           </div>
-          <div style="font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase;">cajas</div>
-          <div style="font-size: 11px; color: var(--text-main); font-weight: 700; margin-top: 2px;">
-            ${product.totalPiezas} <span style="font-weight:400; font-size:9px; color:var(--muted);">pzas</span>
+          <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom:4px;">cajas</div>
+          <div style="height:1px; background:#dbeafe; margin:4px 0;"></div>
+          <div style="font-size: 12px; color: var(--text-main); font-weight: 800;">
+            ${product.totalPiezas} <small style="font-weight:400; font-size:9px; color:var(--muted);">pzs</small>
           </div>
         </div>
       </div>
 
-      <div style="padding: 0 16px 12px 16px;">
+      <div style="padding: 0 16px 16px 16px;">
         <!-- Detalle Bodegas -->
         ${tieneMuchasBodegas 
-          ? renderMultipleWarehouses(product, salesAvg) 
-          : renderSingleWarehouse(product, salesAvg)
+          ? renderMultipleWarehouses(product, analytics.daily) 
+          : renderSingleWarehouse(product, analytics.daily)
         }
 
         <!-- Botones de Acción -->

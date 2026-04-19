@@ -22,29 +22,71 @@ function setRefillModeSafe(mode) {
 
   const btnEntry = document.getElementById('btn-refill-mode-entry');
   const btnExit  = document.getElementById('btn-refill-mode-exit');
+  const btnPieces = document.getElementById('btn-refill-mode-pieces');
   const expiryGroup   = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
   const boxesLabel    = document.getElementById('refill-boxes-label');
   const submitBtn     = document.querySelector('#refill-form button[type="submit"]');
+  
+  const boxesGroup = document.getElementById('refill-boxes')?.closest('.form-group');
+  const piecesGroup = document.getElementById('refill-pieces-group');
+  const piecesHint = document.getElementById('refill-pieces-hint');
+
+  // Reset visual de botones
+  [btnEntry, btnExit, btnPieces].forEach(btn => {
+    if (btn) {
+      btn.style.opacity = '0.6';
+      btn.classList.remove('primary', 'warning');
+      btn.classList.add('secondary');
+    }
+  });
 
   if (mode === 'entry') {
     btnEntry?.classList.replace('secondary', 'primary');
     if (btnEntry) btnEntry.style.opacity = 1;
-    btnExit?.classList.replace('primary', 'secondary');
-    if (btnExit) btnExit.style.opacity = 0.6;
     if (expiryGroup) expiryGroup.style.display = 'block';
     if (warehouseInput) { warehouseInput.readOnly = false; warehouseInput.style.background = '#fff'; }
     if (boxesLabel) boxesLabel.textContent = 'Cajas a AÑADIR';
     if (submitBtn) { submitBtn.textContent = '➕ Registrar Entrada'; submitBtn.classList.replace('primary','success'); }
+    
+    // Mostrar ambos campos en entrada para máxima flexibilidad
+    if (boxesGroup) boxesGroup.style.display = 'block';
+    if (piecesGroup) piecesGroup.style.display = 'block';
+    if (piecesHint) piecesHint.style.display = 'none';
+
+  } else if (mode === 'pieces') {
+    btnPieces?.classList.replace('secondary', 'warning');
+    if (btnPieces) btnPieces.style.opacity = 1;
+    if (expiryGroup) expiryGroup.style.display = 'none';
+    if (warehouseInput) { warehouseInput.readOnly = true; warehouseInput.style.background = '#f8fafc'; }
+    if (submitBtn) { submitBtn.textContent = '🧩 Registrar Piezas'; submitBtn.classList.replace('success','primary'); }
+    
+    // En modo piezas, ocultar cajas para evitar confusión
+    if (boxesGroup) boxesGroup.style.display = 'none';
+    if (piecesGroup) piecesGroup.style.display = 'block';
+    if (piecesHint) piecesHint.style.display = 'block';
+    
+    // Resetear cajas a 0 para que no afecten el cálculo
+    const boxesInput = document.getElementById('refill-boxes');
+    if (boxesInput) boxesInput.value = 0;
+
   } else {
+    // MODO EXIT (Cajas)
     btnExit?.classList.replace('secondary', 'primary');
     if (btnExit) btnExit.style.opacity = 1;
-    btnEntry?.classList.replace('primary', 'secondary');
-    if (btnEntry) btnEntry.style.opacity = 0.6;
     if (expiryGroup) expiryGroup.style.display = 'none';
     if (warehouseInput) { warehouseInput.readOnly = true; warehouseInput.style.background = '#f8fafc'; }
     if (boxesLabel) boxesLabel.textContent = 'Cajas a MOVER';
     if (submitBtn) { submitBtn.textContent = '✅ Registrar Movimiento'; submitBtn.classList.replace('success','primary'); }
+    
+    // Mostrar cajas, ocultar piezas (o dejarlas visibles pero secundarias)
+    if (boxesGroup) boxesGroup.style.display = 'block';
+    if (piecesGroup) piecesGroup.style.display = 'none';
+    if (piecesHint) piecesHint.style.display = 'none';
+    
+    // Resetear piezas a 0
+    const piecesInput = document.getElementById('refill-pieces');
+    if (piecesInput) piecesInput.value = 0;
   }
 }
 
@@ -219,8 +261,78 @@ async function handleRefillSubmitSafe(event) {
   event.preventDefault();
   if (refillMode === 'entry') {
     await handleRefillEntrySafe();
+  } else if (refillMode === 'pieces') {
+    await handleRefillPiecesSafe();
   } else {
     await handleRefillExitSafe();
+  }
+}
+
+// ============================================================
+// MODO PIEZAS (SALIDA FRACCIONARIA)
+// ============================================================
+async function handleRefillPiecesSafe() {
+  if (!refillCurrentProduct?._exists) {
+    showToast('⚠️ Escanea un producto existente', 'warning');
+    return;
+  }
+
+  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
+  if (piezasSueltas <= 0) {
+    showToast('⚠️ Ingresa la cantidad de piezas a mover', 'warning');
+    return;
+  }
+
+  const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
+  const cajasEquivalentes = piezasSueltas / piezasPorCaja;
+
+  if (!refillCurrentLoteId) {
+    showToast('⚠️ Selecciona una bodega primero', 'warning');
+    return;
+  }
+
+  const det = await getCachedDeterminante();
+  const loteActual = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
+  const stockActual = loteActual?.stock || 0;
+
+  if (cajasEquivalentes > stockActual) {
+    showToast(`❌ Stock insuficiente (${stockActual} cajas disponibles)`, 'error');
+    return;
+  }
+
+  try {
+    const nuevoStock = await modificarStock(refillCurrentProduct.codigoBarras, cajasEquivalentes, 'restar', refillCurrentLoteId);
+    
+    const timestamp = Date.now();
+    const usuario = firebase.auth().currentUser?.email || 'sistema';
+
+    await firebase.database().ref(`movimientos/${det}`).push({
+      tipo: 'salida',
+      motivo: 'Relleno por piezas sueltas',
+      productoNombre: refillCurrentProduct.nombre,
+      productoCodigo: refillCurrentProduct.codigoBarras,
+      marca: refillCurrentProduct.marca || 'Otra',
+      cajasMovidas: cajasEquivalentes,
+      piezasMovidas: piezasSueltas,
+      bodega: loteActual?.bodega || 'General',
+      loteId: refillCurrentLoteId,
+      stockAnterior: stockActual,
+      stockNuevo: nuevoStock,
+      fecha: timestamp,
+      realizadoPor: usuario
+    });
+
+    refillTodayCajas += cajasEquivalentes;
+    refillTodayPiezas += piezasSueltas;
+    updateRefillTodayUI();
+
+    showToast(`🧩 ${piezasSueltas} piezas movidas (${cajasEquivalentes.toFixed(2)} cajas)`, 'success');
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    limpiarFormularioRefillSafe();
+    document.getElementById('refill-barcode')?.focus();
+
+  } catch (error) {
+    showToast('❌ Error: ' + error.message, 'error');
   }
 }
 
@@ -610,6 +722,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ?.addEventListener('click', () => setRefillModeSafe('exit'));
   document.getElementById('btn-refill-mode-entry')
     ?.addEventListener('click', () => setRefillModeSafe('entry'));
+  document.getElementById('btn-refill-mode-pieces')
+    ?.addEventListener('click', () => setRefillModeSafe('pieces'));
 
   document.getElementById('refill-form')
     ?.addEventListener('submit', handleRefillSubmitSafe);

@@ -164,28 +164,82 @@ function procesarMetricas(fechaHoy) {
         res.historico7Dias[fechaStr] = movimientosDia.length;
     }
 
-    // Nuevo: Promedio Diario de Piezas POR PRODUCTO (7 días)
-    const refillMovements = movs.filter(m => m.tipo === 'salida');
-    const piecesPerProduct = {};
+    // NUEVO: Promedio Diario Inteligente (Ciclo Viernes-Jueves) + Semanal + Mensual
+    const refillMovements = movs.filter(m => m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel');
+    
+    // Función para calcular días transcurridos en el ciclo actual (Viernes a Hoy)
+    const getDaysInCycle = () => {
+        const hoy = new Date();
+        const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
+        // Mapeo: Vie=1, Sab=2, Dom=3, Lun=4, Mar=5, Mie=6, Jue=7
+        const mapping = { 5: 1, 6: 2, 0: 3, 1: 4, 2: 5, 3: 6, 4: 7 };
+        return mapping[diaSemana] || 1;
+    };
+
+    const daysInCurrentCycle = getDaysInCycle();
+    const statsPerProduct = {};
+
+    // 1. Calcular sumas por periodos
+    const ahora = Date.now();
+    const unaSemanaMs = 7 * 24 * 60 * 60 * 1000;
+    const unMesMs = 30 * 24 * 60 * 60 * 1000;
 
     refillMovements.forEach(m => {
         const productName = m.productoNombre || 'Desconocido';
         const pieces = parseInt(m.piezasMovidas) || 0;
-        if (!piecesPerProduct[productName]) {
-            piecesPerProduct[productName] = 0;
+        const movFecha = m.fecha;
+
+        if (!statsPerProduct[productName]) {
+            statsPerProduct[productName] = { 
+                currentCyclePieces: 0, 
+                last7DaysPieces: 0, 
+                last30DaysPieces: 0 
+            };
         }
-        piecesPerProduct[productName] += pieces;
+
+        const diffMs = ahora - movFecha;
+        // Ciclo actual (desde el Viernes)
+        if (diffMs <= (daysInCurrentCycle * 24 * 60 * 60 * 1000)) {
+            statsPerProduct[productName].currentCyclePieces += pieces;
+        }
+        // Últimos 7 días
+        if (diffMs <= unaSemanaMs) {
+            statsPerProduct[productName].last7DaysPieces += pieces;
+        }
+        // Últimos 30 días
+        if (diffMs <= unMesMs) {
+            statsPerProduct[productName].last30DaysPieces += pieces;
+        }
     });
 
-    const dailyAveragePiecesPerProduct = Object.keys(piecesPerProduct).map(productName => {
-        return {
-            nombre: productName,
-            dailyAverage: Math.round(piecesPerProduct[productName] / 7)
-        };
-    }).sort((a, b) => b.dailyAverage - a.dailyAverage); // Ordenar por promedio diario más alto
+    // 2. Generar objeto de analítica avanzada
+    const analyticsPerProduct = {};
+    Object.keys(statsPerProduct).forEach(name => {
+        const stats = statsPerProduct[name];
+        
+        // Promedio Diario: Ciclo actual / días ciclo
+        const dailyAvg = Math.round(stats.currentCyclePieces / daysInCurrentCycle);
+        // Semanal: Total últimos 7 días
+        const weeklyTotal = stats.last7DaysPieces;
+        // Mensual: Total últimos 30 días
+        const monthlyTotal = stats.last30DaysPieces;
 
-    res.dailyAveragePiecesPerProduct = dailyAveragePiecesPerProduct;
-    console.log(`📊 Promedio diario de piezas POR PRODUCTO calculado:`, res.dailyAveragePiecesPerProduct);
+        analyticsPerProduct[name] = {
+            daily: dailyAvg,
+            weekly: weeklyTotal,
+            monthly: monthlyTotal,
+            cycleDays: daysInCurrentCycle
+        };
+    });
+
+    res.analyticsPerProduct = analyticsPerProduct;
+    // Compatibilidad con el formato anterior
+    res.dailyAveragePiecesPerProduct = Object.keys(analyticsPerProduct).map(name => ({
+        nombre: name,
+        dailyAverage: analyticsPerProduct[name].daily
+    })).sort((a, b) => b.dailyAverage - a.dailyAverage);
+
+    console.log(`📊 Motor de Analítica Walmart-Style activo:`, res.analyticsPerProduct);
 } // <--- Corregido: Agregado el corchete de cierre que faltaba aquí
 
 // ============================================================
