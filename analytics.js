@@ -310,7 +310,7 @@ async function generateAndRenderTop10() {
             const fila = [
                 `"${p.nombre}"`,
                 `"${p.marca}"`,
-                `"${p.codigo}"`,
+                `"=""${p.codigo}"""`, // Formato de Excel para mantener el número como texto completo
                 `"${p.ubicaciones.join('; ')}"`,
                 p.cajas,
                 p.piezas,

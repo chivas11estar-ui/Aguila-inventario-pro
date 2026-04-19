@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c refill-safe.js)",
+      "Bash(node -c inventory-ui.js)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet build *)",
+      "Bash(tee build.log)",
+      "Bash(taskkill /IM KSP_x64.exe /F)",
+      "Bash(taskkill /IM KSP.exe /F)",
+      "Bash(echo \"   Nueva ubicación: G:\\\\\\\\SteamLibrary\\\\\\\\steamapps\\\\\\\\common\\\\\\\\Kerbal Space Program\\\\\\\\AutoKerbal_Source\")",
+      "Bash(tasklist)",
+      "Bash(taskkill //F //PID 14116)"
+    ]
+  }
+}

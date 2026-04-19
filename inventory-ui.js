@@ -39,7 +39,7 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
     const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
 
     // 3. Ordenar marcas (prioridad predefinida)
-    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra']
+    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra']
       .filter(marca => productosPorMarca[marca]);
 
     // 4. Renderizar HTML
