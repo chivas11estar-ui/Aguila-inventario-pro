@@ -2,27 +2,28 @@
 // Águila Inventario Pro - Módulo: profile.js
 // Lógica de Negocio y Gestión de Estado
 // Modificado para integrar con profile-ui.js
+// FIX: Dark mode toggle ahora funciona correctamente
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 // Inicializar Estado Global
 window.PROFILE_STATE = {
-    userData: null,
-    preferences: {
-        fraseMotivacional: '¡Hoy será un gran día! 🦅',
-        avatar: '👤',
-        mostrarClima: true,
-        mostrarEstadisticas: true,
-        darkMode: false // Default to light mode
-    },
-    todayActivity: {
-        auditorias: 0,
-        productosAuditados: 0,
-        rellenos: 0,
-        cajasMovidas: 0
-    },
-    weather: null,
-    isLoading: false
+        userData: null,
+        preferences: {
+                    fraseMotivacional: '¡Hoy será un gran día! 🦅',
+                    avatar: '👤',
+                    mostrarClima: true,
+                    mostrarEstadisticas: true,
+                    darkMode: null // null = no cargado aún, se determina por localStorage
+        },
+        todayActivity: {
+                    auditorias: 0,
+                    productosAuditados: 0,
+                    rellenos: 0,
+                    cajasMovidas: 0
+        },
+        weather: null,
+        isLoading: false
 };
 
 // ============================================================
@@ -36,25 +37,33 @@ window.saveUserPreferences = saveUserPreferences;
 
 // ============================================================
 // GESTIÓN DE TEMA (CLARO/OSCURO)
+// FIX: El bug era que || siempre fallaba a localStorage cuando
+// darkMode era false. Ahora se usa prioridad explícita con null check.
 // ============================================================
 function applyTheme(forceMode = null) {
-    const htmlElement = document.documentElement;
-    let isDark;
+        const htmlElement = document.documentElement;
+        let isDark;
 
     if (forceMode !== null) {
-        isDark = forceMode;
+                isDark = forceMode;
     } else {
-        // Prioridad: 1. Estado en memoria, 2. localStorage, 3. Preferencias cargadas
-        isDark = window.PROFILE_STATE.preferences.darkMode || 
-                 localStorage.getItem('theme') === 'dark';
+                // Prioridad: 1. Estado en memoria (si fue cargado), 2. localStorage
+            const stateMode = window.PROFILE_STATE.preferences.darkMode;
+                if (stateMode !== null && stateMode !== undefined) {
+                                // El estado ya fue cargado de Firebase o cambiado por el usuario
+                    isDark = stateMode;
+                } else {
+                                // Primera carga: usar localStorage como fallback
+                    isDark = localStorage.getItem('theme') === 'dark';
+                }
     }
 
     if (isDark) {
-        htmlElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
     } else {
-        htmlElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
     }
 
     // Asegurar sincronía con el estado
@@ -65,21 +74,21 @@ function applyTheme(forceMode = null) {
 // INICIALIZACIÓN
 // ============================================================
 async function initProfileModule() {
-    console.log('👤 Inicializando módulo de perfil (Logic)...');
+        console.log('👤 Inicializando módulo de perfil (Logic)...');
 
     // Carga inicial ultra-rápida del tema desde localStorage
     if (localStorage.getItem('theme') === 'dark') {
-        document.documentElement.classList.add('dark');
+                document.documentElement.classList.add('dark');
     }
 
     // Escuchar cambios de autenticación
     firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log('✅ Usuario detectado, iniciando carga de perfil...');
-            await loadUserProfile();
-        } else {
-            window.PROFILE_STATE.userData = null;
-        }
+                if (user) {
+                                console.log('✅ Usuario detectado, iniciando carga de perfil...');
+                                await loadUserProfile();
+                } else {
+                                window.PROFILE_STATE.userData = null;
+                }
     });
 }
 
@@ -87,49 +96,52 @@ async function initProfileModule() {
 // CARGAR PERFIL DE USUARIO
 // ============================================================
 async function loadUserProfile() {
-    const userId = firebase.auth().currentUser?.uid;
-    if (!userId) return;
+        const userId = firebase.auth().currentUser?.uid;
+        if (!userId) return;
 
     window.PROFILE_STATE.isLoading = true;
-    if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
 
     try {
-        const snapshot = await firebase.database().ref(`usuarios/${userId}`).once('value');
-        const data = snapshot.val();
+                const snapshot = await firebase.database().ref(`usuarios/${userId}`).once('value');
+                const data = snapshot.val();
 
-        if (!data) {
-            console.warn('⚠️ No se encontró perfil de usuario');
-            if (typeof showToast === 'function') showToast('Perfil no encontrado', 'warning');
+            if (!data) {
+                            console.warn('⚠️ No se encontró perfil de usuario');
+                            if (typeof showToast === 'function') showToast('Perfil no encontrado', 'warning');
+                            window.PROFILE_STATE.isLoading = false;
+                            if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+                            return;
+            }
+
+            // Actualizar estado
+            window.PROFILE_STATE.userData = data;
+
+            // Cargar preferencias si existen (o usar defaults)
+            if (data.preferences) {
+                            window.PROFILE_STATE.preferences = {
+                                                ...window.PROFILE_STATE.preferences,
+                                                ...data.preferences
+                            };
+            }
+
+            applyTheme(); // Apply theme based on loaded preferences
             window.PROFILE_STATE.isLoading = false;
-            if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
-            return;
-        }
+                console.log('✅ Perfil cargado en estado global');
 
-        // Actualizar estado
-        window.PROFILE_STATE.userData = data;
+            // Renderizar UI principal
+            if (typeof window.renderProfileUI === 'function') {
+                            window.renderProfileUI();
+            }
 
-        // Cargar preferencias si existen (o usar defaults)
-        if (data.preferences) {
-            window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...data.preferences };
-        }
-        applyTheme(); // Apply theme based on loaded preferences
-
-        window.PROFILE_STATE.isLoading = false;
-        console.log('✅ Perfil cargado en estado global');
-
-        // Renderizar UI principal
-        if (typeof window.renderProfileUI === 'function') {
-            window.renderProfileUI();
-        }
-
-        // Cargar datos secundarios
-        loadDailyActivity();
-        window.fetchWeatherData();
+            // Cargar datos secundarios
+            loadDailyActivity();
+                window.fetchWeatherData();
 
     } catch (error) {
-        console.error('❌ Error cargando perfil:', error);
-        window.PROFILE_STATE.isLoading = false;
-        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+                console.error('❌ Error cargando perfil:', error);
+                window.PROFILE_STATE.isLoading = false;
+                if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
     }
 }
 
@@ -137,94 +149,91 @@ async function loadUserProfile() {
 // CARGAR ACTIVIDAD DIARIA
 // ============================================================
 async function loadDailyActivity() {
-    const determinante = window.PROFILE_STATE.userData?.determinante;
-    if (!determinante) return;
+        const determinante = window.PROFILE_STATE.userData?.determinante;
+        if (!determinante) return;
 
     const today = getLocalDateString(); // Fecha en zona horaria local
 
     try {
-        const [auditsSnap, movsSnap] = await Promise.all([
-            firebase.database().ref(`auditorias/${determinante}`).orderByChild('fecha').startAt(today).once('value'),
-            firebase.database().ref(`movimientos/${determinante}`).orderByChild('fecha').startAt(today).once('value')
-        ]);
+                const [auditsSnap, movsSnap] = await Promise.all([
+                                firebase.database().ref(`auditorias/${determinante}`).orderByChild('fecha').startAt(today).once('value'),
+                                firebase.database().ref(`movimientos/${determinante}`).orderByChild('fecha').startAt(today).once('value')
+                            ]);
 
-        const audits = auditsSnap.val() || {};
-        const movs = movsSnap.val() || {};
+            const audits = auditsSnap.val() || {};
+                const movs = movsSnap.val() || {};
 
-        // Calcular totales
-        let totalProductosAuditados = 0;
-        Object.values(audits).forEach(a => totalProductosAuditados += (a.productos ? Object.keys(a.productos).length : 0));
+            // Calcular totales
+            let totalProductosAuditados = 0;
+                Object.values(audits).forEach(a => totalProductosAuditados += (a.productos ? Object.keys(a.productos).length : 0));
 
-        let totalCajasMovidas = 0;
-        Object.values(movs).forEach(m => totalCajasMovidas += (m.cajas || 0));
+            let totalCajasMovidas = 0;
+                Object.values(movs).forEach(m => totalCajasMovidas += (m.cajas || 0));
 
-        window.PROFILE_STATE.todayActivity = {
-            auditorias: Object.keys(audits).length,
-            productosAuditados: totalProductosAuditados,
-            rellenos: Object.keys(movs).length,
-            cajasMovidas: totalCajasMovidas
-        };
+            window.PROFILE_STATE.todayActivity = {
+                            auditorias: Object.keys(audits).length,
+                            productosAuditados: totalProductosAuditados,
+                            rellenos: Object.keys(movs).length,
+                            cajasMovidas: totalCajasMovidas
+            };
 
-        if (typeof window.updateActivityUI === 'function') {
-            window.updateActivityUI();
-        }
-
+            if (typeof window.updateActivityUI === 'function') {
+                            window.updateActivityUI();
+            }
     } catch (e) {
-        console.error("Error cargando actividad:", e);
+                console.error("Error cargando actividad:", e);
     }
 }
-
-
 
 // ============================================================
 // FUNCIONES PÚBLICAS PARA ACTUALIZAR DATOS
 // ============================================================
 async function updateUserData(newData) {
-    const userId = firebase.auth().currentUser?.uid;
-    if (!userId) return false;
+        const userId = firebase.auth().currentUser?.uid;
+        if (!userId) return false;
 
     try {
-        await firebase.database().ref(`usuarios/${userId}`).update(newData);
-
-        // Actualizar estado local
-        window.PROFILE_STATE.userData = { ...window.PROFILE_STATE.userData, ...newData };
-
-        if (typeof showToast === 'function') showToast('✅ Datos actualizados', 'success');
-        return true;
+                await firebase.database().ref(`usuarios/${userId}`).update(newData);
+                // Actualizar estado local
+            window.PROFILE_STATE.userData = {
+                            ...window.PROFILE_STATE.userData,
+                            ...newData
+            };
+                if (typeof showToast === 'function') showToast('✅ Datos actualizados', 'success');
+                return true;
     } catch (error) {
-        console.error('Error actualizando usuario:', error);
-        if (typeof showToast === 'function') showToast('Error al actualizar', 'error');
-        return false;
+                console.error('Error actualizando usuario:', error);
+                if (typeof showToast === 'function') showToast('Error al actualizar', 'error');
+                return false;
     }
 }
 
 async function saveUserPreferences(newPrefs) {
-    const userId = firebase.auth().currentUser?.uid;
-    if (!userId) return false;
+        const userId = firebase.auth().currentUser?.uid;
+        if (!userId) return false;
 
     try {
-        await firebase.database().ref(`usuarios/${userId}/preferences`).update(newPrefs);
-
-        // Actualizar estado local
-        window.PROFILE_STATE.preferences = { ...window.PROFILE_STATE.preferences, ...newPrefs };
-        applyTheme(); // Apply theme immediately after saving preference
-
-        if (typeof showToast === 'function') showToast('✅ Preferencias guardadas', 'success');
-        return true;
+                await firebase.database().ref(`usuarios/${userId}/preferences`).update(newPrefs);
+                // Actualizar estado local
+            window.PROFILE_STATE.preferences = {
+                            ...window.PROFILE_STATE.preferences,
+                            ...newPrefs
+            };
+                applyTheme(); // Apply theme immediately after saving preference
+            if (typeof showToast === 'function') showToast('✅ Preferencias guardadas', 'success');
+                return true;
     } catch (error) {
-        console.error('Error guardando preferencias:', error);
-        return false;
+                console.error('Error guardando preferencias:', error);
+                return false;
     }
 }
 
-
-
 // Inicializar
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initProfileModule);
+        document.addEventListener('DOMContentLoaded', initProfileModule);
 } else {
-    initProfileModule();
-    applyTheme(); // Apply theme immediately if DOM is already loaded
+        initProfileModule();
+        applyTheme(); // Apply theme immediately if DOM is already loaded
 }
 
 console.log('✅ profile.js (Logic) cargado - Integrado con profile-ui.js');

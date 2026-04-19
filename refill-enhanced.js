@@ -9,10 +9,12 @@
 // ============================================================
 
 let userDeterminanteRefill = null;
+  const piecesGroup = document.getElementById('refill-pieces-group');
 let currentRefillProduct = null;
 let todayRefillCount = 0;
 let todayPiecesCount = 0;
-let refillMode = 'exit'; // 'exit' (salida) or 'entry' (entrada)
+let refillMode = 'exit'; // 'exit' (salida), 'pieces' (piezas sueltas) or 'entry' (entrada)
+let todayLoosePiecesCount = 0; // Contador de piezas sueltas del dia
 
 console.log('🔄 Módulo de relleno HÍBRIDO iniciando...');
 
@@ -25,39 +27,56 @@ function setRefillMode(mode) {
 
   const btnEntry = document.getElementById('btn-refill-mode-entry');
   const btnExit = document.getElementById('btn-refill-mode-exit');
+  const btnPieces = document.getElementById('btn-refill-mode-pieces');
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
   const boxesLabel = document.getElementById('refill-boxes-label');
   const submitBtn = document.querySelector('#refill-form button[type="submit"]');
 
   if (mode === 'entry') {
-    // --- MODO ENTRADA ---
     btnEntry.classList.replace('secondary', 'primary');
     btnEntry.style.opacity = 1;
     btnExit.classList.replace('primary', 'secondary');
     btnExit.style.opacity = 0.6;
-
+    if (btnPieces) { btnPieces.classList.replace('warning', 'secondary'); btnPieces.style.opacity = 0.6; }
     expiryGroup.style.display = 'block';
     warehouseInput.readOnly = false;
-    warehouseInput.style.background = '#fff';
-    boxesLabel.textContent = 'Cantidad de Cajas a AÑADIR';
-    submitBtn.textContent = '➕ Registrar Entrada de Stock';
-    submitBtn.classList.replace('primary', 'success');
+    warehouseInput.style.background = '';
+    boxesLabel.textContent = 'Cantidad de Cajas a ANADIR';
+    submitBtn.textContent = 'Registrar Entrada de Stock';
+    submitBtn.classList.replace('success', 'primary');
+    submitBtn.classList.replace('warning', 'primary');
+    if (piecesGroup) piecesGroup.style.display = 'none';
 
+  } else if (mode === 'pieces') {
+    btnExit.classList.replace('primary', 'secondary');
+    btnExit.style.opacity = 0.6;
+    btnEntry.classList.replace('primary', 'secondary');
+    btnEntry.style.opacity = 0.6;
+    if (btnPieces) { btnPieces.classList.replace('secondary', 'warning'); btnPieces.style.opacity = 1; }
+    expiryGroup.style.display = 'none';
+    warehouseInput.readOnly = true;
+    warehouseInput.style.background = '#f8fafc';
+    boxesLabel.textContent = 'Cajas (calculadas automaticamente)';
+    submitBtn.textContent = 'Registrar Piezas Sueltas';
+    submitBtn.classList.replace('primary', 'warning');
+    submitBtn.classList.replace('success', 'warning');
+    if (piecesGroup) piecesGroup.style.display = 'block';
 
   } else {
-    // --- MODO SALIDA (DEFAULT) ---
     btnExit.classList.replace('secondary', 'primary');
     btnExit.style.opacity = 1;
     btnEntry.classList.replace('primary', 'secondary');
     btnEntry.style.opacity = 0.6;
-
+    if (btnPieces) { btnPieces.classList.replace('warning', 'secondary'); btnPieces.style.opacity = 0.6; }
     expiryGroup.style.display = 'none';
     warehouseInput.readOnly = true;
     warehouseInput.style.background = '#f8fafc';
     boxesLabel.textContent = 'Cantidad de Cajas a MOVER';
-    submitBtn.textContent = '✅ Registrar Movimiento';
+    submitBtn.textContent = 'Registrar Movimiento';
+    submitBtn.classList.replace('warning', 'primary');
     submitBtn.classList.replace('success', 'primary');
+    if (piecesGroup) piecesGroup.style.display = 'none';
   }
 
   // Re-evaluar el producto actual con el nuevo modo
@@ -209,12 +228,70 @@ async function searchProductForRefill(barcode) {
 // ============================================================
 // MANEJADOR PRINCIPAL DE SUBMIT
 // ============================================================
-async function handleRefillSubmit(event) {
-  event.preventDefault();
+async function handleRefillSubmit() {
   if (refillMode === 'entry') {
     await handleRefillEntry();
+  } else if (refillMode === 'pieces') {
+    await handleRefillPieces();
   } else {
     await handleRefillExit();
+  }
+}
+
+// ============================================================
+// MODO PIEZAS SUELTAS: Relleno por piezas individuales
+// Convierte piezas a cajas equivalentes (decimal) y descuenta stock
+// ============================================================
+async function handleRefillPieces() {
+  console.log('Procesando relleno por PIEZAS...');
+  if (!currentRefillProduct) { showToast('Primero escanea un producto', 'warning'); return; }
+  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
+  if (piezasSueltas <= 0) { showToast('Ingresa un numero de piezas valido (> 0)', 'error'); return; }
+  const piezasPorCaja = parseInt(document.getElementById('refill-piezas').value) || 1;
+  const cajasEquivalentes = parseFloat((piezasSueltas / piezasPorCaja).toFixed(4));
+  const hint = document.getElementById('refill-pieces-hint');
+  if (hint) {
+    hint.textContent = piezasSueltas + ' pzs / ' + piezasPorCaja + ' pzs/caj = ' + cajasEquivalentes.toFixed(2) + ' cajas equiv.';
+    hint.style.display = 'block';
+  }
+  try {
+    const det = await INVENTORY_CORE.getCachedDeterminante();
+    if (!det) { showToast('No se pudo obtener determinante', 'error'); return; }
+    const primeraRef = currentRefillProduct.registros && currentRefillProduct.registros[0];
+    if (!primeraRef) { showToast('No se encontro lote del producto', 'error'); return; }
+    const loteId = primeraRef.id;
+    const stockActual = parseFloat(primeraRef.cajas) || 0;
+    const stockNuevo = parseFloat((stockActual - cajasEquivalentes).toFixed(4));
+    const updates = {};
+    const codigoProd = currentRefillProduct.codigoBarras || currentRefillProduct.codigoBarras;
+    updates['inventario/' + det + '/' + codigoProd + '/lotes/' + loteId + '/cajas'] = stockNuevo;
+    const movRef = firebase.database().ref('movimientos/' + det).push();
+    const movData = {
+      tipo: 'salida',
+      subTipo: 'piezas_sueltas',
+      productoNombre: currentRefillProduct.nombre || '',
+      productoCodigo: codigoProd,
+      marca: currentRefillProduct.marca || '',
+      cajasMovidas: cajasEquivalentes,
+      piezasMovidas: piezasSueltas,
+      piezasPorCaja: piezasPorCaja,
+      stockAnterior: stockActual,
+      stockNuevo: stockNuevo,
+      fecha: new Date().toISOString(),
+      realizadoPor: det,
+      motivo: 'Relleno por piezas sueltas'
+    };
+    updates['movimientos/' + det + '/' + movRef.key] = movData;
+    await firebase.database().ref().update(updates);
+    todayRefillCount++;
+    todayPiecesCount += piezasSueltas;
+    todayLoosePiecesCount += piezasSueltas;
+    updateTodayMovementsUI();
+    showToast(piezasSueltas + ' pzs registradas (~' + cajasEquivalentes.toFixed(2) + ' cajas). Stock nuevo: ' + stockNuevo.toFixed(2) + ' cajas', 'success');
+    limpiarFormularioRefill();
+  } catch (err) {
+    console.error('Error en handleRefillPieces:', err);
+    showToast('Error al registrar piezas: ' + err.message, 'error');
   }
 }
 
@@ -403,13 +480,16 @@ function limpiarFormularioRefill() {
   document.getElementById('refill-form').reset();
 
   // Restaurar campos a su estado por defecto (readonly, etc.)
-  ['refill-nombre', 'refill-piezas'].forEach(id => {
+  ['refill-nombre', 'refill-piezas', 'refill-pieces'].forEach(id => {
     const el = document.getElementById(id);
     el.readOnly = true;
     el.style.background = '#f8fafc';
   });
   document.getElementById('refill-marca').disabled = true;
   document.getElementById('refill-warehouse').readOnly = true;
+  // Reset pieces fields
+  const piecesHint = document.getElementById('refill-pieces-hint');
+  if (piecesHint) { piecesHint.textContent = 'Conversion automatica: piezas / pzs/caj = cajas equivalentes'; piecesHint.style.display = 'none'; }
   document.getElementById('refill-warehouse').style.background = '#f8fafc';
   document.getElementById('refill-expiry-date-group').style.display = 'none';
 
@@ -430,6 +510,7 @@ function updateTodayMovementsUI() {
           <div style="font-size:24px;font-weight:700;color:#10b981;">${todayRefillCount}</div>
           <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
           <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${todayPiecesCount} piezas</div>
+        <div style="font-size:12px; color:#7c3aed; margin-top:4px;">${todayLoosePiecesCount} pzs sueltas hoy</div>
         `;
   }
 }
@@ -451,6 +532,7 @@ async function loadTodayMovements() {
       const movimientos = Object.values(snapshot.val()).filter(m => m.tipo === 'salida');
       todayRefillCount = movimientos.reduce((sum, m) => sum + (m.cajasMovidas || 0), 0);
       todayPiecesCount = movimientos.reduce((sum, m) => sum + (m.piezasMovidas || 0), 0);
+        todayLoosePiecesCount = movimientos.reduce((sum, m) => sum + (m.subTipo === 'piezas_sueltas' ? (m.piezasMovidas || 0) : 0), 0);
     } else {
       todayRefillCount = 0;
       todayPiecesCount = 0;
@@ -479,6 +561,19 @@ document.addEventListener('DOMContentLoaded', () => {
       searchProductForRefill(e.target.value);
     }
   });
+
+  // Listener para Modo Piezas Sueltas
+  const _btnPieces = document.getElementById('btn-refill-mode-pieces');
+  if (_btnPieces) {
+    _btnPieces.addEventListener('click', () => {
+      refillMode = 'pieces';
+      setRefillMode('pieces');
+      const pInput = document.getElementById('refill-pieces');
+      if (pInput) pInput.value = 0;
+      const bInput = document.getElementById('refill-boxes');
+      if (bInput) { bInput.value = 0; bInput.readOnly = true; }
+    });
+  }
 
   // Cargar datos iniciales
   firebase.auth().onAuthStateChanged((user) => {
