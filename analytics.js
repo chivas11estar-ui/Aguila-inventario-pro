@@ -243,11 +243,107 @@ function procesarMetricas(fechaHoy) {
 } // <--- Corregido: Agregado el corchete de cierre que faltaba aquí
 
 // ============================================================
-// LÓGICA TOP 10 MÁS VENDIDOS (HISTÓRICO COMPLETO)
+// LÓGICA DE EXPORTACIÓN A EXCEL/CSV (REPORTE COMPLETO)
 // ============================================================
 async function generateAndRenderTop10() {
-    showToast('La función de reporte completo se ha integrado o simplificado en el nuevo diseño.', 'info');
-    console.log('ℹ️ Se hizo clic en "Ver Reporte Completo". En el nuevo diseño, la información clave se integra directamente.');
+    try {
+        showToast('🔄 Generando reporte de inventario...', 'info');
+        
+        const productos = window.INVENTORY_STATE?.productos || [];
+        const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
+        const movs = window.ANALYTICS_STATE?.movimientos || [];
+        
+        if (productos.length === 0) {
+            showToast('⚠️ No hay productos en el inventario para exportar.', 'warning');
+            return;
+        }
+
+        // 1. Agrupar productos por nombre para el reporte consolidado
+        const reporteData = [];
+        const hoyStr = getLocalDateString(new Date());
+
+        // Agrupar productos por código para consolidar stock de diferentes bodegas si es necesario
+        const productosConsolidados = {};
+        productos.forEach(p => {
+            if (!productosConsolidados[p.nombre]) {
+                productosConsolidados[p.nombre] = {
+                    nombre: p.nombre,
+                    marca: p.marca || 'Otra',
+                    codigo: p.codigoBarras,
+                    cajas: 0,
+                    piezas: 0,
+                    ubicaciones: []
+                };
+            }
+            productosConsolidados[p.nombre].cajas += (parseInt(p.cajas || p.totalCajas) || 0);
+            productosConsolidados[p.nombre].piezas += (parseInt(p.piezas || p.totalPiezas) || 0);
+            if (p.ubicacion && !productosConsolidados[p.nombre].ubicaciones.includes(p.ubicacion)) {
+                productosConsolidados[p.nombre].ubicaciones.push(p.ubicacion);
+            }
+        });
+
+        // 2. Construir filas del CSV
+        const encabezados = [
+            "Producto", "Marca", "Codigo", "Ubicaciones", 
+            "Stock (Cajas)", "Stock (Piezas)", 
+            "Venta Diaria (Prom)", "Venta Semanal (Total)", 
+            "Dias de Inventario", "Relleno Hoy (Cajas)", "Relleno Hoy (Piezas)"
+        ];
+
+        let csvContent = "\uFEFF"; // BOM para Excel
+        csvContent += encabezados.join(",") + "\n";
+
+        Object.values(productosConsolidados).forEach(p => {
+            const stats = analytics[p.nombre] || { daily: 0, weekly: 0 };
+            const diasInv = stats.daily > 0 ? Math.ceil(p.piezas / stats.daily) : 0;
+            
+            // Movimientos de hoy para este producto
+            const movsHoy = movs.filter(m => 
+                m.productoNombre === p.nombre && 
+                isoToLocalDate(m.fecha) === hoyStr &&
+                (m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel')
+            );
+            
+            const refillCajasHoy = movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0);
+            const refillPiezasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas) || 0), 0);
+
+            const fila = [
+                `"${p.nombre}"`,
+                `"${p.marca}"`,
+                `"${p.codigo}"`,
+                `"${p.ubicaciones.join('; ')}"`,
+                p.cajas,
+                p.piezas,
+                stats.daily,
+                stats.weekly,
+                diasInv,
+                refillCajasHoy.toFixed(2),
+                refillPiezasHoy
+            ];
+            
+            csvContent += fila.join(",") + "\n";
+        });
+
+        // 3. Descargar el archivo
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const fechaArchivo = new Date().toISOString().slice(0, 10);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('✅ Reporte descargado con éxito', 'success');
+        console.log('📊 Reporte generado y descargado.');
+
+    } catch (error) {
+        console.error('❌ Error generando reporte:', error);
+        showToast('Error al generar el archivo', 'error');
+    }
 }
 
 // ============================================================
