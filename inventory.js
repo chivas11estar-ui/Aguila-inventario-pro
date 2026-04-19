@@ -18,7 +18,7 @@ const BRAND_EXPIRY_CONFIG = {
   'Gamesa': 60,
   'Quaker': 60,
   "Sonric's": 60,
-  'Cacahuate': 30,
+  'Cacahuates': 30,
   'default': 60
 };
 
