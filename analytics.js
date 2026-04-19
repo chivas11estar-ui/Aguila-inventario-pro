@@ -240,7 +240,7 @@ function procesarMetricas(fechaHoy) {
     })).sort((a, b) => b.dailyAverage - a.dailyAverage);
 
     console.log(`📊 Motor de Analítica Walmart-Style activo:`, res.analyticsPerProduct);
-} // <--- Corregido: Agregado el corchete de cierre que faltaba aquí
+}
 
 // ============================================================
 // LÓGICA DE EXPORTACIÓN A EXCEL/CSV (REPORTE COMPLETO)
