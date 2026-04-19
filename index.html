@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">h
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://*.gstatic.com https://*.firebaseio.com https://*.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' https://fonts.googleapis.com https://*.gstatic.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src * 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; manifest-src 'self';">
+  <meta http-equiv="Content-Security-Polhicy" content="default-src 'self'; script-src 'self' https://*.gstatic.com https://*.firebaseio.com https://*.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' https://fonts.googleapis.com https://*.gstatic.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src * 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; manifest-src 'self';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
   <meta name="author" content="José A. G. Betancourt">
@@ -334,11 +334,10 @@
             <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
 
             <div id="refill-mode-selector"
-              style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
-              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">🔄 Salida (Rellenar
-                Exhibidor)</button>
-              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">➕ Entrada (Añadir
-                Stock)</button>
+              style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; flex-wrap: wrap;">
+              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">&#128230; Salida (Rellenar Exhibidor)</button>
+              <button id="btn-refill-mode-pieces" class="warning" style="flex: 1; opacity: 0.6;">&#129329; Por Piezas</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada (Añadir Stock)</button>
             </div>
 
             <form id="refill-form" style="margin-top: 20px;">
@@ -391,10 +390,13 @@
                   <label id="refill-boxes-label" for="refill-boxes">Cajas</label>
                   <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" value="0" />
                 </div>
-                <div class="form-group">
-                  <label for="refill-pieces">Piezas sueltas</label>
-                  <input id="refill-pieces" type="number" placeholder="Ej: 12" min="0" value="0" />
-                </div>
+                <div class="form-group" id="refill-pieces-group">
+                <label for="refill-pieces">🧩 Piezas a Mover</label>
+                <input id="refill-pieces" type="number" placeholder="Ej: 12" min="0" value="0" />
+                <small id="refill-pieces-hint" style="color:#6b7280; margin-top:4px; display:block; display:none;">
+                  Ej: 36 pzs ÷ 50 pzs/caj = 0.72 cajas equivalentes
+                </small>
+            </div>
               </div>
 
               <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
