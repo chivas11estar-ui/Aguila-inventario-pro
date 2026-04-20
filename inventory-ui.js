@@ -339,7 +339,7 @@ function renderProductCard(product, targetId) {
             </button>
           ` : `
             <button 
-              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('exit'); }, 100);"
+              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.bodegas[0].id}')"
               style="
                 flex: 1.5;
                 padding: 8px;
