@@ -49,10 +49,3 @@ ai-phrases-motivational.js
      // Exportar para uso global
      window.displayMotivationalPhrase = displayMotivationalPhrase;
      window.motivationalPhrases = motivationalPhrases;
-     }
-     }
-          }
-                            }
-          }
-     }
-   ]

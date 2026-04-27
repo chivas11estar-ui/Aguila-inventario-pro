@@ -48,11 +48,3 @@ weather-widget.js
 
    // Exportar para uso en otros módulos
    window.loadWeatherWidget = loadWeatherWidget;
-   }
-   }
-                        }
-      }
-                                                    }
-                }
-      }
-   }
