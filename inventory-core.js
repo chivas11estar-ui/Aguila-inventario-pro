@@ -206,37 +206,39 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
 
   return new Promise((resolve, reject) => {
     stockRef.transaction((currentStock) => {
-      console.log(`🔍 [TRANSACTION] Stock actual en DB (${stockPath}):`, currentStock);
-      
       const stock = (currentStock === null) ? 0 : (parseFloat(currentStock) || 0);
       const qty = parseFloat(cantidad) || 0;
+      let resultado = stock;
 
       if (operacion === 'restar') {
-        const resultado = stock - qty;
-        if (resultado < -0.01) { // Pequeño margen por flotantes
-          console.error(`❌ [TRANSACTION] Abortado: Stock insuficiente (${stock} < ${qty})`);
-          return undefined; // Aborta la transacción
-        }
-        return parseFloat(resultado.toFixed(2));
+        resultado = stock - qty;
+        if (resultado < -0.01) return undefined; // Aborta si no hay suficiente
+      } else if (operacion === 'sumar') {
+        resultado = stock + qty;
+      } else if (operacion === 'establecer') {
+        resultado = qty;
       }
-      if (operacion === 'sumar') return parseFloat((stock + qty).toFixed(2));
-      if (operacion === 'establecer') return Math.max(0, parseFloat(qty.toFixed(2)));
-      return currentStock;
+
+      // 🗑️ LÓGICA DE LIMPIEZA: Si el stock llega a 0, devolvemos null para borrar el nodo 'stock'
+      // Pero mejor borramos todo el nodo del lote si resultado <= 0
+      return (resultado <= 0) ? null : parseFloat(resultado.toFixed(2));
     }, (error, committed, snapshot) => {
       if (error) {
-        console.error('❌ [TRANSACTION ERROR]', error);
         reject(error);
       } else if (!committed) {
-        console.warn('⚠️ [TRANSACTION] No completada (Stock insuficiente o conflicto)');
         reject(new Error('STOCK_INSUFICIENTE'));
       } else {
         const nuevoValor = snapshot.val();
-        console.log('✅ [TRANSACTION] Éxito. Nuevo stock:', nuevoValor);
         
-        firebase.database()
-          .ref(timestampPath)
-          .set(Date.now());
-        resolve(nuevoValor);
+        // Si el valor es null, significa que el stock llegó a 0. Borramos el lote completo.
+        if (nuevoValor === null && loteId !== 'legacy') {
+          console.log(`🧹 [CORE] Stock llegó a 0. Eliminando lote: ${loteId}`);
+          firebase.database().ref(`productos/${det}/${safeCode}/lotes/${loteId}`).remove();
+        } else {
+          firebase.database().ref(timestampPath).set(Date.now());
+        }
+        
+        resolve(nuevoValor || 0);
       }
     });
   });

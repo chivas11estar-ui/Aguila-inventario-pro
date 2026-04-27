@@ -294,7 +294,87 @@
 
       <!-- TAB: RELLENAR -->
       <div id="tab-refill" class="tab-content hidden">
-         <div id="refill-container"></div>
+         <div class="max-w-2xl mx-auto space-y-6">
+            <!-- Selector de Modo Eagle -->
+            <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 flex gap-2">
+               <button id="btn-refill-mode-exit" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex flex-col items-center gap-1">
+                  <span class="material-symbols-outlined">sync_alt</span> Bajar a Piso
+               </button>
+               <button id="btn-refill-mode-entry" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex flex-col items-center gap-1">
+                  <span class="material-symbols-outlined">add_circle</span> Entrada Nueva
+               </button>
+               <button id="btn-refill-mode-pieces" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex flex-col items-center gap-1">
+                  <span class="material-symbols-outlined">extension</span> Piezas Sueltas
+               </button>
+            </div>
+
+            <!-- Formulario de Relleno -->
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-50 p-6">
+               <form id="refill-form" class="space-y-4">
+                  <div class="form-group">
+                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Código de Barras</label>
+                     <div class="flex gap-2">
+                        <input id="refill-barcode" type="text" class="flex-grow px-4 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold focus:ring-2 focus:ring-primary/20" placeholder="Escanea o escribe..." />
+                        <button type="button" id="btn-scan-refill" class="bg-primary text-white p-4 rounded-2xl active:scale-95 shadow-lg shadow-blue-100"><span class="material-symbols-outlined">barcode_scanner</span></button>
+                     </div>
+                  </div>
+
+                  <!-- Información del Producto (Dinamico) -->
+                  <div id="refill-product-info" class="hidden animate-in fade-in slide-in-from-top-4 duration-300"></div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                     <div class="form-group">
+                        <label id="refill-boxes-label" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Cajas</label>
+                        <input id="refill-boxes" type="number" class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-xl font-black text-center" value="0" />
+                     </div>
+                     <div id="refill-pieces-group" class="form-group">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Piezas</label>
+                        <input id="refill-pieces" type="number" class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-xl font-black text-center" value="0" />
+                     </div>
+                  </div>
+
+                  <!-- Campos adicionales (solo modo entrada) -->
+                  <div id="refill-extra-fields" class="space-y-4">
+                     <div class="form-group">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre del Producto</label>
+                        <input id="refill-nombre" type="text" readonly class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold" />
+                     </div>
+                     <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                           <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Marca</label>
+                           <select id="refill-marca" disabled class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold">
+                              <option value="Sabritas">Sabritas</option>
+                              <option value="Gamesa">Gamesa</option>
+                              <option value="Quaker">Quaker</option>
+                              <option value="Sonric's">Sonric's</option>
+                              <option value="Cacahuates">Cacahuates</option>
+                              <option value="Otra">Otra</option>
+                           </select>
+                        </div>
+                        <div class="form-group" id="refill-expiry-date-group" style="display:none;">
+                           <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Caducidad</label>
+                           <input id="refill-expiry-date" type="date" class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold" />
+                        </div>
+                     </div>
+                     <div class="form-group">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Bodega/Ubicación</label>
+                        <input id="refill-warehouse" type="text" readonly class="w-full px-4 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold" placeholder="Ejem: Pasillo 4 arriba" />
+                     </div>
+                  </div>
+
+                  <button type="submit" class="w-full bg-primary text-white font-black py-5 rounded-2xl mt-4 shadow-xl shadow-blue-100 active:scale-95 transition-all uppercase tracking-widest text-xs">
+                     Confirmar Movimiento
+                  </button>
+               </form>
+            </div>
+
+            <!-- Resumen de Actividad Bento -->
+            <div id="total-movements" class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg text-center">
+               <p class="text-[10px] font-black uppercase tracking-widest opacity-80">Rendimiento de Hoy</p>
+               <div class="text-4xl font-black mt-2">0</div>
+               <p class="text-xs font-bold opacity-90">Cajas movidas</p>
+            </div>
+         </div>
       </div>
 
       <!-- TAB: AUDITAR -->

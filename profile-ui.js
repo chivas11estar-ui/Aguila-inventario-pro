@@ -7,14 +7,13 @@ function renderProfileUI() {
   const container = document.getElementById('profile-container');
   if (!container) return;
 
-  const { userData, preferences, isLoading } = window.PROFILE_STATE;
+  const { userData, preferences, weather, isLoading } = window.PROFILE_STATE;
 
   if (isLoading) {
     container.innerHTML = `<div class="text-center p-20 text-slate-400 animate-pulse"><span class="material-symbols-outlined text-6xl">hourglass_empty</span><p>Cargando Perfil...</p></div>`;
     return;
   }
 
-  // Si no hay datos, usamos placeholders de prueba para mostrar el diseño
   const displayData = userData || {
     nombrePromotor: 'Carlos Rodriguez',
     email: 'carlos.rod@eagle.com',
@@ -23,11 +22,12 @@ function renderProfileUI() {
   };
 
   const html = `
-    <div class="max-w-[1200px] mx-auto px-4 pt-4">
-      <!-- Identity Card & Stats Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- User Identity Card -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-sm border border-border-subtle flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
+    <div class="max-w-[1200px] mx-auto px-4 pt-4 pb-20">
+      <!-- Identity Card & Weather Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        
+        <!-- User Identity Card (Col 8) -->
+        <div class="lg:col-span-8 bg-white p-8 rounded-2xl shadow-sm border border-border-subtle flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
           <div class="w-32 h-32 rounded-2xl overflow-hidden shadow-md flex-shrink-0 border-4 border-primary-light">
             <img src="${preferences?.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDB-EF7NkM7870Pl82iRwCcDEl4Nbv4vrW3q3obiZmzkT0uU0c1e25xf6R84WfpoFGUeMgykPKe_GQCUJKTicap4Cb7vJra88z-3EsLM2ZlKF9KJhkCIdO8_LYgfe-iXKYJAKPXLRDsm3v_WDuUXk0ekAGklObO-2Nklcbk0RRuIyJPPwQaoOdQyog9gq-op_0WGOTElopg-tfBY3LZP_vyCsAaLCS97X3gQyAwdx5jP2A0RYgPRdaYVFwLte-WKl_yCynjbVSVqiI'}" alt="Profile" class="w-full h-full object-cover" />
@@ -42,37 +42,58 @@ function renderProfileUI() {
               <button onclick="window.showEditProfileModal()" class="bg-primary text-white text-xs font-bold px-6 py-2.5 rounded-lg hover:shadow-lg transition-all active:scale-95 flex items-center gap-2">
                 <span class="material-symbols-outlined text-[18px]">edit</span> Editar Perfil
               </button>
-              <button class="border border-slate-200 text-slate-600 text-xs font-bold px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-all active:scale-95">
-                Compartir ID
-              </button>
             </div>
           </div>
         </div>
 
-        <!-- Stats Bento Card -->
-        <div class="grid grid-cols-1 gap-4">
-          <div class="bg-primary-dark text-white p-6 rounded-xl shadow-md flex flex-col justify-between relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8"></div>
-            <div class="flex justify-between items-start relative z-10">
-              <span class="material-symbols-outlined bg-white/10 p-2 rounded-lg">barcode_scanner</span>
-              <span class="text-[9px] font-black opacity-70 uppercase tracking-widest">Actividad Total</span>
+        <!-- Weather Bento Card (Col 4) -->
+        <div class="lg:col-span-4 bg-gradient-to-br from-blue-500 to-blue-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="relative z-10">
+            <div class="flex justify-between items-center mb-4">
+              <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Clima en Tienda</span>
+              <button onclick="window.refreshWeather()" class="p-1 hover:bg-white/20 rounded-lg transition-colors"><span class="material-symbols-outlined text-sm">refresh</span></button>
             </div>
-            <div class="relative z-10">
-              <h3 class="text-4xl font-black leading-tight">${displayData.determinante}</h3>
-              <p class="text-[10px] font-medium opacity-80 uppercase">Scans este mes</p>
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-5xl text-amber-300">${weather?.icon || 'wb_sunny'}</span>
+              <div>
+                <div class="text-4xl font-black leading-none">${weather?.temperature || '--'}°C</div>
+                <p class="text-[10px] font-bold uppercase opacity-90">${weather?.condition || 'Cargando...'}</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-6">
+              <div class="bg-white/10 p-2 rounded-xl border border-white/5">
+                <p class="text-[8px] font-bold uppercase opacity-60">Humedad</p>
+                <p class="text-xs font-black">${weather?.humidity || '--'}%</p>
+              </div>
+              <div class="bg-white/10 p-2 rounded-xl border border-white/5">
+                <p class="text-[8px] font-bold uppercase opacity-60">Viento</p>
+                <p class="text-xs font-black">${weather?.windSpeed || '--'} km/h</p>
+              </div>
             </div>
           </div>
-          <div class="bg-success-dark text-white p-6 rounded-xl shadow-md flex flex-col justify-between relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <span class="material-symbols-outlined bg-white/10 p-2 rounded-lg">verified</span>
-              <span class="text-[9px] font-black opacity-70 uppercase tracking-widest">Precisión</span>
-            </div>
-            <div>
-              <h3 class="text-4xl font-black leading-tight">98.2%</h3>
-              <p class="text-[10px] font-medium opacity-80 uppercase">Exactitud en Inventario</p>
-            </div>
-          </div>
+          <!-- Decorative circle -->
+          <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
         </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Actividad -->
+          <div class="bg-primary-dark text-white p-6 rounded-2xl shadow-md relative overflow-hidden group">
+            <div class="flex justify-between items-start relative z-10">
+              <span class="material-symbols-outlined bg-white/10 p-2 rounded-xl text-blue-300">barcode_scanner</span>
+              <h3 class="text-4xl font-black leading-tight">${displayData.determinante || '0'}</h3>
+            </div>
+            <p class="text-[9px] font-black opacity-70 uppercase tracking-widest mt-4">Scans Realizados</p>
+          </div>
+          <!-- Precisión -->
+          <div class="bg-emerald-600 text-white p-6 rounded-2xl shadow-md relative overflow-hidden">
+            <div class="flex justify-between items-start relative z-10">
+              <span class="material-symbols-outlined bg-white/10 p-2 rounded-xl text-emerald-200">verified</span>
+              <h3 class="text-4xl font-black leading-tight">98.2%</h3>
+            </div>
+            <p class="text-[9px] font-black opacity-70 uppercase tracking-widest mt-4">Tasa de Precisión</p>
+          </div>
       </div>
 
       <!-- Eagle Support Section -->

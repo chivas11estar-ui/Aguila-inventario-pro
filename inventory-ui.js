@@ -121,30 +121,28 @@ function renderProductCard(product, targetId) {
   let borderColor = 'border-success';
   let statusLabel = 'En Stock';
   let statusClass = 'bg-success/10 text-success-dark';
+  let iconColor = 'text-success';
   
   if (isOutOfStock) {
     borderColor = 'border-error';
     statusLabel = 'Agotado';
     statusClass = 'bg-error/10 text-error-dark';
+    iconColor = 'text-error';
   } else if (isLowStock) {
     borderColor = 'border-warning';
     statusLabel = 'Bajo Stock';
     statusClass = 'bg-warning/10 text-warning-dark';
+    iconColor = 'text-warning';
   }
-
-  // Placeholder image based on brand for a visual look
-  const brandLogos = {
-    'Sabritas': 'https://www.pepsico.com.mx/images/librariesprovider18/marcas/sabritas-logo.png',
-    'Gamesa': 'https://www.pepsico.com.mx/images/librariesprovider18/marcas/gamesa-logo.png',
-    'Pepsi': 'https://www.pepsico.com.mx/images/librariesprovider18/marcas/pepsi-logo.png'
-  };
-  const imgUrl = product.imageUrl || 'https://via.placeholder.com/300x200?text=' + encodeURIComponent(product.nombre);
 
   return `
     <div class="bg-white rounded-xl shadow-sm border-l-4 ${borderColor} overflow-hidden hover:shadow-md transition-all group flex flex-col h-full" data-product-item data-product-name="${product.nombre}" data-product-code="${product.codigoBarras}">
-      <div class="relative aspect-[16/10] overflow-hidden bg-slate-50">
-        <img src="${imgUrl}" alt="${product.nombre}" class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-50' : ''}">
-        <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-[9px] font-bold text-slate-800 shadow-sm border border-slate-100">
+      <!-- Icon Placeholder (Sustituye a la imagen) -->
+      <div class="relative py-8 flex items-center justify-center bg-slate-50/50">
+        <div class="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center ${iconColor}">
+          <span class="material-symbols-outlined text-4xl">${isOutOfStock ? 'inventory_2' : 'package_2'}</span>
+        </div>
+        <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-[9px] font-bold text-slate-400 border border-slate-100">
           ${product.codigoBarras}
         </div>
       </div>
@@ -154,6 +152,7 @@ function renderProductCard(product, targetId) {
           <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">${product.nombre}</h3>
           <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase whitespace-nowrap ${statusClass}">${statusLabel}</span>
         </div>
+...
 
         <div class="mt-auto">
           <div class="flex items-end justify-between mb-4">

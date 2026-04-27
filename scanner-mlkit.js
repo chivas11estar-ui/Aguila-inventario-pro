@@ -106,10 +106,10 @@ window.ScannerService = {
 
         listElement.innerHTML = products.map((p, index) => `
             <div class="flex-shrink-0 w-24 bg-slate-50 rounded-xl p-2 border border-slate-100 relative animate-in slide-in-from-right duration-300">
-                <div class="w-full aspect-square bg-white rounded-lg mb-1 flex items-center justify-center overflow-hidden border border-slate-50">
-                    <img src="${p.imageUrl || 'https://via.placeholder.com/60'}" class="w-full h-full object-contain">
+                <div class="w-full aspect-square bg-white rounded-lg mb-1 flex items-center justify-center overflow-hidden border border-slate-50 text-primary">
+                    <span class="material-symbols-outlined text-2xl">package_2</span>
                 </div>
-                <p class="text-[8px] font-bold text-slate-700 truncate">${p.nombre}</p>
+                <p class="text-[8px] font-bold text-slate-700 truncate text-center">${p.nombre}</p>
                 <button onclick="window.ScannerService.removeFromBatch(${index})" class="absolute -top-1 -right-1 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center text-[10px] shadow-sm">×</button>
             </div>
         `).join('');
