@@ -677,9 +677,16 @@ html {
 .scanner-modal {
     z-index: 10000 !important;
     background: rgba(0, 0, 0, 0.95) !important;
-    display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.scanner-modal.active, .scanner-modal:not(.hidden) {
+    display: flex !important;
+}
+
+.scanner-modal.hidden {
+    display: none !important;
 }
 
 .scanner-container {

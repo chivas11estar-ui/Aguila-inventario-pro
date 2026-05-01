@@ -50,28 +50,6 @@
   </div>
 
   <!-- ============================================================
-       AUDITORÍA VISUAL MODAL - INDEPENDIENTE
-       ============================================================ -->
-  <div id="audit-camera-modal" class="scanner-modal hidden">
-    <div class="scanner-container">
-      <div style="position:absolute;top:0;width:100%;text-align:center;padding:15px;background:#7c3aed;">
-        <h3 style="color:white;margin:0;font-size:1.1em;">📸 Auditoría Visual de Anaquel</h3>
-      </div>
-      <div class="scanner-video-wrapper">
-        <video id="audit-camera-video" autoplay playsinline></video>
-        <div class="scanner-overlay">
-          <div class="scanner-frame"></div>
-          <div class="scanner-instruction">Captura clara del anaquel para análisis</div>
-        </div>
-      </div>
-      <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;width:90%;max-width:300px;">
-        <button id="btn-capture-audit" style="flex:1;padding:12px;background:#10b981;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">📸 Capturar</button>
-        <button id="close-audit-camera" style="flex:1;padding:12px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
        MODAL CREAR PRODUCTO NUEVO
        ============================================================ -->
   <div id="create-product-modal" class="modal-overlay hidden"
@@ -263,10 +241,6 @@
           <div class="card">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <h2>📦 Inventario por Marca</h2>
-              <button id="btn-visual-scan" class="success" style="width:auto; padding: 10px 15px; border-radius: 50px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                <span class="material-icons-round">photo_camera</span>
-                Auditoría Visual
-              </button>
             </div>
             <div id="inventory-list" style="margin-top:20px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
@@ -666,16 +640,6 @@
        Ejecutar migrarInventarioAV2() desde consola del navegador
        ============================================================ -->
   <script src="migrate-to-v2.js?v=2.0"></script>
-
-  <!-- ============================================================
-       INTELIGENCIA ARTIFICIAL DE VISIÓN
-       ============================================================ -->
-  <script src="vision-ai.js?v=1.0"></script>
-
-  <!-- ============================================================
-       AUDITORÍA VISUAL - CÁMARA INDEPENDIENTE
-       ============================================================ -->
-  <script src="audit-camera.js?v=1.0"></script>
 
   <!-- ============================================================
        GENERADOR DE FRASES IA CONTEXTUAL

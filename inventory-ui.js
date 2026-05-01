@@ -455,81 +455,12 @@ function setupSearchBar() {
   }
 }
 
-function setupVisualScan() {
-  const btn = document.getElementById('btn-visual-scan');
-  if (!btn) return;
-
-  btn.onclick = async () => {
-    if (typeof openScanner === 'function') {
-      openScanner({
-        continuous: true,
-        onScan: async (code) => { console.log("🔍 Código visto:", code); }
-      });
-      const overlay = document.querySelector('.scanner-overlay');
-      if (overlay) overlay.style.display = 'none';
-      injectCaptureButton();
-    }
-  };
-}
-
-function injectCaptureButton() {
-  const modal = document.getElementById('scanner-modal');
-  if (!modal || document.getElementById('btn-capture-shelf')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'btn-capture-shelf';
-  btn.innerHTML = '<span class="material-icons-round" style="font-size:28px;">analytics</span><br>Analizar Anaquel';
-  btn.style.cssText = `
-    position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
-    background: #10b981; color: white; border: none; padding: 12px 25px;
-    border-radius: 12px; font-weight: 700; z-index: 3000; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    width: 200px; border: 2px solid white;
-  `;
-
-  btn.onclick = async () => {
-    const video = document.getElementById('scanner-video');
-    if (!video) return;
-    btn.disabled = true;
-    btn.innerHTML = '🧠 Analizando...';
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg');
-
-    if (window.VisionAI) {
-      const results = await window.VisionAI.analyzeShelf(dataUrl);
-      if (results) {
-        if (typeof showToast === 'function') showToast(`📊 Pepsico: ${results.pepsico_frentes} frentes`, "success");
-        alert(`🔎 RESULTADO DE AUDITORÍA:\n\n📦 Frentes PepsiCo: ${results.pepsico_frentes}\n🚫 Competencia: ${results.competencia_frentes}\n📈 Total en Anaquel: ${results.total_frentes}\n\n💬 IA dice: ${results.mensaje || 'Buen trabajo'}`);
-      }
-    }
-    btn.disabled = false;
-    btn.innerHTML = '<span class="material-icons-round" style="font-size:28px;">analytics</span><br>Analizar Anaquel';
-  };
-
-  modal.appendChild(btn);
-  const closeBtn = document.getElementById('close-scanner');
-  if (closeBtn) {
-    const originalClose = closeBtn.onclick;
-    closeBtn.onclick = () => {
-      btn.remove();
-      const overlay = document.querySelector('.scanner-overlay');
-      if (overlay) overlay.style.display = 'flex';
-      if (originalClose) originalClose();
-      if (window.ScannerService) window.ScannerService.hardStop();
-      modal.classList.add('hidden');
-    };
-  }
-}
-
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     setupSearchBar();
-    setupVisualScan(); 
   }, 1000);
 });
 
