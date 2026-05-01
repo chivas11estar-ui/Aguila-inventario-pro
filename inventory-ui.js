@@ -1,188 +1,278 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory-ui.js
-// RENDER HTML - Versión Eagle Pro (Bento Grid & Modern Cards)
+// Fase 2 - Módulo 2.1: Inventario Inteligente por Marca
+// RENDER HTML - Versión Pro Multi-Tab (Stock y Agotados)
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
+// ============================================================
+// RENDERIZAR INVENTARIO COMPLETO
+// ============================================================
 function renderInventoryUI(productos, targetId = 'inventory-list') {
   try {
     const listElement = document.getElementById(targetId);
-    if (!listElement) return;
+    if (!listElement) {
+      console.warn(`⚠️ Elemento ${targetId} no encontrado`);
+      return;
+    }
 
+    console.log(`🎨 Renderizando ${targetId}:`, productos.length, 'productos');
+
+    // Validar que hay productos
     if (productos.length === 0) {
+      const emptyMsg = targetId === 'inventory-list'
+        ? '✅ Sin productos con stock disponible'
+        : '✨ No hay productos agotados';
+
       listElement.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-          <span class="material-symbols-outlined text-6xl mb-4">inventory_2</span>
-          <p class="font-medium">${targetId === 'inventory-list' ? 'Sin productos disponibles' : 'No hay productos agotados'}</p>
-        </div>
+        <p style="color: var(--muted); text-align: center; padding: 40px;">
+          ${emptyMsg}
+        </p>
       `;
       return;
     }
 
-    // Si es la pestaña principal, renderizamos primero el Dashboard Summary
-    let html = '';
-    if (targetId === 'inventory-list') {
-      html += renderDashboardSummary(productos);
-    }
-
+    // 1. Agrupar por código de barras
     const productosAgrupados = window.groupProductsByBarcode(productos);
+
+    // 2. Agrupar por marca
     const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
+
+    // 3. Ordenar marcas (prioridad predefinida)
     const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra']
       .filter(marca => productosPorMarca[marca]);
 
-    html += `<div class="space-y-8 mt-6">`;
+    // 4. Renderizar HTML
+    let html = '';
+
     marcasOrdenadas.forEach(marca => {
       html += renderBrandSection(marca, productosPorMarca[marca], targetId);
     });
-    html += `</div>`;
 
     listElement.innerHTML = html;
+
+    // 5. Configurar eventos de click
     setupBrandClickEvents();
+
+    // 6. Aplicar estados de marcas (expandidas/contraídas)
     applyBrandStates();
 
+    console.log(`✅ ${targetId} renderizado correctamente`);
   } catch (error) {
     console.error(`❌ [RENDER ERROR] ${targetId}:`, error);
+    const listElement = document.getElementById(targetId);
+    if (listElement) {
+      listElement.innerHTML = `
+        <p style="color: var(--muted); text-align: center; padding: 40px;">
+          ⚠️ Error al cargar inventario. Por favor recarga la página.
+        </p>
+      `;
+    }
   }
 }
 
-function renderDashboardSummary(productos) {
-  const totalItems = productos.length;
-  const criticalItems = productos.filter(p => (parseInt(p.cajas) || 0) <= 2).length;
-  
-  return `
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
-      <!-- Total Products -->
-      <div class="md:col-span-4 bg-white rounded-xl shadow-sm border-l-4 border-blue-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
-        <div class="flex justify-between items-start">
-          <span class="material-symbols-outlined text-blue-700 bg-blue-50 p-2 rounded-lg">inventory_2</span>
-          <span class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">Live</span>
-        </div>
-        <div>
-          <p class="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Total Productos</p>
-          <p class="text-4xl font-extrabold text-primary">${totalItems.toLocaleString()}</p>
-        </div>
-      </div>
-
-      <!-- Critical Stock -->
-      <div class="md:col-span-4 bg-white rounded-xl shadow-sm border-l-4 border-error p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
-        <div class="flex justify-between items-start">
-          <span class="material-symbols-outlined text-error bg-error-container p-2 rounded-lg">warning</span>
-          <span class="text-xs font-bold text-error bg-error/10 px-2 py-1 rounded">Atención</span>
-        </div>
-        <div>
-          <p class="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Stock Crítico</p>
-          <p class="text-4xl font-extrabold text-error">${criticalItems}</p>
-        </div>
-      </div>
-
-      <!-- Scanner CTA -->
-      <div onclick="window.switchTab('refill')" class="md:col-span-4 bg-primary-dark text-on-primary rounded-xl shadow-xl p-6 flex flex-col justify-center items-center text-center relative overflow-hidden group cursor-pointer active:scale-95 transition-transform duration-200">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-primary-container opacity-20 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
-        <span class="material-symbols-outlined text-4xl mb-2">barcode_scanner</span>
-        <h3 class="font-bold text-lg">¿Nuevo Cargamento?</h3>
-        <p class="text-xs opacity-90 mb-4">Usa el Escáner Eagle</p>
-        <button class="bg-white text-primary text-xs font-bold py-2 px-6 rounded-lg shadow-lg hover:bg-primary-light transition-colors">Abrir Escáner</button>
-      </div>
-    </div>
-  `;
-}
-
+// ============================================================
+// RENDERIZAR SECCIÓN DE MARCA
+// ============================================================
 function renderBrandSection(marca, productos, targetId) {
   const totales = window.calculateBrandTotals(productos);
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
-  return `
-    <div data-brand-section="${marca}" data-container="${targetId}" class="mb-6">
-      <div data-brand-header data-brand-name="${marca}" class="flex justify-between items-center bg-white border border-slate-200 p-4 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined">${targetId === 'inventory-list' ? 'label' : 'block'}</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-800">${marca}</h3>
-            <p class="text-[10px] font-bold text-slate-400 uppercase">${totales.totalProductos} Items • ${totales.totalCajas} Cajas</p>
+  let html = `
+    <div data-brand-section="${marca}" data-container="${targetId}" style="margin-bottom: 24px;">
+      <!-- Header de marca -->
+      <div 
+        data-brand-header 
+        data-brand-name="${marca}"
+        class="card"
+        style="
+          background: ${targetId === 'inventory-list' ? 'var(--primary-container)' : 'var(--secondary)'};
+          color: white;
+          padding: 16px var(--spacing-lg);
+          margin-bottom: 16px;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border: none;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="material-icons-round" style="font-size: 24px; opacity: 0.9;">
+            ${targetId === 'inventory-list' ? 'local_offer' : 'block'}
+          </span>
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">${marca}</span>
+            <span style="font-size: 11px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+              ${totales.totalProductos} productos • ${totales.totalCajas} cajas
+            </span>
           </div>
         </div>
-        <span data-brand-arrow class="material-symbols-outlined text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}">expand_more</span>
+        <span data-brand-arrow class="material-icons-round" style="font-size: 20px; transition: transform 0.3s;">
+          ${isExpanded ? 'expand_more' : 'chevron_right'}
+        </span>
       </div>
 
-      <div data-products-list class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-4 ${isExpanded ? '' : 'hidden'}">
+      <!-- Lista de productos -->
+      <div 
+        data-products-list 
+        style="
+          display: ${isExpanded ? 'block' : 'none'};
+          transition: all 0.3s ease;
+        "
+      >
         ${productos.map(product => renderProductCard(product, targetId)).join('')}
       </div>
     </div>
   `;
+
+  return html;
 }
 
+// ============================================================
+// RENDERIZAR TARJETA DE PRODUCTO
+// ============================================================
 function renderProductCard(product, targetId) {
+  const tieneMuchasBodegas = product.bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
-  const totalPiezas = parseInt(product.totalPiezas || product.piezas) || 0;
-  const isLowStock = totalCajas > 0 && totalCajas <= 3;
-  const isOutOfStock = totalCajas <= 0;
+  const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
+  const totalAntiguo = parseInt(product.stockTotal) || 0;
+  const isOutOfStock = totalCajas <= 0 && totalPiezas <= 0 && totalAntiguo <= 0;
   
-  let borderColor = 'border-success';
-  let statusLabel = 'En Stock';
-  let statusClass = 'bg-success/10 text-success-dark';
-  let iconColor = 'text-success';
+  const productName = product.nombre;
+  const brandName = product.marca;
+
+  // Calcular info de caducidad
+  const expiryInfo = window.calculateExpiryInfo(product, window.BRAND_EXPIRY_CONFIG);
+  
+  const expiryTag = expiryInfo.text ? `
+    <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+      <span class="material-icons-round" style="font-size: 14px; color: ${expiryInfo.color};">event_note</span>
+      <span style="color: ${expiryInfo.color}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em;">
+        ${expiryInfo.text}
+      </span>
+    </div>
+  ` : '';
+
+  // Metadata Avanzada
+  let analytics = { daily: 0, weekly: 0, monthly: 0 };
+  const analyticsData = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
+  if (analyticsData[productName]) {
+    analytics = analyticsData[productName];
+  }
+
+  const diasInventario = analytics.daily > 0 ? Math.ceil(product.totalPiezas / analytics.daily) : 0;
+
+  // Lógica de Colores de Estado (Indigo Horizon)
+  let statusBorder = 'var(--border)';
+  let statusIcon = '';
   
   if (isOutOfStock) {
-    borderColor = 'border-error';
-    statusLabel = 'Agotado';
-    statusClass = 'bg-error/10 text-error-dark';
-    iconColor = 'text-error';
-  } else if (isLowStock) {
-    borderColor = 'border-warning';
-    statusLabel = 'Bajo Stock';
-    statusClass = 'bg-warning/10 text-warning-dark';
-    iconColor = 'text-warning';
+    statusBorder = 'var(--error)';
+  } else if (analytics.daily > 0) {
+    if (diasInventario <= 2) {
+      statusBorder = 'var(--primary)'; // Pick urgente
+      statusIcon = '<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:800; margin-left:8px; text-transform:uppercase;">Pick</span>';
+    } else if (diasInventario <= 5) {
+      statusBorder = 'var(--success)';
+    }
   }
 
   return `
-    <div class="bg-white rounded-xl shadow-sm border-l-4 ${borderColor} overflow-hidden hover:shadow-md transition-all group flex flex-col h-full" data-product-item data-product-name="${product.nombre}" data-product-code="${product.codigoBarras}">
-      <!-- Icon Placeholder (Sustituye a la imagen) -->
-      <div class="relative py-8 flex items-center justify-center bg-slate-50/50">
-        <div class="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center ${iconColor}">
-          <span class="material-symbols-outlined text-4xl">${isOutOfStock ? 'inventory_2' : 'package_2'}</span>
-        </div>
-        <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-[9px] font-bold text-slate-400 border border-slate-100">
-          ${product.codigoBarras}
-        </div>
-      </div>
-      
-      <div class="p-4 flex flex-col flex-grow">
-        <div class="flex justify-between items-start mb-3">
-          <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">${product.nombre}</h3>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase whitespace-nowrap ${statusClass}">${statusLabel}</span>
-        </div>
-...
+    <div
+      data-product-item
+      data-product-name="${productName}"
+      data-product-code="${product.codigoBarras}"
+      class="product-card"
+      style="border-left: 6px solid ${statusBorder};"
+    >
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+        <div style="flex: 1;">
+          <h4 style="margin: 0 0 8px 0; color: var(--text); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2;">
+            ${productName} ${statusIcon}
+          </h4>
+          <div style="font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.4;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">qr_code_2</span>
+              <span>${product.codigoBarras || 'N/A'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+              <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">layers</span>
+              <span>${product.piezasPorCaja} pzs/caj</span>
+            </div>
 
-        <div class="mt-auto">
-          <div class="flex items-end justify-between mb-4">
-            <div>
-              <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Stock Actual</p>
-              <div class="flex items-baseline gap-1">
-                <span class="text-2xl font-black text-slate-900">${totalCajas}</span>
-                <span class="text-[10px] font-bold text-slate-500">CAJAS</span>
+            <!-- Dashboard de Ventas Sutil -->
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:12px;">
+              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
+                <div style="font-size:9px; color:var(--primary); font-weight:800; text-transform:uppercase;">Día</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.daily}</div>
+              </div>
+              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
+                <div style="font-size:9px; color:var(--secondary); font-weight:800; text-transform:uppercase;">Sem</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.weekly}</div>
+              </div>
+              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
+                <div style="font-size:9px; color:var(--muted); font-weight:800; text-transform:uppercase;">Mes</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.monthly}</div>
               </div>
             </div>
-            <div class="text-right">
-              <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Piezas</p>
-              <p class="text-sm font-bold text-slate-700">${totalPiezas} pzs</p>
-            </div>
-          </div>
 
-          <div class="flex gap-2">
-            <button onclick="window.editarProducto('${product.bodegas[0].id}')" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 border border-slate-100">
-              <span class="material-symbols-outlined text-sm">edit</span> Editar
-            </button>
-            <button onclick="event.stopPropagation(); window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); }, 100);" class="flex-1 bg-primary text-white font-bold py-2 rounded-lg text-xs shadow-md shadow-blue-100 active:scale-95 transition-all flex items-center justify-center gap-1">
-              <span class="material-symbols-outlined text-sm">sync_alt</span> Mover
-            </button>
+            ${expiryTag}
           </div>
+        </div>
+
+        <div class="product-stock" style="background: ${isOutOfStock ? 'var(--error-container)' : 'var(--primary-container)'}; color: white; box-shadow: var(--shadow-md);">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 24px; font-weight: 900;">${product.totalCajas}</span>
+            <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: -4px; opacity: 0.9;">cajas</span>
+            <div style="width: 24px; height: 1.5px; background: rgba(255,255,255,0.3); margin: 4px 0;"></div>
+            <span style="font-size: 11px; font-weight: 700;">${product.totalPiezas} pzs</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <!-- Detalle Bodegas -->
+        ${tieneMuchasBodegas 
+          ? renderMultipleWarehouses(product, analytics.daily) 
+          : renderSingleWarehouse(product, analytics.daily)
+        }
+
+        <!-- Botones de Acción Estilo Indigo -->
+        <div style="margin-top: 16px; display: flex; gap: 10px;">
+          <button 
+            onclick="window.editarProducto('${product.bodegas[0].id}')"
+            class="secondary"
+            style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
+          >
+            <span class="material-icons-round" style="font-size:18px;">edit</span>
+            Editar
+          </button>
+          
+          ${isOutOfStock ? `
+            <button 
+              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
+              class="primary"
+              style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0; background: var(--success);"
+            >
+              <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span>
+              Resurtir
+            </button>
+          ` : `
+            <button 
+              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.bodegas[0].id}')"
+              class="primary"
+              style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
+            >
+              <span class="material-icons-round" style="font-size:18px;">sync_alt</span>
+              Mover
+            </button>
+          `}
         </div>
       </div>
     </div>
   `;
 }
-
 
 // ============================================================
 // RENDERIZAR MÚLTIPLES BODEGAS

@@ -1,194 +1,279 @@
 // ============================================
-// Águila Inventario Pro - Módulo: analytics-ui.js
-// RENDER UI - Versión Eagle Pro (Bento Analytics)
+// ARCHIVO: analytics-ui.js (COMPLETO Y CORREGIDO)
 // ============================================
 
 window.renderAnalyticsUI = function() {
     const container = document.getElementById('stats-container');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ Contenedor stats-container no encontrado');
+        return;
+    }
 
+    // Obtener datos del estado global
     const res = window.ANALYTICS_STATE?.resumen || {};
+    const movs = window.ANALYTICS_STATE?.movimientos || [];
+
+    // Preparar datos para las métricas
     const analyticsData = {
         refillsToday: res.totalRellenosHoy || 0,
         boxesMoved: res.cajasMovidasHoy || 0,
         audits: res.auditoriasHoy || 0,
-        totalProducts: res.productosDistintos || 0
+        totalProducts: res.productosDistintos || 0,
+        refillAverages: res.dailyAveragePiecesPerProduct || []
     };
 
     container.innerHTML = `
-        <div class="space-y-8 animate-in fade-in duration-500">
-            <!-- Header section -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-headline-xl text-primary font-black">Análisis de Operación</h2>
-                    <p class="text-sm text-slate-500">Métricas de rendimiento en tiempo real</p>
-                </div>
-                <button id="btn-generate-report" class="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg">description</span> Generar Reporte Completo
-                </button>
-            </div>
-
-            <!-- Bento Metrics Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                ${renderKPICard('Rellenos', analyticsData.refillsToday, 'cached', 'text-blue-600', 'bg-blue-50')}
-                ${renderKPICard('Cajas', analyticsData.boxesMoved, 'package_2', 'text-emerald-600', 'bg-emerald-50')}
-                ${renderKPICard('Auditorías', analyticsData.audits, 'task_alt', 'text-amber-600', 'bg-amber-50')}
-                ${renderKPICard('Productos', analyticsData.totalProducts, 'inventory_2', 'text-purple-600', 'bg-purple-50')}
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Top Brands Section -->
-                ${createTopByBrandSection()}
-                
-                <!-- Individual Search Section -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <div class="flex items-center gap-2 mb-6">
-                        <span class="material-symbols-outlined text-primary">search_insights</span>
-                        <h3 class="font-bold text-slate-800">Rendimiento Individual</h3>
-                    </div>
-                    <div class="flex gap-2 mb-6">
-                        <div class="relative flex-grow">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">barcode_scanner</span>
-                            <input type="text" id="search-input" class="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20" placeholder="Nombre o código...">
-                        </div>
-                        <button onclick="searchProduct()" class="bg-primary text-white p-3 rounded-xl active:scale-95 transition-all">
-                            <span class="material-symbols-outlined">search</span>
-                        </button>
-                    </div>
-                    <div id="search-results-container">
-                        <div class="text-center py-10 text-slate-300">
-                            <span class="material-symbols-outlined text-4xl mb-2">find_in_page</span>
-                            <p class="text-xs font-bold uppercase tracking-widest">Busca un producto para ver su métrica</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
+        <div class="analytics-walmart">
+            ${createMetricsGrid(analyticsData)}
+            ${createTopByBrandSection(analyticsData.refillAverages)}
+            ${createProductSearchSection()}
+            <button id="btn-generate-top-sellers" class="btn-main mt-4">📋 Ver Reporte Completo</button>
             <div id="top-sellers-container"></div>
         </div>
     `;
 
-    const btn = document.getElementById('btn-generate-report');
+    // Asignar evento al botón de reporte
+    const btn = document.getElementById('btn-generate-top-sellers');
     if (btn && typeof window.generateAndRenderTop10 === 'function') {
         btn.addEventListener('click', window.generateAndRenderTop10);
     }
 };
 
-function renderKPICard(label, value, icon, colorClass, bgClass) {
+/**
+ * Crea el grid 2x2 de métricas principales.
+ */
+function createMetricsGrid(data) {
     return `
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center text-center group hover:shadow-md transition-all">
-            <div class="w-12 h-12 ${bgClass} ${colorClass} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <span class="material-symbols-outlined">${icon}</span>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-value">${data.refillsToday}</span>
+                <span class="metric-label">Rellenos Hoy</span>
             </div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">${label}</p>
-            <p class="text-3xl font-black text-slate-900">${value}</p>
+            <div class="metric-card">
+                <span class="metric-value">${data.boxesMoved}</span>
+                <span class="metric-label">Cajas Movidas</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value">${data.audits}</span>
+                <span class="metric-label">Auditorías</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value">${data.totalProducts}</span>
+                <span class="metric-label">Productos</span>
+            </div>
         </div>
     `;
 }
 
-function createTopByBrandSection() {
+/**
+ * Crea la sección "Top 3 por Marca"
+ */
+function createTopByBrandSection(refillAverages) {
+    if (!refillAverages || refillAverages.length === 0) {
+        return `
+            <div class="top-by-brand">
+                <h2>🏆 Top 3 por Marca</h2>
+                <p style="text-align: center; color: #94a3b8;">No hay datos disponibles</p>
+            </div>
+        `;
+    }
+
+    // Agrupar por marca usando datos de movimientos y cruce con inventario
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
     const productosPorMarca = {};
 
     movimientos.forEach(m => {
         if (m.tipo !== 'salida') return;
-        const p = window.INVENTORY_STATE?.productos?.find(prod => prod.codigoBarras === m.productoCodigo);
-        let marca = p ? p.marca : (m.marca || 'Otra');
-        let nombre = p ? p.nombre : (m.productoNombre || 'Desconocido');
+        
+        // Intentar obtener datos más recientes del inventario cargado (que ya vienen desencriptados)
+        const productInInventory = window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === m.productoCodigo);
+        
+        // RECUPERAR Y DESENCRIPTAR (Fallback a datos de movimiento si no está en inventario local)
+        let marca = productInInventory ? productInInventory.marca : m.marca || 'SIN MARCA';
+        let producto = productInInventory ? productInInventory.nombre : m.productoNombre || 'Desconocido';
 
-        if (!productosPorMarca[marca]) productosPorMarca[marca] = {};
-        if (!productosPorMarca[marca][nombre]) productosPorMarca[marca][nombre] = { nombre, piezas: 0 };
-        productosPorMarca[marca][nombre].piezas += parseInt(m.piezasMovidas) || 0;
+        // Doble capa de seguridad: asegurar desencriptación si los datos vienen de m (movimiento)
+        if (typeof window.decryptData === 'function') {
+            marca = window.decryptData(marca) || marca;
+            producto = window.decryptData(producto) || producto;
+        }
+        
+        if (!productosPorMarca[marca]) {
+            productosPorMarca[marca] = {};
+        }
+        
+        if (!productosPorMarca[marca][producto]) {
+            productosPorMarca[marca][producto] = {
+                nombre: producto,
+                piezas: 0
+            };
+        }
+        
+        productosPorMarca[marca][producto].piezas += parseInt(m.piezasMovidas) || 0;
     });
 
-    let brandsHTML = '';
+    // Generar HTML para cada marca
+    let brandGroupsHTML = '';
     const medals = ['🥇', '🥈', '🥉'];
-    const brands = Object.keys(productosPorMarca).slice(0, 3);
 
-    if (brands.length === 0) {
-        brandsHTML = `<div class="text-center py-20 text-slate-300">No hay datos de movimiento</div>`;
-    } else {
-        brands.forEach(brand => {
-            const topProducts = Object.values(productosPorMarca[brand])
-                .sort((a, b) => b.piezas - a.piezas)
-                .slice(0, 3);
-            
-            brandsHTML += `
-                <div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100">
-                    <h4 class="font-black text-xs text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-sm">stars</span> ${brand}
-                    </h4>
-                    <div class="space-y-2">
-                        ${topProducts.map((p, i) => `
-                            <div class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border border-slate-50">
-                                <div class="flex items-center gap-2 overflow-hidden">
-                                    <span class="text-lg">${medals[i]}</span>
-                                    <span class="text-xs font-bold text-slate-700 truncate">${p.nombre}</span>
-                                </div>
-                                <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded whitespace-nowrap">${(p.piezas/7).toFixed(1)} p/d</span>
+    for (const brandName in productosPorMarca) {
+        const productos = Object.values(productosPorMarca[brandName])
+            .sort((a, b) => b.piezas - a.piezas)
+            .slice(0, 3);
+
+        if (productos.length > 0) {
+            brandGroupsHTML += `
+                <div class="brand-group">
+                    <h3>${brandName}</h3>
+                    ${productos.map((p, index) => {
+                        const pzsPorDia = (p.piezas / 7).toFixed(1);
+                        return `
+                            <div>
+                                ${medals[index]} ${p.nombre} - <strong>${pzsPorDia} pzs/día</strong>
                             </div>
-                        `).join('')}
-                    </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
-        });
+        }
     }
 
     return `
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <div class="flex items-center gap-2 mb-6">
-                <span class="material-symbols-outlined text-primary">trending_up</span>
-                <h3 class="font-bold text-slate-800">Top Productos (7 días)</h3>
-            </div>
-            <div class="space-y-4">
-                ${brandsHTML}
-            </div>
+        <div class="top-by-brand">
+            <h2>🏆 Top 3 por Marca (Últimos 7 días)</h2>
+            ${brandGroupsHTML}
         </div>
     `;
 }
 
+/**
+ * Crea la sección del buscador
+ */
+function createProductSearchSection() {
+    return `
+        <div class="product-search">
+            <h2>🔍 Buscar Producto Individual</h2>
+            <div class="search-controls">
+                <button onclick="openProductScanner()">📷 Escanear</button>
+                <input type="text" id="search-input" placeholder="Nombre o código de barras...">
+                <button onclick="searchProduct()">🔎</button>
+            </div>
+            <div id="search-results-container"></div>
+        </div>
+    `;
+}
+
+/**
+ * Abre el escáner
+ */
+window.openProductScanner = function() {
+    if (typeof window.openScanner === 'function') {
+        window.showToast && window.showToast('Abriendo escáner...', 'info');
+        window.openScanner((codigo) => {
+            const input = document.getElementById('search-input');
+            if (input) {
+                input.value = codigo;
+                searchProduct();
+            }
+        });
+    } else {
+        window.showToast && window.showToast('Escáner no disponible', 'error');
+        console.error('window.openScanner no está definida');
+    }
+};
+
+/**
+ * Busca un producto
+ */
 window.searchProduct = function() {
     const query = document.getElementById('search-input').value.trim().toLowerCase();
-    const container = document.getElementById('search-results-container');
-    if (!query || !container) return;
-
-    const movimientos = window.ANALYTICS_STATE?.movimientos || [];
-    const prod = movimientos.find(m => (m.productoNombre || "").toLowerCase().includes(query) || (m.productoCodigo || "").includes(query));
-
-    if (!prod) {
-        container.innerHTML = `<div class="bg-error/5 text-error p-6 rounded-xl text-center text-xs font-bold border border-error/10">Producto no encontrado</div>`;
+    
+    if (!query) {
+        window.showToast && window.showToast('Escribe algo para buscar', 'warning');
         return;
     }
 
-    const hace7Dias = new Date(); hace7Dias.setDate(hace7Dias.getDate() - 7);
-    const mProd = movimientos.filter(m => m.productoCodigo === prod.productoCodigo && m.tipo === 'salida' && new Date(m.fecha) >= hace7Dias);
-    const totalP = mProd.reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
-    const pD = (totalP / 7).toFixed(2);
+    const movimientos = window.ANALYTICS_STATE?.movimientos || [];
+    
+    if (movimientos.length === 0) {
+        window.showToast && window.showToast('No hay datos disponibles', 'error');
+        renderSearchResult(null);
+        return;
+    }
 
-    container.innerHTML = `
-        <div class="bg-primary/5 rounded-2xl p-6 border border-primary/10 animate-in zoom-in-95 duration-300">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h4 class="font-black text-primary-dark">${prod.productoNombre}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${prod.marca || 'Genérico'} • ${prod.productoCodigo}</p>
-                </div>
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-slate-100">
-                   <span class="material-symbols-outlined text-primary">analytics</span>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-50 text-center">
-                    <p class="text-2xl font-black text-slate-900">${pD}</p>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase">Piezas / Día</p>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-50 text-center">
-                    <p class="text-2xl font-black text-slate-900">${(pD * 30).toFixed(0)}</p>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase">Proyección Mes</p>
-                </div>
-            </div>
-        </div>
-    `;
+    // Buscar producto en texto plano
+    const productInfo = movimientos.find(m => {
+        const nombre = (m.productoNombre || "").toLowerCase();
+        return nombre.includes(query) || (m.codigoBarra && m.codigoBarra.includes(query));
+    });
+
+    if (!productInfo) {
+        renderSearchResult(null);
+        return;
+    }
+
+    const productName = productInfo.productoNombre;
+    const brandName = productInfo.marca;
+
+    // Calcular métricas
+    const hace7Dias = new Date();
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+
+    const movimientosProducto = movimientos.filter(m =>
+        m.codigoBarra === productInfo.codigoBarra &&
+        m.tipo === 'salida' &&
+        new Date(m.fecha) >= hace7Dias
+    );
+
+    const totalPiezas = movimientosProducto.reduce((sum, m) => 
+        sum + (parseInt(m.piezasMovidas) || 0), 0
+    );
+
+    const piezasPorDia = (totalPiezas / 7).toFixed(2);
+    const promedioMensual = (piezasPorDia * 30).toFixed(2);
+
+    renderSearchResult({
+        nombre: productName,
+        marca: brandName || 'N/A',
+        codigo: productInfo.codigoBarra,
+        piezasPorDia: piezasPorDia,
+        promedioMensual: promedioMensual
+    });
 };
 
+/**
+ * Renderiza resultado de búsqueda
+ */
+function renderSearchResult(data) {
+    const container = document.getElementById('search-results-container');
+    if (!container) return;
+
+    if (!data) {
+        container.innerHTML = `
+            <div class="search-result-card-empty">
+                🔍 Producto no encontrado
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="search-result-card">
+            <h3>${data.nombre}</h3>
+            <p class="brand-code">${data.marca} - ${data.codigo}</p>
+            <div class="result-metrics">
+                <div class="metric-display daily-metric">
+                    <span class="metric-value">${data.piezasPorDia}</span>
+                    <span class="metric-label">pzs/día</span>
+                </div>
+                <div class="metric-display monthly-metric">
+                    <span class="metric-value">${data.promedioMensual}</span>
+                    <span class="metric-label">pzs/mes (est.)</span>
+                </div>
+            </div>
+            <p class="info-text">*Cálculos basados en salidas de los últimos 7 días</p>
+        </div>
+    `;
+}
 
 console.log('✅ analytics-ui.js (Estilo Walmart) cargado correctamente');

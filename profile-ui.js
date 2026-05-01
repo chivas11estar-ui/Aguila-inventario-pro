@@ -1,204 +1,374 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: profile-ui.js
-// RENDER UI - Versión Eagle Pro (Identity Card & Bento Stats)
+// Fase 2.2 - Perfil del Promotor
+// RENDER UI - Con nuevo diseño Tailwind
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
+// ============================================================
+// RENDERIZAR PERFIL COMPLETO
+// ============================================================
 function renderProfileUI() {
   const container = document.getElementById('profile-container');
-  if (!container) return;
+  if (!container) {
+    console.warn('⚠️ Elemento profile-container no encontrado en el DOM para renderizar el perfil.');
+    return;
+  }
 
   const { userData, preferences, weather, isLoading } = window.PROFILE_STATE;
 
   if (isLoading) {
-    container.innerHTML = `<div class="text-center p-20 text-slate-400 animate-pulse"><span class="material-symbols-outlined text-6xl">hourglass_empty</span><p>Cargando Perfil...</p></div>`;
+    container.innerHTML = `
+      <div class="text-center p-10 text-slate-500 dark:text-slate-400">
+        <div class="material-icons-round text-6xl mb-4 animate-pulse">hourglass_empty</div>
+        <p class="text-lg">Cargando perfil...</p>
+      </div>
+    `;
     return;
   }
 
-  const displayData = userData || {
-    nombrePromotor: 'Carlos Rodriguez',
-    email: 'carlos.rod@eagle.com',
-    nombreTienda: 'North Alpha HQ',
-    determinante: '1240'
-  };
-
-  const html = `
-    <div class="max-w-[1200px] mx-auto px-4 pt-4 pb-20">
-      <!-- Identity Card & Weather Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        
-        <!-- User Identity Card (Col 8) -->
-        <div class="lg:col-span-8 bg-white p-8 rounded-2xl shadow-sm border border-border-subtle flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
-          <div class="w-32 h-32 rounded-2xl overflow-hidden shadow-md flex-shrink-0 border-4 border-primary-light">
-            <img src="${preferences?.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDB-EF7NkM7870Pl82iRwCcDEl4Nbv4vrW3q3obiZmzkT0uU0c1e25xf6R84WfpoFGUeMgykPKe_GQCUJKTicap4Cb7vJra88z-3EsLM2ZlKF9KJhkCIdO8_LYgfe-iXKYJAKPXLRDsm3v_WDuUXk0ekAGklObO-2Nklcbk0RRuIyJPPwQaoOdQyog9gq-op_0WGOTElopg-tfBY3LZP_vyCsAaLCS97X3gQyAwdx5jP2A0RYgPRdaYVFwLte-WKl_yCynjbVSVqiI'}" alt="Profile" class="w-full h-full object-cover" />
-          </div>
-          <div class="text-center md:text-left flex-grow">
-            <div class="flex flex-col md:flex-row md:items-center gap-2 mb-2">
-              <h2 class="text-2xl font-black text-primary-dark">${displayData.nombrePromotor}</h2>
-              <span class="bg-primary-light text-primary-dark text-[10px] font-black px-3 py-1 rounded-full w-fit mx-auto md:mx-0 uppercase tracking-wider">VERIFIED PRO</span>
-            </div>
-            <p class="text-sm font-medium text-slate-500 mb-6">Promotor de Inventario • ${displayData.nombreTienda}</p>
-            <div class="flex flex-wrap gap-3 justify-center md:justify-start">
-              <button onclick="window.showEditProfileModal()" class="bg-primary text-white text-xs font-bold px-6 py-2.5 rounded-lg hover:shadow-lg transition-all active:scale-95 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px]">edit</span> Editar Perfil
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Weather Bento Card (Col 4) -->
-        <div class="lg:col-span-4 bg-gradient-to-br from-blue-500 to-blue-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-          <div class="relative z-10">
-            <div class="flex justify-between items-center mb-4">
-              <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Clima en Tienda</span>
-              <button onclick="window.refreshWeather()" class="p-1 hover:bg-white/20 rounded-lg transition-colors"><span class="material-symbols-outlined text-sm">refresh</span></button>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="material-symbols-outlined text-5xl text-amber-300">${weather?.icon || 'wb_sunny'}</span>
-              <div>
-                <div class="text-4xl font-black leading-none">${weather?.temperature || '--'}°C</div>
-                <p class="text-[10px] font-bold uppercase opacity-90">${weather?.condition || 'Cargando...'}</p>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mt-6">
-              <div class="bg-white/10 p-2 rounded-xl border border-white/5">
-                <p class="text-[8px] font-bold uppercase opacity-60">Humedad</p>
-                <p class="text-xs font-black">${weather?.humidity || '--'}%</p>
-              </div>
-              <div class="bg-white/10 p-2 rounded-xl border border-white/5">
-                <p class="text-[8px] font-bold uppercase opacity-60">Viento</p>
-                <p class="text-xs font-black">${weather?.windSpeed || '--'} km/h</p>
-              </div>
-            </div>
-          </div>
-          <!-- Decorative circle -->
-          <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
-        </div>
-      </div>
-
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <!-- Actividad -->
-          <div class="bg-primary-dark text-white p-6 rounded-2xl shadow-md relative overflow-hidden group">
-            <div class="flex justify-between items-start relative z-10">
-              <span class="material-symbols-outlined bg-white/10 p-2 rounded-xl text-blue-300">barcode_scanner</span>
-              <h3 class="text-4xl font-black leading-tight">${displayData.determinante || '0'}</h3>
-            </div>
-            <p class="text-[9px] font-black opacity-70 uppercase tracking-widest mt-4">Scans Realizados</p>
-          </div>
-          <!-- Precisión -->
-          <div class="bg-emerald-600 text-white p-6 rounded-2xl shadow-md relative overflow-hidden">
-            <div class="flex justify-between items-start relative z-10">
-              <span class="material-symbols-outlined bg-white/10 p-2 rounded-xl text-emerald-200">verified</span>
-              <h3 class="text-4xl font-black leading-tight">98.2%</h3>
-            </div>
-            <p class="text-[9px] font-black opacity-70 uppercase tracking-widest mt-4">Tasa de Precisión</p>
-          </div>
-      </div>
-
-      <!-- Eagle Support Section -->
-      <section class="mt-8">
-        <div class="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
-          <div class="relative z-10">
-            <div class="flex items-center gap-3 mb-4">
-              <span class="material-symbols-outlined text-amber-400">workspace_premium</span>
-              <h3 class="font-black uppercase tracking-widest text-xs">Apoya el Proyecto Eagle</h3>
-            </div>
-            <p class="text-sm font-medium mb-6 opacity-90">Si esta herramienta te ahorra tiempo en tienda, considera apoyar al desarrollador para mantener el sistema y añadir nuevas funciones.</p>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Botón Mercado Pago (Ejemplo) -->
-              <a href="https://link.mercadopago.com.mx/TU_LINK_AQUI" target="_blank" class="bg-white text-blue-900 font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                <span class="material-symbols-outlined text-lg">payments</span> Aportar $50 MXN
-              </a>
-              <!-- Botón PayPal -->
-              <a href="https://paypal.me/TU_USUARIO_AQUI" target="_blank" class="bg-blue-600 text-white font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-all border border-blue-500/50 shadow-lg">
-                <span class="material-symbols-outlined text-lg">volunteer_activism</span> Invítame un café
-              </a>
-            </div>
-            <p class="text-[9px] text-center mt-4 opacity-50 font-bold uppercase tracking-tighter italic">Tu apoyo mantiene vivo este sistema independiente</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Settings Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Account & Security -->
-        <section>
-          <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-outlined text-primary">security</span>
-            <h3 class="font-bold text-slate-800">Cuenta y Seguridad</h3>
-          </div>
-          <div class="space-y-3">
-            <div class="bg-white border border-slate-100 p-4 rounded-xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group shadow-sm">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center text-primary">
-                  <span class="material-symbols-outlined">password</span>
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-slate-800">Cambiar Contraseña</p>
-                  <p class="text-[10px] text-slate-400">Actualizada hace 3 meses</p>
-                </div>
-              </div>
-              <span class="material-symbols-outlined text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- App Preferences -->
-        <section>
-          <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-outlined text-primary">settings_suggest</span>
-            <h3 class="font-bold text-slate-800">Preferencias de App</h3>
-          </div>
-          <div class="bg-white border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-50 shadow-sm">
-            <div class="p-4 flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600">
-                  <span class="material-symbols-outlined">dark_mode</span>
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-slate-800">Modo Oscuro</p>
-                  <p class="text-[10px] text-slate-400">Reducir fatiga visual</p>
-                </div>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" ${preferences?.darkMode ? 'checked' : ''} onchange="window.toggleDarkMode()">
-                <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-              </label>
-            </div>
-            <div class="p-4 flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600">
-                  <span class="material-symbols-outlined">notifications</span>
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-slate-800">Notificaciones</p>
-                  <p class="text-[10px] text-slate-400">Alertas de stock y auditorías</p>
-                </div>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked class="sr-only peer">
-                <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-              </label>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Footer Action -->
-      <div class="mt-12 flex flex-col items-center">
-        <p class="text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Eagle System v4.2.1-stable</p>
-        <button onclick="window.handleLogout()" class="group flex items-center gap-3 px-10 py-3.5 bg-error/5 hover:bg-error text-error hover:text-white transition-all duration-300 rounded-xl font-bold border border-error/10 active:scale-95">
-          <span class="material-symbols-outlined text-[20px]">logout</span>
-          Cerrar Sesión del Dispositivo
+  if (!userData) {
+    container.innerHTML = `
+      <div class="text-center p-10 text-red-500">
+        <div class="material-icons-round text-6xl mb-4">error_outline</div>
+        <p class="text-lg">No se pudo cargar el perfil del usuario.</p>
+        <button onclick="window.loadUserProfile()" class="bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full mt-6 transition-all active:scale-95 shadow-lg shadow-primary/20">
+          <span class="material-icons-round mr-2">refresh</span>Reintentar
         </button>
       </div>
-    </div>
+    `;
+    return;
+  }
+
+  console.log('🎨 Renderizando perfil de:', userData.nombrePromotor);
+
+  // El diseño del header/nav de la app global ya existe en index.html y app.js
+  // Solo se renderiza el contenido <main> del diseño
+  const html = `
+    <main class="p-5 space-y-6 max-w-md mx-auto">
+      ${renderProfileHeader(userData, preferences)}
+      ${preferences.mostrarClima ? renderWeatherCard(weather) : ''}
+      ${renderPreferencesCard(preferences)}
+      ${renderMotivationalPhrasesCard()}
+      ${renderProfileFooter()}
+    </main>
   `;
 
   container.innerHTML = html;
+
+  // Configurar eventos para los nuevos elementos del DOM
+  setupProfileEvents();
+
+  console.log('✅ Perfil renderizado con nuevo diseño.');
 }
 
+// ============================================================
+// RENDERIZAR SECCIÓN SUPERIOR DEL PERFIL
+// ============================================================
+function renderProfileHeader(userData, preferences) {
+  const defaultAvatar = `<span class="material-icons-round text-6xl">person</span>`;
+  const userAvatar = preferences.avatar ? `<span class="text-6xl">${preferences.avatar}</span>` : defaultAvatar;
+
+  return `
+    <section class="profile-gradient rounded-3xl p-8 text-center text-white ios-shadow relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+      <div class="relative z-10">
+        <div class="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-white/30">
+          ${userAvatar}
+        </div>
+        <h2 class="text-2xl font-bold mb-1">${userData.nombrePromotor || 'Promotor'}</h2>
+        <div class="space-y-2 opacity-90 text-sm font-light">
+          <div class="flex items-center justify-center gap-2">
+            <span class="material-icons-round text-sm">alternate_email</span>
+            <span>${userData.email || 'N/A'}</span>
+          </div>
+          <div class="flex items-center justify-center gap-2">
+            <span class="material-icons-round text-sm">store</span>
+            <span>${userData.nombreTienda || 'Sin tienda asignada'}</span>
+          </div>
+        </div>
+        <div class="mt-6 inline-flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full text-xs font-medium border border-white/10">
+          <span class="material-icons-round text-sm text-yellow-400">vpn_key</span>
+          <span>Determinante: <span class="font-bold">${userData.determinante || 'N/A'}</span></span>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// ============================================================
+// RENDERIZAR TARJETA DE CLIMA
+// ============================================================
+function renderWeatherCard(weather) {
+  if (!weather || weather.error) {
+    return `
+      <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-2">
+            <span class="material-icons-round text-primary">cloud_off</span>
+            <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
+          </div>
+          <button id="refresh-weather-btn" class="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary transition-transform active:scale-95">
+            <span class="material-icons-round text-sm">refresh</span>
+          </button>
+        </div>
+        <div class="text-center py-6 text-slate-500 dark:text-slate-400">
+          <span class="material-icons-round text-5xl mb-2">cloud_off</span>
+          <p>No se pudo cargar el clima.</p>
+        </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-2">
+          <span class="material-icons-round text-primary">cloud</span>
+          <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
+        </div>
+        <button id="refresh-weather-btn" class="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary transition-transform active:scale-95">
+          <span class="material-icons-round text-sm">refresh</span>
+        </button>
+      </div>
+      <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
+        <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+        <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mt-6">
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+            <span class="material-icons-round text-xl">opacity</span>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Humedad</p>
+            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${weather.humidity || 'N/A'}%</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
+          <div class="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-500">
+            <span class="material-icons-round text-xl">air</span>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Viento</p>
+            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">${weather.windSpeed || 'N/A'} km/h</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// ============================================================
+// RENDERIZAR TARJETA DE PREFERENCIAS
+// ============================================================
+function renderPreferencesCard(preferences) {
+  return `
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="material-icons-round text-primary">settings</span>
+        <h3 class="font-bold text-slate-800 dark:text-white">Preferencias</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label for="profile-frase" class="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 ml-1">Frase Motivacional</label>
+          <div class="relative">
+            <input id="profile-frase" class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-4 px-4 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Escribe tu frase aquí..." type="text" value="${preferences.fraseMotivacional || ''}"/>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 ml-1 italic flex items-center gap-1">
+            <span class="material-icons-round text-[14px]">info</span>
+            Aparecerá en tu perfil y dashboard principal
+          </p>
+        </div>
+        <div class="flex items-center justify-between">
+          <label for="dark-mode-toggle" class="text-sm font-semibold text-slate-600 dark:text-slate-400">Modo Oscuro</label>
+          <input type="checkbox" id="dark-mode-toggle" class="toggle toggle-primary" ${preferences.darkMode ? 'checked' : ''}>
+        </div>
+        <button id="save-phrase-btn" class="w-full bg-secondary hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-secondary/20">
+          <span class="material-icons-round">check_circle</span>
+          Guardar Frase
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+// ============================================================
+// RENDERIZAR TARJETA DE FRASES MOTIVACIONALES (NUEVA SECCIÓN)
+// ============================================================
+function renderMotivationalPhrasesCard() {
+  // Esta sección se conectará a phrases.js para mostrar y añadir frases dinámicamente.
+  // Por ahora, se renderiza el esqueleto de la UI.
+  return `
+    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="material-icons-round text-primary">chat</span>
+        <h3 class="font-bold text-slate-800 dark:text-white">Mis Frases Motivacionales</h3>
+      </div>
+      <div class="flex gap-2 mb-6">
+        <input id="new-custom-phrase-input" class="flex-1 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-3 px-4 text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" placeholder="Escribe una nueva frase..." type="text"/>
+        <button id="add-custom-phrase-btn" class="bg-secondary text-white px-5 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all active:scale-95 shadow-md shadow-secondary/10">
+          Añadir
+        </button>
+      </div>
+      <div id="custom-phrases-list" class="py-12 flex flex-col items-center text-center px-4 border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-2xl">
+        <div class="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-300">
+          <span class="material-icons-round text-3xl">format_quote</span>
+        </div>
+        <p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed max-w-[200px]">Aún no has añadido frases personalizadas.</p>
+      </div>
+    </section>
+  `;
+}
+
+// ============================================================
+// RENDERIZAR FOOTER DEL PERFIL (si es parte del diseño de main)
+// ============================================================
+function renderProfileFooter() {
+  return `
+    <footer class="text-center py-4">
+      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v7.6</p>
+    </footer>
+  `;
+}
+
+
+// ============================================================
+// CONFIGURAR EVENTOS DEL PERFIL
+// ============================================================
+function setupProfileEvents() {
+  console.log('🎯 Configurando eventos del perfil para el nuevo diseño...');
+
+  // Evento para refrescar el clima
+  const refreshWeatherBtn = document.getElementById('refresh-weather-btn');
+  if (refreshWeatherBtn) {
+    refreshWeatherBtn.addEventListener('click', () => {
+      console.log('🔄 Refrescando clima...');
+      if (typeof window.refreshWeather === 'function') {
+        window.refreshWeather();
+      } else {
+        console.warn('⚠️ window.refreshWeather no está definido.');
+      }
+    });
+  }
+
+  // Evento para guardar frase motivacional
+  const savePhraseBtn = document.getElementById('save-phrase-btn');
+  if (savePhraseBtn) {
+    savePhraseBtn.addEventListener('click', async () => {
+      const phraseInput = document.getElementById('profile-frase');
+      if (phraseInput && typeof window.saveUserPreferences === 'function') {
+        const newPhrase = phraseInput.value.trim();
+        console.log('💾 Guardando frase:', newPhrase);
+        await window.saveUserPreferences({ fraseMotivacional: newPhrase });
+      } else {
+        console.warn('⚠️ No se encontró el input de frase o window.saveUserPreferences no está definido.');
+      }
+    });
+  }
+
+  // Eventos para frases motivacionales personalizadas (Añadir)
+  const addCustomPhraseBtn = document.getElementById('add-custom-phrase-btn');
+  if (addCustomPhraseBtn) {
+    addCustomPhraseBtn.addEventListener('click', async () => {
+      const newCustomPhraseInput = document.getElementById('new-custom-phrase-input');
+      if (newCustomPhraseInput && typeof window.addMotivationalPhrase === 'function') {
+        const phraseText = newCustomPhraseInput.value.trim();
+        if (phraseText) {
+          console.log('➕ Añadiendo frase personalizada:', phraseText);
+          await window.addMotivationalPhrase(phraseText);
+          newCustomPhraseInput.value = ''; // Limpiar input
+          // Aquí idealmente se debería re-renderizar la lista de frases
+          if (typeof window.renderMotivationalPhrasesList === 'function') {
+            window.renderMotivationalPhrasesList(); // Necesitará ser implementada en phrases.js/profile-ui.js
+          }
+        } else {
+          showToast('Escribe una frase para añadir.', 'warning');
+        }
+      } else {
+        console.warn('⚠️ No se encontró el input de frase o window.addMotivationalPhrase no está definido.');
+      }
+    });
+  }
+
+  // Evento para el toggle de Modo Oscuro
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  if (darkModeToggle && typeof window.saveUserPreferences === 'function') {
+    darkModeToggle.addEventListener('change', async (e) => {
+      const isDarkMode = e.target.checked;
+      console.log('🌓 Cambiando modo oscuro a:', isDarkMode);
+      document.documentElement.classList.toggle('dark', isDarkMode);
+      await window.saveUserPreferences({ darkMode: isDarkMode });
+    });
+  }
+
+
+  console.log('✅ Eventos del perfil configurados para el nuevo diseño.');
+}
+
+// ============================================================
+// ACTUALIZAR SOLO EL CLIMA (SIN RE-RENDERIZAR TODO EL PERFIL)
+// ============================================================
+function updateWeatherUI() {
+  const weatherContainer = document.querySelector('section.bg-white > div.bg-slate-50.dark\\:bg-slate-900\\/50'); // Selector más específico
+  if (!weatherContainer) {
+    console.warn('⚠️ Contenedor de clima no encontrado para actualizar la UI.');
+    return;
+  }
+  
+  const { weather } = window.PROFILE_STATE;
+
+  if (!weather || weather.error) {
+    weatherContainer.innerHTML = `
+      <span class="material-icons-round text-6xl text-slate-400 mb-2">cloud_off</span>
+      <p class="text-lg text-slate-500 dark:text-slate-400">Clima no disponible</p>
+    `;
+    return;
+  }
+
+  weatherContainer.innerHTML = `
+    <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+    <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
+    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+  `;
+
+  // Actualizar Humedad y Viento
+  const humidityElement = weatherContainer.closest('section').querySelector('p.text-sm.font-bold.text-slate-700.dark\\:text-slate-200');
+  if (humidityElement) humidityElement.textContent = `${weather.humidity || 'N/A'}%`;
+  
+  const windElement = humidityElement.closest('.grid').querySelectorAll('p.text-sm.font-bold.text-slate-700.dark\\:text-slate-200')[1];
+  if (windElement) windElement.textContent = `${weather.windSpeed || 'N/A'} km/h`;
+
+
+  console.log('✅ UI del clima actualizada');
+}
+
+// ============================================================
+// ACTUALIZAR SOLO LA ACTIVIDAD (NO NECESARIA CON ESTE DISEÑO, PERO SE MANTIENE EL STUB)
+// ============================================================
+function updateActivityUI() {
+  console.log('ℹ️ updateActivityUI llamado, pero el diseño actual no tiene una sección de actividad dinámica.');
+  // El diseño proporcionado no tiene una sección de "Actividad de Hoy" como la anterior.
+  // Si se necesita en el futuro, se deberá añadir la sección y su lógica de actualización aquí.
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🎨 Inicializando módulo de perfil (UI)...');
+
+  // El renderizado inicial ahora se gestiona a través de app.js switchTab y window.loadProfile
+  // Este listener se mantiene solo por si hay alguna otra inicialización de UI necesaria
+  // antes de que se llame window.loadProfile.
+});
+
+// ============================================================
+// EXPONER FUNCIONES PÚBLICAS
+// ============================================================
 window.renderProfileUI = renderProfileUI;
+window.updateWeatherUI = updateWeatherUI;
+window.updateActivityUI = updateActivityUI; // Mantenido por compatibilidad, pero su funcionalidad es limitada con el nuevo diseño
+
+console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente con nuevo diseño');

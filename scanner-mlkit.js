@@ -1,6 +1,7 @@
 /**
- * Águila Pro - ScannerService (Version Eagle Batch)
- * V7.0 - Batch Processing & Modern UI Integration
+ * Águila Pro - ScannerService (Singleton Persistent Bridge)
+ * V6.3 - Unified API & Crash Fix
+ * Copyright © 2026 José A. G. Betancourt
  */
 
 'use strict';
@@ -10,11 +11,25 @@ window.ScannerService = {
     detector: null,
     activeVideoElement: null,
     isScanning: false,
-    batchSession: [], // Almacena los códigos escaneados en esta sesión
 
     async requestCamera(target) {
         console.log("📷 [ScannerService] Solicitando hardware...");
+        
         let videoElement = (target instanceof HTMLElement) ? target : document.querySelector(target);
+        
+        if (videoElement && videoElement.tagName !== 'VIDEO') {
+            let internalVideo = videoElement.querySelector('video');
+            if (!internalVideo) {
+                internalVideo = document.createElement('video');
+                internalVideo.setAttribute('autoplay', '');
+                internalVideo.setAttribute('playsinline', '');
+                internalVideo.muted = true;
+                internalVideo.style.cssText = "width:100%; height:100%; object-fit:cover; background:#000;";
+                videoElement.prepend(internalVideo);
+            }
+            videoElement = internalVideo;
+        }
+
         if (!videoElement) return false;
 
         if (this.persistentStream && this.persistentStream.active) {
@@ -35,6 +50,10 @@ window.ScannerService = {
 
     async attachToElement(videoElement) {
         if (!this.persistentStream || !videoElement) return false;
+        if (this.activeVideoElement && this.activeVideoElement !== videoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+        }
         videoElement.srcObject = this.persistentStream;
         this.activeVideoElement = videoElement;
         return new Promise((resolve) => {
@@ -51,152 +70,137 @@ window.ScannerService = {
     },
 
     async scan(callback) {
-        this.isScanning = true;
-        let lastScanTime = 0;
+        if (!this.detector && !('BarcodeDetector' in window)) {
+            console.error("❌ BarcodeDetector no disponible en este navegador.");
+            if (typeof showToast === 'function') showToast("⚠️ Tu navegador no soporta el escáner nativo", "error");
+            this.isScanning = false;
+            return;
+        }
         
+        this.isScanning = true;
         const loop = async () => {
             if (!this.isScanning || !this.activeVideoElement || this.activeVideoElement.paused) return;
             try {
                 if (this.detector) {
                     const barcodes = await this.detector.detect(this.activeVideoElement);
                     if (barcodes.length > 0) {
-                        const now = Date.now();
                         const code = barcodes[0].rawValue;
-
-                        // Antidebounce para no escanear lo mismo 20 veces por segundo
-                        if (now - lastScanTime > 1500) {
-                            lastScanTime = now;
-                            console.log("🎯 Código detectado:", code);
-                            if (navigator.vibrate) navigator.vibrate(50);
-                            
-                            this.addToBatch(code);
-                            callback(code);
+                        console.log("🎯 Código detectado:", code);
+                        
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        
+                        callback(code);
+                        
+                        if (!window.ScannerService.continuousMode) {
+                            this.isScanning = false;
+                            return; 
                         }
                     }
                 }
-            } catch (e) { console.warn("⚠️ Error en ciclo:", e); }
+            } catch (e) {
+                console.warn("⚠️ Error en ciclo de escaneo:", e);
+            }
             if (this.isScanning) requestAnimationFrame(loop);
         };
         loop();
     },
 
-    addToBatch(code) {
-        // Evitar duplicados en el lote actual (opcional, dependiendo de la lógica de negocio)
-        this.batchSession.push(code);
-        this.updateBatchUI();
-    },
-
-    updateBatchUI() {
-        const listElement = document.getElementById('scanned-items-list');
-        const countBadge = document.getElementById('scan-batch-count');
-        const summaryText = document.getElementById('batch-summary-text');
-        if (!listElement) return;
-
-        if (this.batchSession.length === 0) {
-            listElement.innerHTML = `<div class="flex flex-col items-center justify-center w-full text-slate-300"><p class="text-[10px] font-bold">Sin capturas recientes</p></div>`;
-            if (countBadge) countBadge.textContent = '0 Items';
-            if (summaryText) summaryText.textContent = '0 SKU detectados';
-            return;
-        }
-
-        // Obtener nombres de productos si están en el inventario local
-        const products = this.batchSession.map(code => {
-            return window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === code) || { nombre: 'Producto Nuevo', codigoBarras: code };
-        });
-
-        listElement.innerHTML = products.map((p, index) => `
-            <div class="flex-shrink-0 w-24 bg-slate-50 rounded-xl p-2 border border-slate-100 relative animate-in slide-in-from-right duration-300">
-                <div class="w-full aspect-square bg-white rounded-lg mb-1 flex items-center justify-center overflow-hidden border border-slate-50 text-primary">
-                    <span class="material-symbols-outlined text-2xl">package_2</span>
-                </div>
-                <p class="text-[8px] font-bold text-slate-700 truncate text-center">${p.nombre}</p>
-                <button onclick="window.ScannerService.removeFromBatch(${index})" class="absolute -top-1 -right-1 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center text-[10px] shadow-sm">×</button>
-            </div>
-        `).join('');
-
-        if (countBadge) countBadge.textContent = `${this.batchSession.length} Items`;
-        
-        const uniqueSKUs = new Set(this.batchSession).size;
-        if (summaryText) summaryText.textContent = `${uniqueSKUs} SKU detectados`;
-    },
-
-    removeFromBatch(index) {
-        this.batchSession.splice(index, 1);
-        this.updateBatchUI();
-    },
-
-    hardStop() {
+    // ALIAS DE COMPATIBILIDAD
+    stop() {
         this.isScanning = false;
         if (this.activeVideoElement) {
             this.activeVideoElement.pause();
-            this.activeVideoElement.srcObject = null;
         }
+        console.log("⏸️ [ScannerService] Flujo detenido.");
+    },
+
+    stopDataFlow() { this.stop(); },
+
+    /**
+     * MÉTODO HARD-STOP (Mobile Optimization)
+     * Apaga físicamente el hardware de la cámara y libera el buffer de la GPU.
+     */
+    hardStop() {
+        console.log("🛑 [ScannerService] Apagando hardware de cámara...");
+        
+        // 1. Detener el ciclo de detección
+        this.isScanning = false;
+        
+        // 2. Limpiar el elemento de video (Libera buffer GPU)
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+            this.activeVideoElement.load(); // Fuerza limpieza del buffer
+            this.activeVideoElement = null;
+        }
+        
+        // 3. Matar físicamente los tracks del MediaStream
         if (this.persistentStream) {
-            this.persistentStream.getTracks().forEach(t => t.stop());
+            const tracks = this.persistentStream.getTracks();
+            tracks.forEach(track => {
+                track.stop();
+                console.log(`✅ Track detenido: ${track.kind}`);
+            });
             this.persistentStream = null;
         }
+
+        console.log("🔋 Hardware liberado correctamente.");
     }
 };
 
+/**
+ * BRIDGE GLOBAL BLINDADO
+ * Soporta: 
+ * 1. openScanner(callback)
+ * 2. openScanner({ onScan: callback, continuous: bool })
+ */
 Object.defineProperty(window, 'openScanner', {
     value: async function(args) {
         const modal = document.getElementById('scanner-modal');
         const video = document.getElementById('scanner-video');
-        if (!modal || !video) return;
+        if (!modal || !video) {
+            console.error("❌ No se encontró el modal o video del escáner");
+            return;
+        }
 
-        window.ScannerService.batchSession = []; // Reset batch
-        window.ScannerService.updateBatchUI();
-
+        // Determinar callback y modo
         let callback = typeof args === 'function' ? args : (args?.onScan || null);
-        window.ScannerService.continuousMode = true; // Por defecto modo lote para el diseño Eagle
+        window.ScannerService.continuousMode = args?.continuous || false;
+
+        if (!callback) {
+            console.error("❌ openScanner requiere un callback");
+            return;
+        }
 
         modal.classList.remove('hidden');
+        modal.classList.add('active'); // Por si se usa CSS para mostrarlo
 
         const ready = await window.ScannerService.requestCamera(video);
         if (ready) {
             window.ScannerService.scan((code) => {
-                if (typeof callback === 'function') callback(code);
-            });
-        }
-    }
-});
+                callback(code);
+                
+                // Si hay un puente global para búsqueda (analytics/etc)
+                if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
 
-// Configurar botón de cerrar
-document.addEventListener('DOMContentLoaded', () => {
-    const closeBtn = document.getElementById('close-scanner');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            window.ScannerService.hardStop();
-            document.getElementById('scanner-modal').classList.add('hidden');
-        };
-    }
-    
-    const submitBtn = document.getElementById('btn-submit-batch');
-    if (submitBtn) {
-        submitBtn.onclick = () => {
-            if (window.ScannerService.batchSession.length === 0) {
-                if (typeof showToast === 'function') showToast("⚠️ No hay productos para procesar", "warning");
-                return;
-            }
-            // Aquí puedes conectar con la lógica de envío de lote
-            if (typeof showToast === 'function') showToast(`✅ Procesando lote de ${window.ScannerService.batchSession.length} items`, "success");
-            
-            // Ejemplo: Ir a la pestaña de relleno con el primer código
-            const firstCode = window.ScannerService.batchSession[0];
-            window.ScannerService.hardStop();
-            document.getElementById('scanner-modal').classList.add('hidden');
-            
-            window.switchTab('refill');
-            setTimeout(() => {
-                const input = document.getElementById('refill-barcode');
-                if (input) {
-                    input.value = firstCode;
-                    if (window.searchProductForRefillSafe) window.searchProductForRefillSafe(firstCode);
+                // Auto-cerrar si no es modo continuo (HARD STOP para liberar hardware)
+                if (!window.ScannerService.continuousMode) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('active');
+                    if (window.ScannerService.hardStop) {
+                        window.ScannerService.hardStop();
+                    } else {
+                        window.ScannerService.stop();
+                    }
                 }
-            }, 100);
-        };
-    }
+            });
+        } else {
+            if (typeof showToast === 'function') showToast("❌ No se pudo acceder a la cámara", "error");
+            modal.classList.add('hidden');
+        }
+    },
+    writable: false,
+    configurable: true
 });
-
 
 console.log('✅ [SCANNER] Motor V6.3 (API Unified) desplegado.');

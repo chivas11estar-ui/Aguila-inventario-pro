@@ -5,7 +5,7 @@
 // ============================================================
 
 // ✅ FIX v9.1c: Incrementar versión para cachear archivos actualizados
-const CACHE_NAME = "aguila-pro-v4.0";
+const CACHE_NAME = "aguila-pro-v3.2";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
 const APP_SHELL_ASSETS = [
