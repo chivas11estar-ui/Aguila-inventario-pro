@@ -78,6 +78,20 @@ function renderBrandSection(marca, productos, targetId) {
   const totales = window.calculateBrandTotals(productos);
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
+  // Mapa de colores por marca (Identificación Visual Rápida)
+  const brandStyles = {
+    'Sabritas': { bg: '#ffcc00', text: '#1a1b25' },    // Amarillo Sabritas
+    'Gamesa': { bg: '#0056b3', text: '#ffffff' },      // Azul Gamesa
+    'Quaker': { bg: '#e65100', text: '#ffffff' },      // Naranja Fuerte
+    'Cacahuates': { bg: '#e3f2fd', text: '#0d47a1' },  // Azul Claro/Crema
+    "Sonric's": { bg: '#d81b60', text: '#ffffff' },    // Rosa Sonric's
+    'default': { bg: 'var(--primary-container)', text: '#ffffff' }
+  };
+
+  const style = brandStyles[marca] || brandStyles['default'];
+  const finalBg = targetId === 'inventory-list' ? style.bg : 'var(--secondary)';
+  const finalText = targetId === 'inventory-list' ? style.text : '#ffffff';
+
   let html = `
     <div data-brand-section="${marca}" data-container="${targetId}" style="margin-bottom: 24px;">
       <!-- Header de marca -->
@@ -86,8 +100,8 @@ function renderBrandSection(marca, productos, targetId) {
         data-brand-name="${marca}"
         class="card"
         style="
-          background: ${targetId === 'inventory-list' ? 'var(--primary-container)' : 'var(--secondary)'};
-          color: white;
+          background: ${finalBg};
+          color: ${finalText};
           padding: 16px var(--spacing-lg);
           margin-bottom: 16px;
           cursor: pointer;
