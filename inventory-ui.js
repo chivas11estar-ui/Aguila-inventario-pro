@@ -83,13 +83,13 @@ function renderBrandSection(marca, productos, targetId) {
     'Sabritas': { bg: '#ffcc00', text: '#1a1b25' },    // Amarillo Sabritas
     'Gamesa': { bg: '#0056b3', text: '#ffffff' },      // Azul Gamesa
     'Quaker': { bg: '#e65100', text: '#ffffff' },      // Naranja Fuerte
-    'Cacahuates': { bg: '#e3f2fd', text: '#0d47a1' },  // Azul Claro/Crema
+    'Cacahuates': { bg: '#fff9c4', text: '#5d4037' },  // Crema/Café sutil
     "Sonric's": { bg: '#d81b60', text: '#ffffff' },    // Rosa Sonric's
-    'default': { bg: 'var(--primary-container)', text: '#ffffff' }
+    'default': { bg: '#0021e4', text: '#ffffff' }
   };
 
   const style = brandStyles[marca] || brandStyles['default'];
-  const finalBg = targetId === 'inventory-list' ? style.bg : 'var(--secondary)';
+  const finalBg = targetId === 'inventory-list' ? style.bg : '#565e74';
   const finalText = targetId === 'inventory-list' ? style.text : '#ffffff';
 
   let html = `
@@ -100,8 +100,8 @@ function renderBrandSection(marca, productos, targetId) {
         data-brand-name="${marca}"
         class="card"
         style="
-          background: ${finalBg};
-          color: ${finalText};
+          background: ${finalBg} !important;
+          color: ${finalText} !important;
           padding: 16px var(--spacing-lg);
           margin-bottom: 16px;
           cursor: pointer;
@@ -109,9 +109,10 @@ function renderBrandSection(marca, productos, targetId) {
           justify-content: space-between;
           align-items: center;
           border: none;
+          box-shadow: var(--shadow-xl);
         "
       >
-        <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px; pointer-events: none;">
           <span class="material-icons-round" style="font-size: 24px; opacity: 0.9;">
             ${targetId === 'inventory-list' ? 'local_offer' : 'block'}
           </span>
@@ -122,7 +123,7 @@ function renderBrandSection(marca, productos, targetId) {
             </span>
           </div>
         </div>
-        <span data-brand-arrow class="material-icons-round" style="font-size: 20px; transition: transform 0.3s;">
+        <span data-brand-arrow class="material-icons-round" style="font-size: 20px; transition: transform 0.3s; pointer-events: none;">
           ${isExpanded ? 'expand_more' : 'chevron_right'}
         </span>
       </div>

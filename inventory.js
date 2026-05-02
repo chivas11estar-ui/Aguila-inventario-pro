@@ -321,6 +321,11 @@ function setSearchTerm(term) {
 // TOGGLE ESTADO DE MARCA
 // ============================================================
 function toggleBrandState(brandName) {
+  // Si no existe, inicializar como true (expandido) antes de toglear
+  if (window.INVENTORY_STATE.marcasExpandidas[brandName] === undefined) {
+    window.INVENTORY_STATE.marcasExpandidas[brandName] = true;
+  }
+  
   const currentState = window.INVENTORY_STATE.marcasExpandidas[brandName];
   window.INVENTORY_STATE.marcasExpandidas[brandName] = !currentState;
 
@@ -356,7 +361,7 @@ function loadBrandStates() {
       window.INVENTORY_STATE.marcasExpandidas = JSON.parse(saved);
       console.log('📂 Estado de marcas cargado:', window.INVENTORY_STATE.marcasExpandidas);
     } else {
-      const marcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'];
+      const marcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra'];
       marcas.forEach(marca => {
         window.INVENTORY_STATE.marcasExpandidas[marca] = true;
       });

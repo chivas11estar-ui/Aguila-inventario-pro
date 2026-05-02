@@ -246,19 +246,32 @@ input[readonly]:focus {
   }
 }
 
-/* HEADER DE MARCA CON HOVER */
+/* HEADER DE MARCA CON HOVER SUBTLE */
 [data-brand-header] {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-brand-header]::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.2s;
+}
+
+[data-brand-header]:hover::after {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 [data-brand-header]:hover {
-  background: linear-gradient(135deg, #1d4ed8, #002f6c) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 74, 173, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
 }
 
 [data-brand-header]:active {
-  transform: translateY(0);
+  transform: scale(0.97);
 }
 
 /* ESTADOS DE CARGA */
