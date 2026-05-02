@@ -332,7 +332,8 @@ async function cargarInventario() {
 }
 
 // ============================================================
-// 9. HANDLE FORM — agregar/editar desde el formulario
+await limpiarLotesAgotados();  // Elimina lotes con stock 0 de bodegas anteriores
+    // 9. HANDLE FORM — agregar/editar desde el formulario
 // ============================================================
 async function handleAddProductV2(event) {
   if (event) event.preventDefault();
@@ -395,3 +396,70 @@ window.consultarProductoEnCero = async (codigo) => {
 };
 
 console.log('✅ inventory-core.js V3 (Multi-Lote) cargado correctamente');
+
+// ========================================================
+// FUNCIÓN: Limpiar lotes agotados automáticamente
+// ========================================================
+async function limpiarLotesAgotados() {
+    try {
+          const productos = window.INVENTORY_STATE.productos || [];
+
+          const lotesPorProducto = {};
+          productos.forEach(prod => {
+                  if (!prod.lote) return;
+                  const key = `${prod.codigoBarras}|${prod.bodega}`;
+                  if (!lotesPorProducto[key]) lotesPorProducto[key] = [];
+                  lotesPorProducto[key].push(prod);
+          });
+
+          // Eliminar lógicamente lotes con stock 0
+          for (const key in lotesPorProducto) {
+                  const lotes = lotesPorProducto[key];
+                  lotes.forEach(lote => {
+                            if (lote.stockTotal === 0 || lote.stockTotal === undefined) {
+                                        // Marcar para eliminación
+                                        lote.marcarEliminado = true;
+                                        console.log('🗑️ Lote agotado marcado: ', lote.lote, 'Bodega:', lote.bodega);
+                            }
+                  });
+          }
+    } catch (error) {
+          console.error('❌ Error al limpiar lotes agotados:', error);
+    }
+}
+
+// ========================================================
+// FUNCIÓN: Agrupar y consolidar lotes
+// ========================================================
+function consolidarLotes() {
+    try {
+          const productos = window.INVENTORY_STATE.productos || [];
+          const productosConsolidados = {};
+
+          productos.forEach(prod => {
+                  // Saltar lotes marcados como eliminados
+                  if (prod.marcarEliminado) return;
+
+                  const key = `${prod.codigoBarras}|${prod.bodega}`;
+                  if (!productosConsolidados[key]) {
+                            productosConsolidados[key] = { ...prod, lotes: [] };
+                  }
+                  if (prod.lote) {
+                            productosConsolidados[key].lotes.push({
+                                        lote: prod.lote,
+                                        stock: prod.stockTotal,
+                                        fechaVencimiento: prod.fechaVencimiento || 'N/A'
+                            });
+                  }
+          });
+
+          console.log('✅ Lotes consolidados:', productosConsolidados);
+          return productosConsolidados;
+    } catch (error) {
+          console.error('❌ Error al consolidar lotes:', error);
+          return {};
+    }
+}
+
+window.limpiarLotesAgotados = limpiarLotesAgotados;
+window.consolidarLotes = consolidarLotes;
