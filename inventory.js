@@ -473,6 +473,7 @@ window.setSearchTerm = setSearchTerm;
 window.toggleBrandState = toggleBrandState;
 window.editarProducto = editarProducto;
 window.handleAddProduct = handleAddProduct;
+window.applyFiltersAndRender = applyFiltersAndRender;
 window.groupProductsByBarcode = groupProductsByBarcode;
 window.groupProductsByBrand = groupProductsByBrand;
 window.calculateBrandTotals = calculateBrandTotals;

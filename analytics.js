@@ -70,9 +70,9 @@ window.loadStats = async function () {
     const hoy = new Date();
     const hoyStr = getLocalDateString(hoy); 
 
-    const hace7Dias = new Date();
-    hace7Dias.setDate(hace7Dias.getDate() - 7);
-    const hace7DiasStr = getLocalDateString(hace7Dias);
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    const hace30DiasStr = getLocalDateString(hace30Dias);
 
     try {
         console.log(`📡 [ARCHITECT] Consultando Firebase para Tienda: ${det}`);
@@ -87,22 +87,28 @@ window.loadStats = async function () {
         const auditorias = [];
         auditSnap.forEach(child => { auditorias.push(child.val()); });
 
-        // Filtrar solo los últimos 7 días en zona horaria local
+        // Filtrar solo los últimos 30 días en zona horaria local
         const movimientosFiltrados = movimientos.filter(m => {
             if (!m.fecha) return false;
             const fechaMov = isoToLocalDate(m.fecha);
-            return fechaMov >= hace7DiasStr;
+            return fechaMov >= hace30DiasStr;
         });
         const auditoriasFiltradas = auditorias.filter(a => {
             if (!a.fecha) return false;
             const fechaAud = isoToLocalDate(a.fecha);
-            return fechaAud >= hace7DiasStr;
+            return fechaAud >= hace30DiasStr;
         });
 
         window.ANALYTICS_STATE.movimientos = movimientosFiltrados;
         window.ANALYTICS_STATE.auditorias = auditoriasFiltradas;
 
         procesarMetricas(hoyStr);
+
+        // ACTUALIZACIÓN DINÁMICA: Re-renderizar inventario para mostrar promedios
+        if (typeof window.applyFiltersAndRender === 'function') {
+            console.log('🔄 [ANALYTICS] Actualizando promedios en lista de inventario...');
+            window.applyFiltersAndRender();
+        }
 
         if (typeof window.renderAnalyticsUI === 'function') {
             setTimeout(() => {
@@ -167,16 +173,26 @@ function procesarMetricas(fechaHoy) {
     // NUEVO: Promedio Diario Inteligente (Ciclo Viernes-Jueves) + Semanal + Mensual
     const refillMovements = movs.filter(m => m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel');
     
-    // Función para calcular días transcurridos en el ciclo actual (Viernes a Hoy)
-    const getDaysInCycle = () => {
-        const hoy = new Date();
-        const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
-        // Mapeo: Vie=1, Sab=2, Dom=3, Lun=4, Mar=5, Mie=6, Jue=7
-        const mapping = { 5: 1, 6: 2, 0: 3, 1: 4, 2: 5, 3: 6, 4: 7 };
-        return mapping[diaSemana] || 1;
+    // Función para calcular el inicio del ciclo actual (Viernes 00:00:00 local)
+    const getStartOfCurrentCycle = () => {
+        const ahora = new Date();
+        const diaSemana = ahora.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
+        
+        // Calcular cuántos días restar para llegar al último Viernes
+        // Si hoy es Viernes(5), restamos 0. Si es Sábado(6), restamos 1. Si es Jueves(4), restamos 6.
+        const daysToSubtract = (diaSemana + 2) % 7; 
+        
+        const start = new Date(ahora);
+        start.setDate(ahora.getDate() - daysToSubtract);
+        start.setHours(0, 0, 0, 0);
+        return start.getTime();
     };
 
-    const daysInCurrentCycle = getDaysInCycle();
+    const startOfCycleMs = getStartOfCurrentCycle();
+    const hoy = new Date();
+    const msPassedInCycle = Date.now() - startOfCycleMs;
+    const daysInCurrentCycle = Math.max(1, Math.ceil(msPassedInCycle / (24 * 60 * 60 * 1000)));
+    
     const statsPerProduct = {};
 
     // 1. Calcular sumas por periodos
@@ -187,7 +203,7 @@ function procesarMetricas(fechaHoy) {
     refillMovements.forEach(m => {
         const productName = m.productoNombre || 'Desconocido';
         const pieces = parseInt(m.piezasMovidas) || 0;
-        const movFecha = m.fecha;
+        const movFecha = m.fecha; // Timestamp UTC
 
         if (!statsPerProduct[productName]) {
             statsPerProduct[productName] = { 
@@ -197,17 +213,18 @@ function procesarMetricas(fechaHoy) {
             };
         }
 
-        const diffMs = ahora - movFecha;
-        // Ciclo actual (desde el Viernes)
-        if (diffMs <= (daysInCurrentCycle * 24 * 60 * 60 * 1000)) {
+        // Ciclo actual (desde el último Viernes 00:00)
+        if (movFecha >= startOfCycleMs) {
             statsPerProduct[productName].currentCyclePieces += pieces;
         }
-        // Últimos 7 días
-        if (diffMs <= unaSemanaMs) {
+        
+        // Últimos 7 días (ventana deslizante)
+        if ((ahora - movFecha) <= unaSemanaMs) {
             statsPerProduct[productName].last7DaysPieces += pieces;
         }
-        // Últimos 30 días
-        if (diffMs <= unMesMs) {
+        
+        // Últimos 30 días (ventana deslizante completa)
+        if ((ahora - movFecha) <= unMesMs) {
             statsPerProduct[productName].last30DaysPieces += pieces;
         }
     });
