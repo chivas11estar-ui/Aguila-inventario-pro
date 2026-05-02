@@ -332,8 +332,7 @@ async function cargarInventario() {
 }
 
 // ============================================================
-await limpiarLotesAgotados();  // Elimina lotes con stock 0 de bodegas anteriores
-    // 9. HANDLE FORM — agregar/editar desde el formulario
+    // limpiarLotesAgotados();  // TODO: Hacer síncrono para no bloquear carga    // 9. HANDLE FORM — agregar/editar desde el formulario
 // ============================================================
 async function handleAddProductV2(event) {
   if (event) event.preventDefault();
