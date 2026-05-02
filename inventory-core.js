@@ -328,6 +328,7 @@ async function cargarInventario() {
       inventoryRef.off('value');
     });
   }
+      window.INVENTORY_STATE.isRenderingInventory = false;
 }
 
 // ============================================================
