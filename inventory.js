@@ -11,6 +11,7 @@ window.INVENTORY_STATE = {
   searchTerm: '',
   determinante: null,
   isLoading: false
+    isRenderingInventory: false,
 };
 
 const BRAND_EXPIRY_CONFIG = {
@@ -66,8 +67,14 @@ async function getUserDeterminante() {
 async function loadInventory() {
   console.log('📦 [V2] loadInventory → delegando a cargarInventario()...');
 
-  if (typeof window.cargarInventario === 'function') {
-    return window.cargarInventario();
+  // REVISIÓN: Check para evitar doble render
+      if (window.INVENTORY_STATE.isRenderingInventory) {
+              console.warn('⚠️ Ya se está renderizando, abortando...');
+              return null;
+      }
+      if (typeof window.cargarInventario === 'function') {
+    window.INVENTORY_STATE.isRenderingInventory = true;
+            return window.cargarInventario();
   }
 
   // Fallback: si inventory-core.js aún no cargó, intentar la ruta antigua
