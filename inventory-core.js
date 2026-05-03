@@ -11,6 +11,17 @@ window.INVENTORY_CORE = {
   _initialized: false
 };
 
+// Inicializar estado global del inventario
+if (!window.INVENTORY_STATE) {
+    window.INVENTORY_STATE = {
+          productos: {},
+          lotes: {},
+          isRenderingInventory: false,
+          lastUpdate: null,
+          determinante: null
+    };
+}
+
 // ============================================================
 // 1. DETERMINANTE (con caché)
 // ============================================================
