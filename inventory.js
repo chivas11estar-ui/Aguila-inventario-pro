@@ -11,7 +11,7 @@ window.INVENTORY_STATE = {
   searchTerm: '',
   determinante: null,
   isLoading: false
-    isRenderingInventory: false,
+        isRenderingInventory: false
 };
 
 const BRAND_EXPIRY_CONFIG = {
