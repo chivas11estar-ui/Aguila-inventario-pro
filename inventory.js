@@ -10,7 +10,7 @@ window.INVENTORY_STATE = {
   marcasExpandidas: {},
   searchTerm: '',
   determinante: null,
-  isLoading: false
+  isLoading: false,
         isRenderingInventory: false
 };
 
