@@ -722,6 +722,78 @@
     });
   </script>
 <script>document.addEventListener('DOMContentLoaded', function() { setTimeout(function() { const footers = document.querySelectorAll('footer, [role="contentinfo"]'); footers.forEach(f => { f.textContent = '© Jose A. G. Betancourt - Águila Inventario Pro - Derechos Reservados'; }); }, 100); });</script></script>
+
+
+  <!-- SCANNER CLOSE BUTTON FIX V1.0 -->
+  <script>
+      document.addEventListener('DOMContentLoaded', function() {
+            const closeButton = document.getElementById('close-scanner');
+            const scannerModal = document.getElementById('scanner-modal');
+
+            if (closeButton && scannerModal) {
+                    // Click event para cerrar el escáner
+                    closeButton.addEventListener('click', function(e) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('✅ [SCANNER FIX] Botón Cerrar presionado');
+
+                              // Cerrar el modal
+                              scannerModal.classList.add('hidden');
+                              scannerModal.classList.remove('active');
+
+                              // Detener el escáner
+                              if (window.ScannerService) {
+                                          window.ScannerService.hardStop();
+                              }
+                    });
+
+                    // Escape key para cerrar
+                    document.addEventListener('keydown', function(e) {
+                              if (e.key === 'Escape' && !scannerModal.classList.contains('hidden')) {
+                                          console.log('✅ [SCANNER FIX] Tecla ESC presionada');
+                                          scannerModal.classList.add('hidden');
+                                          scannerModal.classList.remove('active');
+                                          if (window.ScannerService) {
+                                                        window.ScannerService.hardStop();
+                                          }
+                              }
+                    });
+
+                    // CSS para asegurar visibilidad del botón
+                    const style = document.createElement('style');
+                    style.textContent = `
+                            #close-scanner {
+                                      position: absolute !important;
+                                                top: 20px !important;
+                                                          right: 20px !important;
+                                                                    z-index: 9999 !important;
+                                                                              padding: 10px 20px !important;
+                                                                                        background-color: #dc3545 !important;
+                                                                                                  color: white !important;
+                                                                                                            border: none !important;
+                                                                                                                      border-radius: 4px !important;
+                                                                                                                                font-size: 14px !important;
+                                                                                                                                          cursor: pointer !important;
+                                                                                                                                                    opacity: 1 !important;
+                                                                                                                                                              visibility: visible !important;
+                                                                                                                                                                        display: block !important;
+                                                                                                                                                                                  pointer-events: auto !important;
+                                                                                                                                                                                          }
+                                                                                                                                                                                                  
+                                                                                                                                                                                                          #close-scanner:hover {
+                                                                                                                                                                                                                    background-color: #c82333 !important;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                            .scanner-overlay #close-scanner {
+                                                                                                                                                                                                                                                      pointer-events: auto !important;
+                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                                    `;
+                    document.head.appendChild(style);
+                    console.log('✅ [SCANNER FIX] CSS aplicado y event listeners añadidos');
+            }
+      });
+  </script>
+  </script>
 </body>
 
 </html>
