@@ -1,8 +1,9 @@
 // ============================================================
-// Águila Inventario Pro - Módulo: analytics.js
-// Lógica de Analytics (con Top 10)
-// Copyright © 2025 José A. G. Betancourt
+// Aguila Inventario Pro - Modulo: analytics.js
+// Logica de estadisticas de relleno y reportes
 // ============================================================
+
+const ANALYTICS_PERIOD_DAYS = 7;
 
 window.ANALYTICS_STATE = {
     determinante: null,
@@ -11,23 +12,60 @@ window.ANALYTICS_STATE = {
     resumen: {
         totalRellenosHoy: 0,
         cajasMovidasHoy: 0,
+        piezasMovidasHoy: 0,
         auditoriasHoy: 0,
         productosDistintos: 0,
         topProductos: [],
         topMarcas: [],
         historico7Dias: {},
-        dailyAveragePiecesPerProduct: [] // Nueva propiedad para el promedio por producto
+        historicoPiezas7Dias: {},
+        dailyRefillSummary: {
+            periodDays: ANALYTICS_PERIOD_DAYS,
+            activeDays: 0,
+            avgMovements: 0,
+            avgBoxes: 0,
+            avgPieces: 0,
+            bestDay: null
+        },
+        dailyAveragePiecesPerProduct: []
     }
 };
 
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
+function toLocalDateKey(value = new Date()) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function startOfLocalDay(daysAgo = 0) {
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function buildLastSevenDayKeys() {
+    const days = [];
+    for (let i = ANALYTICS_PERIOD_DAYS - 1; i >= 0; i--) {
+        days.push(toLocalDateKey(startOfLocalDay(i)));
+    }
+    return days;
+}
+
+function asNumber(value) {
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 async function initAnalytics() {
-    console.log('📊 Iniciando Analytics...');
+    console.log('[Analytics] Iniciando...');
     const userId = firebase.auth().currentUser?.uid;
     if (!userId) {
-        console.warn('⚠️ Analytics: Usuario no autenticado');
+        console.warn('[Analytics] Usuario no autenticado');
         return;
     }
 
@@ -35,364 +73,233 @@ async function initAnalytics() {
         const userSnap = await firebase.database().ref(`usuarios/${userId}`).once('value');
         const userData = userSnap.val();
 
-        if (!userData || !userData.determinante) {
-            console.error('❌ Analytics: No se encontró determinante');
-            showToast('Error: No se encontró información de la tienda', 'error');
+        if (!userData?.determinante) {
+            console.error('[Analytics] No se encontro determinante');
+            showToast('Error: No se encontro informacion de la tienda', 'error');
             return;
         }
 
         window.ANALYTICS_STATE.determinante = userData.determinante;
-        console.log('✅ Analytics: Determinante cargado:', window.ANALYTICS_STATE.determinante);
-
-        await window.loadStats(); // Ahora llama a la función loadStats expuesta globalmente
-
+        await fetchAnalyticsData();
     } catch (error) {
-        console.error('❌ Error en initAnalytics:', error);
+        console.error('[Analytics] Error en initAnalytics:', error);
         showToast('Error al inicializar Analytics', 'error');
     }
 }
 
-// ============================================================
-// CARGAR DATOS DE FIREBASE (7 DÍAS) - Renombrado y expuesto como window.loadStats
-// ============================================================
-window.loadStats = async function () { 
-    console.log("📊 [ARCHITECT] Verificando requisitos para carga de estadísticas...");
+async function fetchAnalyticsData() {
+    const det = window.ANALYTICS_STATE.determinante;
+    if (!det) return;
 
-    // 1. ASIGNACIÓN EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
-    const det = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante;
-
-    // 2. VALIDACIÓN ESTRICTA (Race Condition evitada)
-    if (!det || det === "null" || det === "undefined") {
-        console.warn('🛑 [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
-        return; 
-    }
-
-    const hoy = new Date();
-    const hoyStr = getLocalDateString(hoy); 
-
-    const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
-    const hace30DiasStr = getLocalDateString(hace30Dias);
+    const fromISO = startOfLocalDay(ANALYTICS_PERIOD_DAYS - 1).toISOString();
 
     try {
-        console.log(`📡 [ARCHITECT] Consultando Firebase para Tienda: ${det}`);
-        
         const [movSnap, auditSnap] = await Promise.all([
-            firebase.database().ref(`movimientos/${det}`).once('value'),
-            firebase.database().ref(`auditorias/${det}`).once('value')
+            firebase.database().ref(`movimientos/${det}`).orderByChild('fecha').startAt(fromISO).once('value'),
+            firebase.database().ref(`auditorias/${det}`).orderByChild('fecha').startAt(fromISO).once('value')
         ]);
 
         const movimientos = [];
-        movSnap.forEach(child => { movimientos.push(child.val()); });
+        movSnap.forEach(child => movimientos.push(child.val()));
+
         const auditorias = [];
-        auditSnap.forEach(child => { auditorias.push(child.val()); });
+        auditSnap.forEach(child => auditorias.push(child.val()));
 
-        // Filtrar solo los últimos 30 días en zona horaria local
-        const movimientosFiltrados = movimientos.filter(m => {
-            if (!m.fecha) return false;
-            const fechaMov = isoToLocalDate(m.fecha);
-            return fechaMov >= hace30DiasStr;
-        });
-        const auditoriasFiltradas = auditorias.filter(a => {
-            if (!a.fecha) return false;
-            const fechaAud = isoToLocalDate(a.fecha);
-            return fechaAud >= hace30DiasStr;
-        });
+        window.ANALYTICS_STATE.movimientos = movimientos;
+        window.ANALYTICS_STATE.auditorias = auditorias;
 
-        window.ANALYTICS_STATE.movimientos = movimientosFiltrados;
-        window.ANALYTICS_STATE.auditorias = auditoriasFiltradas;
-
-        procesarMetricas(hoyStr);
-
-        // ACTUALIZACIÓN DINÁMICA: Re-renderizar inventario para mostrar promedios
-        if (typeof window.applyFiltersAndRender === 'function') {
-            console.log('🔄 [ANALYTICS] Actualizando promedios en lista de inventario...');
-            window.applyFiltersAndRender();
-        }
+        procesarMetricas();
 
         if (typeof window.renderAnalyticsUI === 'function') {
-            setTimeout(() => {
-                window.renderAnalyticsUI();
-            }, 0);
+            window.renderAnalyticsUI();
         }
-
     } catch (error) {
-        console.error('❌ Error cargando datos de analytics:', error);
-        showToast('Error al cargar estadísticas', 'error');
+        console.error('[Analytics] Error cargando datos:', error);
+        showToast('Error al cargar estadisticas', 'error');
     }
 }
 
-// ============================================================
-// PROCESAR MÉTRICAS (7 DÍAS)
-// ============================================================
-function procesarMetricas(fechaHoy) {
-    const movs = window.ANALYTICS_STATE.movimientos;
-    const audits = window.ANALYTICS_STATE.auditorias;
+function procesarMetricas() {
+    const movs = window.ANALYTICS_STATE.movimientos || [];
+    const audits = window.ANALYTICS_STATE.auditorias || [];
     const res = window.ANALYTICS_STATE.resumen;
+    const todayKey = toLocalDateKey();
+    const dayKeys = buildLastSevenDayKeys();
+    const salidaMovs = movs.filter(m => m?.tipo === 'salida');
+    const movsHoy = salidaMovs.filter(m => toLocalDateKey(m.fecha) === todayKey);
 
-    // Métricas de Hoy (usando fecha local)
-    const movsHoy = movs.filter(m => m.fecha && isoToLocalDate(m.fecha) === fechaHoy);
     res.totalRellenosHoy = movsHoy.length;
-    res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.cajasMovidas) || 0), 0);
-    res.auditoriasHoy = audits.filter(a => a.fecha && isoToLocalDate(a.fecha) === fechaHoy).length;
+    res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + asNumber(m.cajasMovidas), 0);
+    res.piezasMovidasHoy = movsHoy.reduce((acc, m) => acc + asNumber(m.piezasMovidas), 0);
+    res.auditoriasHoy = audits.filter(a => toLocalDateKey(a.fecha) === todayKey).length;
     res.productosDistintos = new Set(movsHoy.map(m => m.productoNombre).filter(Boolean)).size;
 
-    // Top 5 Productos (basado en cajas en 7 días)
     const conteoProd = {};
-    movs.forEach(m => {
-        if (m.tipo !== 'salida') return;
+    const conteoMarcas = {};
+    const piezasPorProducto = {};
+    const cajasPorProducto = {};
+    const movimientosPorProducto = {};
+
+    res.historico7Dias = {};
+    res.historicoPiezas7Dias = {};
+    dayKeys.forEach(key => {
+        res.historico7Dias[key] = 0;
+        res.historicoPiezas7Dias[key] = 0;
+    });
+
+    salidaMovs.forEach(m => {
+        const fechaKey = toLocalDateKey(m.fecha);
+        if (!dayKeys.includes(fechaKey)) return;
+
         const nombre = m.productoNombre || 'Desconocido';
-        const cajas = parseInt(m.cajasMovidas) || 0;
+        const marca = m.marca || 'Otra';
+        const cajas = asNumber(m.cajasMovidas);
+        const piezas = asNumber(m.piezasMovidas);
+
+        res.historico7Dias[fechaKey] += 1;
+        res.historicoPiezas7Dias[fechaKey] += piezas;
+
         if (!conteoProd[nombre]) {
-            conteoProd[nombre] = { nombre: nombre, marca: m.marca || 'N/A', total: 0 };
+            conteoProd[nombre] = { nombre, marca, total: 0, totalPiezas: 0 };
         }
         conteoProd[nombre].total += cajas;
-    });
-    res.topProductos = Object.values(conteoProd).sort((a, b) => b.total - a.total).slice(0, 5);
+        conteoProd[nombre].totalPiezas += piezas;
 
-    // Top 5 Marcas (basado en cajas en 7 días)
-    const conteoMarcas = {};
-    movs.forEach(m => {
-        if (m.tipo !== 'salida') return;
-        const marca = m.marca || 'Otra';
-        const cajas = parseInt(m.cajasMovidas) || 0;
         conteoMarcas[marca] = (conteoMarcas[marca] || 0) + cajas;
+        piezasPorProducto[nombre] = (piezasPorProducto[nombre] || 0) + piezas;
+        cajasPorProducto[nombre] = (cajasPorProducto[nombre] || 0) + cajas;
+        movimientosPorProducto[nombre] = (movimientosPorProducto[nombre] || 0) + 1;
     });
-    res.topMarcas = Object.entries(conteoMarcas).map(([marca, total]) => ({ marca, total })).sort((a, b) => b.total - a.total).slice(0, 5);
 
-    // Histórico de Rellenos (7 días) usando zona horaria local
-    res.historico7Dias = {};
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const fechaStr = getLocalDateString(d);
-        const movimientosDia = movs.filter(m => m.fecha && isoToLocalDate(m.fecha) === fechaStr && m.tipo === 'salida');
-        res.historico7Dias[fechaStr] = movimientosDia.length;
-    }
+    res.topProductos = Object.values(conteoProd)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
 
-    // NUEVO: Promedio Diario Inteligente (Ciclo Viernes-Jueves) + Semanal + Mensual
-    const refillMovements = movs.filter(m => m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel');
-    
-    // Función para calcular el inicio del ciclo actual (Viernes 00:00:00 local)
-    const getStartOfCurrentCycle = () => {
-        const ahora = new Date();
-        const diaSemana = ahora.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
-        
-        // Calcular cuántos días restar para llegar al último Viernes
-        // Si hoy es Viernes(5), restamos 0. Si es Sábado(6), restamos 1. Si es Jueves(4), restamos 6.
-        const daysToSubtract = (diaSemana + 2) % 7; 
-        
-        const start = new Date(ahora);
-        start.setDate(ahora.getDate() - daysToSubtract);
-        start.setHours(0, 0, 0, 0);
-        return start.getTime();
+    res.topMarcas = Object.entries(conteoMarcas)
+        .map(([marca, total]) => ({ marca, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+
+    const totalMovimientos = Object.values(res.historico7Dias).reduce((sum, value) => sum + value, 0);
+    const totalPiezas = Object.values(res.historicoPiezas7Dias).reduce((sum, value) => sum + value, 0);
+    const totalCajas = salidaMovs
+        .filter(m => dayKeys.includes(toLocalDateKey(m.fecha)))
+        .reduce((sum, m) => sum + asNumber(m.cajasMovidas), 0);
+    const activeDays = Object.values(res.historico7Dias).filter(value => value > 0).length;
+    const bestDayEntry = Object.entries(res.historicoPiezas7Dias).sort((a, b) => b[1] - a[1])[0];
+
+    res.dailyRefillSummary = {
+        periodDays: ANALYTICS_PERIOD_DAYS,
+        activeDays,
+        avgMovements: Math.round(totalMovimientos / ANALYTICS_PERIOD_DAYS),
+        avgBoxes: Math.round(totalCajas / ANALYTICS_PERIOD_DAYS),
+        avgPieces: Math.round(totalPiezas / ANALYTICS_PERIOD_DAYS),
+        bestDay: bestDayEntry && bestDayEntry[1] > 0
+            ? { fecha: bestDayEntry[0], piezas: bestDayEntry[1] }
+            : null
     };
 
-    const startOfCycleMs = getStartOfCurrentCycle();
-    const hoy = new Date();
-    const msPassedInCycle = Date.now() - startOfCycleMs;
-    const daysInCurrentCycle = Math.max(1, Math.ceil(msPassedInCycle / (24 * 60 * 60 * 1000)));
-    
-    const statsPerProduct = {};
+    res.dailyAveragePiecesPerProduct = Object.keys(piezasPorProducto)
+        .map(nombre => ({
+            nombre,
+            totalPiezas: piezasPorProducto[nombre],
+            totalCajas: cajasPorProducto[nombre] || 0,
+            movimientos: movimientosPorProducto[nombre] || 0,
+            dailyAverage: Math.round(piezasPorProducto[nombre] / ANALYTICS_PERIOD_DAYS)
+        }))
+        .sort((a, b) => b.dailyAverage - a.dailyAverage);
 
-    // 1. Calcular sumas por periodos
-    const ahora = Date.now();
-    const unaSemanaMs = 7 * 24 * 60 * 60 * 1000;
-    const unMesMs = 30 * 24 * 60 * 60 * 1000;
-
-    refillMovements.forEach(m => {
-        const productName = m.productoNombre || 'Desconocido';
-        const pieces = parseInt(m.piezasMovidas) || 0;
-        const movFecha = m.fecha; // Timestamp UTC
-
-        if (!statsPerProduct[productName]) {
-            statsPerProduct[productName] = { 
-                currentCyclePieces: 0, 
-                last7DaysPieces: 0, 
-                last30DaysPieces: 0 
-            };
-        }
-
-        // Ciclo actual (desde el último Viernes 00:00)
-        if (movFecha >= startOfCycleMs) {
-            statsPerProduct[productName].currentCyclePieces += pieces;
-        }
-        
-        // Últimos 7 días (ventana deslizante)
-        if ((ahora - movFecha) <= unaSemanaMs) {
-            statsPerProduct[productName].last7DaysPieces += pieces;
-        }
-        
-        // Últimos 30 días (ventana deslizante completa)
-        if ((ahora - movFecha) <= unMesMs) {
-            statsPerProduct[productName].last30DaysPieces += pieces;
-        }
-    });
-
-    // 2. Generar objeto de analítica avanzada
-    const analyticsPerProduct = {};
-    Object.keys(statsPerProduct).forEach(name => {
-        const stats = statsPerProduct[name];
-        
-        // Promedio Diario: Ciclo actual / días ciclo
-        const dailyAvg = Math.round(stats.currentCyclePieces / daysInCurrentCycle);
-        // Semanal: Total últimos 7 días
-        const weeklyTotal = stats.last7DaysPieces;
-        // Mensual: Total últimos 30 días
-        const monthlyTotal = stats.last30DaysPieces;
-
-        analyticsPerProduct[name] = {
-            daily: dailyAvg,
-            weekly: weeklyTotal,
-            monthly: monthlyTotal,
-            cycleDays: daysInCurrentCycle
-        };
-    });
-
-    res.analyticsPerProduct = analyticsPerProduct;
-    // Compatibilidad con el formato anterior
-    res.dailyAveragePiecesPerProduct = Object.keys(analyticsPerProduct).map(name => ({
-        nombre: name,
-        dailyAverage: analyticsPerProduct[name].daily
-    })).sort((a, b) => b.dailyAverage - a.dailyAverage);
-
-    console.log(`📊 Motor de Analítica Walmart-Style activo:`, res.analyticsPerProduct);
+    console.log('[Analytics] Metricas calculadas:', res);
 }
 
-// ============================================================
-// LÓGICA DE EXPORTACIÓN A EXCEL/CSV (REPORTE COMPLETO)
-// ============================================================
 async function generateAndRenderTop10() {
+    const container = document.getElementById('top-sellers-container');
+    const btn = document.getElementById('btn-generate-top-sellers');
+    if (!container || !btn) return;
+
+    btn.disabled = true;
+    container.innerHTML = '<p style="text-align:center; color:#6b7280;">Cargando historial completo...</p>';
+
+    const det = window.ANALYTICS_STATE.determinante;
+    if (!det) {
+        container.innerHTML = '<p style="text-align:center; color:#ef4444;">Error: No se pudo identificar la tienda.</p>';
+        btn.disabled = false;
+        return;
+    }
+
     try {
-        showToast('🔄 Generando reporte de inventario...', 'info');
-        
-        const productos = window.INVENTORY_STATE?.productos || [];
-        const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
-        const movs = window.ANALYTICS_STATE?.movimientos || [];
-        
-        if (productos.length === 0) {
-            showToast('⚠️ No hay productos en el inventario para exportar.', 'warning');
+        const movSnap = await firebase.database()
+            .ref(`movimientos/${det}`)
+            .orderByChild('tipo')
+            .equalTo('salida')
+            .once('value');
+
+        if (!movSnap.exists()) {
+            container.innerHTML = '<p style="text-align:center; color:#6b7280;">No hay movimientos de salida registrados.</p>';
             return;
         }
 
-        // 1. Agrupar productos por nombre para el reporte consolidado
-        const reporteData = [];
-        const hoyStr = getLocalDateString(new Date());
+        const conteoPiezas = {};
+        movSnap.forEach(child => {
+            const m = child.val();
+            const nombre = m.productoNombre || 'Desconocido';
+            if (nombre === 'Desconocido') return;
 
-        // Agrupar productos por código para consolidar stock de diferentes bodegas si es necesario
-        const productosConsolidados = {};
-        productos.forEach(p => {
-            if (!productosConsolidados[p.nombre]) {
-                productosConsolidados[p.nombre] = {
-                    nombre: p.nombre,
-                    marca: p.marca || 'Otra',
-                    codigo: p.codigoBarras,
-                    cajas: 0,
-                    piezas: 0,
-                    ubicaciones: []
+            const piezas = asNumber(m.piezasMovidas);
+            if (!conteoPiezas[nombre]) {
+                conteoPiezas[nombre] = {
+                    nombre,
+                    marca: m.marca || 'N/A',
+                    totalPiezas: 0,
+                    totalCajas: 0,
+                    movimientos: 0
                 };
             }
-            productosConsolidados[p.nombre].cajas += (parseInt(p.cajas || p.totalCajas) || 0);
-            productosConsolidados[p.nombre].piezas += (parseInt(p.piezas || p.totalPiezas) || 0);
-            if (p.ubicacion && !productosConsolidados[p.nombre].ubicaciones.includes(p.ubicacion)) {
-                productosConsolidados[p.nombre].ubicaciones.push(p.ubicacion);
-            }
+
+            conteoPiezas[nombre].totalPiezas += piezas;
+            conteoPiezas[nombre].totalCajas += asNumber(m.cajasMovidas);
+            conteoPiezas[nombre].movimientos += 1;
         });
 
-        // 2. Construir filas del CSV
-        const encabezados = [
-            "Producto", "Marca", "Codigo", "Ubicaciones", 
-            "Stock (Cajas)", "Stock (Piezas)", 
-            "Venta Diaria (Prom)", "Venta Semanal (Total)", 
-            "Dias de Inventario", "Relleno Hoy (Cajas)", "Relleno Hoy (Piezas)"
-        ];
+        const top10Data = Object.values(conteoPiezas)
+            .sort((a, b) => b.totalPiezas - a.totalPiezas)
+            .slice(0, 10);
 
-        let csvContent = "\uFEFF"; // BOM para Excel
-        csvContent += encabezados.join(",") + "\n";
-
-        Object.values(productosConsolidados).forEach(p => {
-            const stats = analytics[p.nombre] || { daily: 0, weekly: 0 };
-            const diasInv = stats.daily > 0 ? Math.ceil(p.piezas / stats.daily) : 0;
-            
-            // Movimientos de hoy para este producto
-            const movsHoy = movs.filter(m => 
-                m.productoNombre === p.nombre && 
-                isoToLocalDate(m.fecha) === hoyStr &&
-                (m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel')
-            );
-            
-            const refillCajasHoy = movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0);
-            const refillPiezasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas) || 0), 0);
-
-            const fila = [
-                `"${p.nombre}"`,
-                `"${p.marca}"`,
-                `"=""${p.codigo}"""`, // Formato de Excel para mantener el número como texto completo
-                `"${p.ubicaciones.join('; ')}"`,
-                p.cajas,
-                p.piezas,
-                stats.daily,
-                stats.weekly,
-                diasInv,
-                refillCajasHoy.toFixed(2),
-                refillPiezasHoy
-            ];
-            
-            csvContent += fila.join(",") + "\n";
-        });
-
-        // 3. Descargar el archivo
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const fechaArchivo = new Date().toISOString().slice(0, 10);
-        
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showToast('✅ Reporte descargado con éxito', 'success');
-        console.log('📊 Reporte generado y descargado.');
-
+        if (typeof window.renderTopSellersReport === 'function') {
+            window.renderTopSellersReport(top10Data);
+        } else {
+            container.innerHTML = '<p style="text-align:center; color:#ef4444;">Error de renderizado. Contacta a soporte.</p>';
+        }
     } catch (error) {
-        console.error('❌ Error generando reporte:', error);
-        showToast('Error al generar el archivo', 'error');
+        console.error('[Analytics] Error generando Top 10:', error);
+        container.innerHTML = '<p style="text-align:center; color:#ef4444;">Ocurrio un error al cargar el reporte.</p>';
+    } finally {
+        btn.disabled = false;
     }
 }
 
-// ============================================================
-// INICIALIZACIÓN AUTOMÁTICA Y EVENTOS
-// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // NOTA [ARCHITECT]: Desactivado para evitar condición de carrera.
-    // La carga ahora es gestionada secuencialmente por auth.js
-    /*
     firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            window.loadStats();
-        }
+        if (user) initAnalytics();
     });
-    */
 
-    // Listener para el botón de la pestaña analytics (ahora llama a window.loadStats)
     document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.dataset.tab === 'analytics' && window.ANALYTICS_STATE.determinante) {
-                window.loadStats();
+                fetchAnalyticsData();
             }
         });
     });
 
-
+    const top10Btn = document.getElementById('btn-generate-top-sellers');
+    if (top10Btn) {
+        top10Btn.addEventListener('click', generateAndRenderTop10);
+    }
 });
 
-// Exponer funciones globalmente (solo las necesarias)
-window.reloadAnalytics = async function () { await window.loadStats(); };
+window.reloadAnalytics = async function() { await fetchAnalyticsData(); };
 window.initAnalytics = initAnalytics;
-// Ya no es necesario exponer fetchAnalyticsData directamente, ya que se ha renombrado a window.loadStats
-// window.fetchAnalyticsData = fetchAnalyticsData; 
+window.fetchAnalyticsData = fetchAnalyticsData;
+window.generateAndRenderTop10 = generateAndRenderTop10;
 
-console.log('✅ analytics.js (con Top 10) cargado correctamente');
+console.log('[Analytics] analytics.js cargado correctamente');

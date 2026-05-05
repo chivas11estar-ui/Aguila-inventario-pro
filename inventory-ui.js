@@ -1,130 +1,96 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: inventory-ui.js
 // Fase 2 - Módulo 2.1: Inventario Inteligente por Marca
-// RENDER HTML - Versión Pro Multi-Tab (Stock y Agotados)
+// RENDER HTML - Solo UI
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 // ============================================================
 // RENDERIZAR INVENTARIO COMPLETO
 // ============================================================
-function renderInventoryUI(productos, targetId = 'inventory-list') {
-  try {
-    const listElement = document.getElementById(targetId);
-    if (!listElement) {
-      console.warn(`⚠️ Elemento ${targetId} no encontrado`);
-      return;
-    }
-
-    console.log(`🎨 Renderizando ${targetId}:`, productos.length, 'productos');
-
-    // Validar que hay productos
-    if (productos.length === 0) {
-      const emptyMsg = targetId === 'inventory-list'
-        ? '✅ Sin productos con stock disponible'
-        : '✨ No hay productos agotados';
-
-      listElement.innerHTML = `
-        <p style="color: var(--muted); text-align: center; padding: 40px;">
-          ${emptyMsg}
-        </p>
-      `;
-      return;
-    }
-
-    // 1. Agrupar por código de barras
-    const productosAgrupados = window.groupProductsByBarcode(productos);
-
-    // 2. Agrupar por marca
-    const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
-
-    // 3. Ordenar marcas (prioridad predefinida)
-    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra']
-      .filter(marca => productosPorMarca[marca]);
-
-    // 4. Renderizar HTML
-    let html = '';
-
-    marcasOrdenadas.forEach(marca => {
-      html += renderBrandSection(marca, productosPorMarca[marca], targetId);
-    });
-
-    listElement.innerHTML = html;
-
-    // 5. Configurar eventos de click
-    setupBrandClickEvents();
-
-    // 6. Aplicar estados de marcas (expandidas/contraídas)
-    applyBrandStates();
-
-    console.log(`✅ ${targetId} renderizado correctamente`);
-  } catch (error) {
-    console.error(`❌ [RENDER ERROR] ${targetId}:`, error);
-    const listElement = document.getElementById(targetId);
-    if (listElement) {
-      listElement.innerHTML = `
-        <p style="color: var(--muted); text-align: center; padding: 40px;">
-          ⚠️ Error al cargar inventario. Por favor recarga la página.
-        </p>
-      `;
-    }
+function renderInventoryUI(productos) {
+  const listElement = document.getElementById('inventory-list');
+  if (!listElement) {
+    console.warn('⚠️ Elemento inventory-list no encontrado');
+    return;
   }
+
+  console.log('🎨 Renderizando inventario:', productos.length, 'productos');
+
+  // Validar que hay productos
+  if (productos.length === 0) {
+    listElement.innerHTML = `
+      <p style="color: var(--muted); text-align: center; padding: 40px;">
+        ✅ Sin productos con stock disponible
+      </p>
+    `;
+    return;
+  }
+
+  // 1. Agrupar por código de barras
+  const productosAgrupados = window.groupProductsByBarcode(productos);
+
+  // 2. Agrupar por marca
+  const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
+
+  // 3. Ordenar marcas (prioridad predefinida)
+  const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra']
+    .filter(marca => productosPorMarca[marca]);
+
+  // 4. Renderizar HTML
+  let html = '';
+
+  marcasOrdenadas.forEach(marca => {
+    html += renderBrandSection(marca, productosPorMarca[marca]);
+  });
+
+  listElement.innerHTML = html;
+
+  // 5. Configurar eventos de click
+  setupBrandClickEvents();
+
+  // 6. Aplicar estados de marcas (expandidas/contraídas)
+  applyBrandStates();
+
+  console.log('✅ Inventario renderizado');
 }
 
 // ============================================================
 // RENDERIZAR SECCIÓN DE MARCA
 // ============================================================
-function renderBrandSection(marca, productos, targetId) {
+function renderBrandSection(marca, productos) {
   const totales = window.calculateBrandTotals(productos);
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
-  // Mapa de colores por marca (Identificación Visual Rápida)
-  const brandStyles = {
-    'Sabritas': { bg: '#ffcc00', text: '#1a1b25' },    // Amarillo Sabritas
-    'Gamesa': { bg: '#0056b3', text: '#ffffff' },      // Azul Gamesa
-    'Quaker': { bg: '#e65100', text: '#ffffff' },      // Naranja Fuerte
-    'Cacahuates': { bg: '#fff9c4', text: '#5d4037' },  // Crema/Café sutil
-    "Sonric's": { bg: '#d81b60', text: '#ffffff' },    // Rosa Sonric's
-    'default': { bg: '#0021e4', text: '#ffffff' }
-  };
-
-  const style = brandStyles[marca] || brandStyles['default'];
-  const finalBg = targetId === 'inventory-list' ? style.bg : '#565e74';
-  const finalText = targetId === 'inventory-list' ? style.text : '#ffffff';
-
   let html = `
-    <div data-brand-section="${marca}" data-container="${targetId}" style="margin-bottom: 24px;">
+    <div data-brand-section="${marca}" style="margin-bottom: 24px;">
       <!-- Header de marca -->
       <div 
         data-brand-header 
         data-brand-name="${marca}"
-        class="card"
         style="
-          background: ${finalBg} !important;
-          color: ${finalText} !important;
-          padding: 16px var(--spacing-lg);
-          margin-bottom: 16px;
+          background: linear-gradient(135deg, var(--primary), #003a8a);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          font-weight: 700;
+          font-size: 14px;
           cursor: pointer;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: none;
-          box-shadow: var(--shadow-xl);
+          transition: all 0.3s ease;
         "
       >
-        <div style="display: flex; align-items: center; gap: 16px; pointer-events: none;">
-          <span class="material-icons-round" style="font-size: 24px; opacity: 0.9;">
-            ${targetId === 'inventory-list' ? 'local_offer' : 'block'}
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 16px;">🏷️ ${marca}</span>
+          <span style="font-size: 12px; opacity: 0.9;">
+            ${totales.totalProductos} productos • ${totales.totalCajas} cajas
           </span>
-          <div style="display: flex; flex-direction: column;">
-            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">${marca}</span>
-            <span style="font-size: 11px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-              ${totales.totalProductos} productos • ${totales.totalCajas} cajas
-            </span>
-          </div>
         </div>
-        <span data-brand-arrow class="material-icons-round" style="font-size: 20px; transition: transform 0.3s; pointer-events: none;">
-          ${isExpanded ? 'expand_more' : 'chevron_right'}
+        <span data-brand-arrow style="font-size: 12px; transition: transform 0.3s;">
+          ${isExpanded ? '▼' : '▶'}
         </span>
       </div>
 
@@ -136,7 +102,7 @@ function renderBrandSection(marca, productos, targetId) {
           transition: all 0.3s ease;
         "
       >
-        ${productos.map(product => renderProductCard(product, targetId)).join('')}
+        ${productos.map(product => renderProductCard(product)).join('')}
       </div>
     </div>
   `;
@@ -147,177 +113,137 @@ function renderBrandSection(marca, productos, targetId) {
 // ============================================================
 // RENDERIZAR TARJETA DE PRODUCTO
 // ============================================================
-function renderProductCard(product, targetId) {
+function renderProductCard(product) {
   const tieneMuchasBodegas = product.bodegas.length > 1;
-  const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
-  const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
-  const totalAntiguo = parseInt(product.stockTotal) || 0;
-  const isOutOfStock = totalCajas <= 0 && totalPiezas <= 0 && totalAntiguo <= 0;
   
-  const productName = product.nombre;
-  const brandName = product.marca;
-
   // Calcular info de caducidad
   const expiryInfo = window.calculateExpiryInfo(product, window.BRAND_EXPIRY_CONFIG);
   
   const expiryTag = expiryInfo.text ? `
-    <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
-      <span class="material-icons-round" style="font-size: 14px; color: ${expiryInfo.color};">event_note</span>
-      <span style="color: ${expiryInfo.color}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em;">
-        ${expiryInfo.text}
+    <div style="margin-top: 4px;">
+      <span style="color: ${expiryInfo.color}; font-weight: 700; font-size: 12px;">
+        📅 ${expiryInfo.text}
       </span>
     </div>
   ` : '';
 
-  // Metadata Avanzada
-  let analytics = { daily: 0, weekly: 0, monthly: 0 };
-  const analyticsData = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
-  if (analyticsData[productName]) {
-    analytics = analyticsData[productName];
-  }
-
-  const diasInventario = analytics.daily > 0 ? Math.ceil(product.totalPiezas / analytics.daily) : 0;
-
-  // Lógica de Colores de Estado (Indigo Horizon)
-  let statusBorder = 'var(--border)';
-  let statusIcon = '';
-  
-  if (isOutOfStock) {
-    statusBorder = 'var(--error)';
-  } else if (analytics.daily > 0) {
-    if (diasInventario <= 2) {
-      statusBorder = 'var(--primary)'; // Pick urgente
-      statusIcon = '<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:800; margin-left:8px; text-transform:uppercase;">Pick</span>';
-    } else if (diasInventario <= 5) {
-      statusBorder = 'var(--success)';
-    }
-  }
-
   return `
-    <div
-      data-product-item
-      data-product-name="${productName}"
+    <div 
+      data-product-item 
+      data-product-name="${product.nombre}"
       data-product-code="${product.codigoBarras}"
-      class="product-card"
-      style="border-left: 6px solid ${statusBorder};"
+      class="card"
+      style="
+        background: white;
+        border-left: 4px solid var(--primary);
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+      "
     >
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+      <!-- Header del producto -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div style="flex: 1;">
-          <h4 style="margin: 0 0 8px 0; color: var(--text); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2;">
-            ${productName} ${statusIcon}
+          <h4 style="margin: 0 0 8px 0; color: var(--primary);">
+            ${product.nombre}
           </h4>
-          <div style="font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.4;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">qr_code_2</span>
-              <span>${product.codigoBarras || 'N/A'}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-              <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">layers</span>
-              <span>${product.piezasPorCaja} pzs/caj</span>
-            </div>
-
-            <!-- Dashboard de Ventas Sutil -->
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:12px;">
-              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
-                <div style="font-size:9px; color:var(--primary); font-weight:800; text-transform:uppercase;">Día</div>
-                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.daily}</div>
-              </div>
-              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
-                <div style="font-size:9px; color:var(--secondary); font-weight:800; text-transform:uppercase;">Sem</div>
-                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.weekly}</div>
-              </div>
-              <div style="background:var(--bg); padding:8px; border-radius:12px; text-align:center; border: 1px solid var(--border);">
-                <div style="font-size:9px; color:var(--muted); font-weight:800; text-transform:uppercase;">Mes</div>
-                <div style="font-size:15px; font-weight:800; color:var(--text);">${analytics.monthly}</div>
-              </div>
-            </div>
-
+          <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
+            <div>📍 Código: <strong>${product.codigoBarras || 'N/A'}</strong></div>
+            <div>📦 ${product.piezasPorCaja} piezas/caja</div>
             ${expiryTag}
           </div>
         </div>
 
-        <div class="product-stock" style="background: ${isOutOfStock ? 'var(--error-container)' : 'var(--primary-container)'}; color: white; box-shadow: var(--shadow-md);">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 24px; font-weight: 900;">${product.totalCajas}</span>
-            <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: -4px; opacity: 0.9;">cajas</span>
-            <div style="width: 24px; height: 1.5px; background: rgba(255,255,255,0.3); margin: 4px 0;"></div>
-            <span style="font-size: 11px; font-weight: 700;">${product.totalPiezas} pzs</span>
+        <!-- Total de cajas -->
+        <div style="text-align: right; min-width: 100px;">
+          <div style="font-size: 32px; font-weight: 700; color: var(--success);">
+            ${product.totalCajas}
+          </div>
+          <div style="font-size: 12px; color: var(--muted);">cajas totales</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">
+            ${product.totalPiezas} piezas
           </div>
         </div>
       </div>
 
-      <div style="margin-top: 16px;">
-        <!-- Detalle Bodegas -->
-        ${tieneMuchasBodegas 
-          ? renderMultipleWarehouses(product, analytics.daily) 
-          : renderSingleWarehouse(product, analytics.daily)
-        }
+      <!-- Bodegas -->
+      ${tieneMuchasBodegas 
+        ? renderMultipleWarehouses(product) 
+        : renderSingleWarehouse(product)
+      }
 
-        <!-- Botones de Acción Estilo Indigo -->
-        <div style="margin-top: 16px; display: flex; gap: 10px;">
-          <button 
-            onclick="window.editarProducto('${product.bodegas[0].id}')"
-            class="secondary"
-            style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
-          >
-            <span class="material-icons-round" style="font-size:18px;">edit</span>
-            Editar
-          </button>
-          
-          ${isOutOfStock ? `
-            <button 
-              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
-              class="primary"
-              style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0; background: var(--success);"
-            >
-              <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span>
-              Resurtir
-            </button>
-          ` : `
-            <button 
-              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.bodegas[0].id}')"
-              class="primary"
-              style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
-            >
-              <span class="material-icons-round" style="font-size:18px;">sync_alt</span>
-              Mover
-            </button>
-          `}
-        </div>
+      <!-- Botón editar -->
+      <div style="margin-top: 12px;">
+        <button 
+          onclick="window.editarProducto('${product.bodegas[0].id}')"
+          style="
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+          "
+          onmouseover="this.style.background='#1d4ed8'"
+          onmouseout="this.style.background='#2563eb'"
+        >
+          ✏️ Editar Producto
+        </button>
       </div>
     </div>
   `;
 }
 
 // ============================================================
-// RENDERIZAR MÚLTIPLES BODEGAS
+// RENDERIZAR MÚLTIPLES BODEGAS (COLAPSABLE)
 // ============================================================
-function renderMultipleWarehouses(product, salesAvg = 0) {
+function renderMultipleWarehouses(product) {
   return `
-    <details class="bodega-details" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
-      <summary style="cursor: pointer; font-weight: 700; color: #2563eb; padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
-        <span class="material-icons-round" style="font-size:18px;">place</span>
-        Ubicado en ${product.bodegas.length} bodegas
+    <details class="bodega-details" style="margin-top: 12px;">
+      <summary style="cursor: pointer; font-weight: 600; color: #2563eb; padding: 5px;">
+        📍 Bodegas (${product.bodegas.length})
       </summary>
-      <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-        ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
+      <ul class="bodega-list" style="list-style: none; padding: 10px 0 0 0; margin: 0;">
+        ${product.bodegas.map(bodega => {
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
             ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
             : null;
 
           return `
-            <li style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
-                <span style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
-              </div>
-              <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
+            <li style="
+              padding: 8px;
+              margin: 5px 0;
+              background: #f8fafc;
+              border-left: 3px solid #2563eb;
+              border-radius: 4px;
+            ">
+              <strong>${bodega.ubicacion}:</strong> ${bodega.cajas} cajas
               ${bodegaDays !== null ? `
-                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
-                  📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
-                </div>
+                <br>
+                <small style="color: #64748b; font-size: 0.85em;">
+                  Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
+                </small>
               ` : ''}
+              <br>
+              <button 
+                onclick="window.editarProducto('${bodega.id}')"
+                style="
+                  margin-top: 6px;
+                  padding: 4px 8px;
+                  background: #2563eb;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 11px;
+                "
+              >
+                ✏️ Editar
+              </button>
             </li>
           `;
         }).join('')}
@@ -329,144 +255,157 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
 // ============================================================
 // RENDERIZAR BODEGA ÚNICA
 // ============================================================
-function renderSingleWarehouse(product, salesAvg = 0) {
+function renderSingleWarehouse(product) {
   const bodega = product.bodegas[0];
-  const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
-  const bodegaDays = bodegaExpiry 
-    ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : null;
   
   return `
-    <div style="padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
-          <span class="material-icons-round" style="font-size:16px;">business</span>
-          <strong>Bodega:</strong> ${bodega.ubicacion}
-        </span>
-      </div>
-      <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
+    <div style="margin-top: 10px; font-size: 13px; color: #6b7280;">
+      <strong>🏢 Bodega:</strong> ${bodega.ubicacion}
       ${bodega.fechaCaducidad ? `
-        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
-          📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong> (${bodegaDays || '?'} días)
-        </div>
+        <br><strong>📅 Caducidad:</strong> ${bodega.fechaCaducidad}
       ` : ''}
     </div>
   `;
 }
 
 // ============================================================
-// EDITAR PRODUCTO (GLOBAL WINDOW)
+// CONFIGURAR EVENTOS DE CLICK EN MARCAS
 // ============================================================
-window.editarProducto = async function(productId) {
-  console.log('✏️ Editando producto:', productId);
-
-  const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
-
-  if (!product) {
-    if (typeof showToast === 'function') showToast('❌ Producto no encontrado', 'error');
-    return;
-  }
-
-  if (typeof window.switchTab === 'function') window.switchTab('add');
-
-  setTimeout(() => {
-    document.getElementById('add-barcode').value = product.codigoBarras || '';
-    document.getElementById('add-product-name').value = product.nombre || '';
-    document.getElementById('add-brand').value = product.marca || '';
-    document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
-    document.getElementById('add-warehouse').value = product.ubicacion || '';
-    document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
-    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
-
-    const formTitle = document.querySelector('#tab-add h2');
-    if (formTitle) formTitle.textContent = '✏️ Editar Producto';
-
-    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
-    if (submitBtn) {
-      submitBtn.textContent = '💾 Actualizar Producto';
-      submitBtn.style.background = '#f59e0b';
-    }
-
-    window.EDITING_PRODUCT_ID = productId;
-    if (typeof showToast === 'function') showToast('✏️ Editando: ' + product.nombre, 'info');
-  }, 100);
-};
-
-// ============================================================
-// HELPERS UI
-// ============================================================
-let brandClickEventsSetup = false; // Bandera para evitar múltiples listeners
-
 function setupBrandClickEvents() {
-  if (brandClickEventsSetup) return; // Si ya se configuró, no configurar de nuevo
-
-  // Usar delegación de eventos en el document
-  document.addEventListener('click', function handleBrandClick(e) {
-    // Buscar el elemento más cercano con data-brand-header
-    const header = e.target.closest('[data-brand-header]');
-    if (!header) return;
-
+  const brandHeaders = document.querySelectorAll('[data-brand-header]');
+  
+  brandHeaders.forEach(header => {
     const brandName = header.getAttribute('data-brand-name');
-    const container = header.closest('[data-container]');
-    const containerId = container ? container.getAttribute('data-container') : null;
+    
+    if (!brandName) return;
 
-    if (brandName) {
-      console.log('🔄 Click en marca:', brandName);
-      toggleBrandUI(brandName, containerId);
-    }
+    // Remover listeners anteriores (prevenir duplicados)
+    const newHeader = header.cloneNode(true);
+    header.parentNode.replaceChild(newHeader, header);
+
+    // Agregar nuevo listener
+    newHeader.addEventListener('click', () => {
+      toggleBrandUI(brandName);
+    });
+
+    // Hover effect
+    newHeader.addEventListener('mouseenter', () => {
+      newHeader.style.transform = 'translateY(-1px)';
+      newHeader.style.boxShadow = '0 4px 12px rgba(0, 74, 173, 0.2)';
+    });
+
+    newHeader.addEventListener('mouseleave', () => {
+      newHeader.style.transform = '';
+      newHeader.style.boxShadow = '';
+    });
   });
 
-  brandClickEventsSetup = true;
-  console.log('✅ Brand click events configurados');
+  console.log('✅ Eventos de marca configurados');
 }
 
-function toggleBrandUI(brandName, containerId) {
+// ============================================================
+// TOGGLE MARCA (UI)
+// ============================================================
+function toggleBrandUI(brandName) {
+  // Actualizar estado en lógica
   const isExpanded = window.toggleBrandState(brandName);
 
-  // Buscar TODOS los elementos con data-brand-section que coincidan con la marca
-  const allSections = document.querySelectorAll(`[data-brand-section="${brandName}"]`);
+  // Actualizar UI
+  const section = document.querySelector(`[data-brand-section="${brandName}"]`);
+  if (!section) return;
 
-  console.log(`📍 Buscando secciones para marca "${brandName}":`, allSections.length, 'encontradas');
+  const productsList = section.querySelector('[data-products-list]');
+  const arrow = section.querySelector('[data-brand-arrow]');
 
-  allSections.forEach(section => {
-    // Si se especificó containerId, solo actualizar si está en ese contenedor
-    if (containerId && section.getAttribute('data-container') !== containerId) {
-      return;
-    }
+  if (productsList) {
+    productsList.style.display = isExpanded ? 'block' : 'none';
+  }
+
+  if (arrow) {
+    arrow.textContent = isExpanded ? '▼' : '▶';
+  }
+
+  console.log(`🔄 UI actualizado: ${brandName} → ${isExpanded ? 'expandida' : 'contraída'}`);
+}
+
+// ============================================================
+// APLICAR ESTADOS DE MARCAS (AL CARGAR)
+// ============================================================
+function applyBrandStates() {
+  Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
+    const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
+    const section = document.querySelector(`[data-brand-section="${marca}"]`);
+    
+    if (!section) return;
 
     const productsList = section.querySelector('[data-products-list]');
     const arrow = section.querySelector('[data-brand-arrow]');
 
-    console.log(`  - Actualizando lista de productos:`, !!productsList, 'arrow:', !!arrow);
-
     if (productsList) {
       productsList.style.display = isExpanded ? 'block' : 'none';
-      console.log(`    ✅ Display cambiado a: ${isExpanded ? 'block' : 'none'}`);
     }
 
     if (arrow) {
       arrow.textContent = isExpanded ? '▼' : '▶';
-      console.log(`    ✅ Flecha cambiada a: ${isExpanded ? '▼' : '▶'}`);
     }
   });
+
+  console.log('✅ Estados de marcas aplicados');
 }
 
-function applyBrandStates() {
-  Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
-    const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
-    document.querySelectorAll(`[data-brand-section="${marca}"]`).forEach(section => {
-      const productsList = section.querySelector('[data-products-list]');
-      const arrow = section.querySelector('[data-brand-arrow]');
-      if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';
-      if (arrow) arrow.textContent = isExpanded ? '▼' : '▶';
-    });
-  });
-}
-
+// ============================================================
+// CONFIGURAR BUSCADOR
+// ============================================================
 function setupSearchBar() {
-  if (window.SearchController) {
-    window.SearchController.renderGlobalSearch('tab-inventory');
-    window.SearchController.renderGlobalSearch('tab-out-of-stock');
+  const inventoryList = document.getElementById('inventory-list');
+  if (!inventoryList) return;
+
+  // Verificar si ya existe el buscador
+  if (document.getElementById('inventory-search')) {
+    console.log('⚠️ Buscador ya existe');
+    return;
+  }
+
+  const searchHTML = `
+    <div style="margin-bottom: 20px;">
+      <input
+        id="inventory-search"
+        type="text"
+        placeholder="🔍 Buscar producto, marca o código..."
+        style="
+          width: 100%;
+          padding: 12px;
+          border: 2px solid var(--border);
+          border-radius: 8px;
+          font-size: 14px;
+          box-sizing: border-box;
+          transition: all 0.3s ease;
+        "
+      />
+    </div>
+  `;
+
+  inventoryList.insertAdjacentHTML('beforebegin', searchHTML);
+
+  // Evento de búsqueda
+  const searchInput = document.getElementById('inventory-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      window.setSearchTerm(e.target.value);
+    });
+
+    // Focus effect
+    searchInput.addEventListener('focus', () => {
+      searchInput.style.borderColor = 'var(--primary)';
+      searchInput.style.boxShadow = '0 0 0 3px rgba(0, 74, 173, 0.1)';
+    });
+
+    searchInput.addEventListener('blur', () => {
+      searchInput.style.borderColor = 'var(--border)';
+      searchInput.style.boxShadow = 'none';
+    });
+
+    console.log('✅ Buscador configurado');
   }
 }
 
@@ -474,9 +413,12 @@ function setupSearchBar() {
 // INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('🎨 Inicializando módulo de inventario (UI)...');
+
+  // Configurar buscador
   setTimeout(() => {
     setupSearchBar();
-  }, 1000);
+  }, 500);
 });
 
 // ============================================================
@@ -485,4 +427,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.renderInventoryUI = renderInventoryUI;
 window.setupSearchBar = setupSearchBar;
 
-console.log('✅ inventory-ui.js V3 (Pro Multi-Container) cargado');
+console.log('✅ inventory-ui.js (Fase 2 - Render HTML) cargado correctamente');

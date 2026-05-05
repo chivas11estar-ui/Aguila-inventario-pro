@@ -23,16 +23,14 @@ window.showToast = function(message, type = 'info') {
   toast.className = 'toast toast-' + type;
   toast.textContent = message;
   toast.style.cssText = `
-    background: var(--card-bg);
-    color: var(--text);
+    background: white;
     padding: 16px 20px;
     border-radius: 12px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     border-left: 4px solid ${getToastColor(type)};
     font-size: 14px;
     animation: slideIn 0.3s ease-out;
     cursor: pointer;
-    border: 1px solid var(--border);
   `;
   
   container.appendChild(toast);
@@ -80,8 +78,6 @@ function setupTabs() {
       const tabElement = document.getElementById('tab-' + tabName);
       if (tabElement) {
         tabElement.classList.add('active');
-        // RECONEXIÓN CALIENTE: Si la pestaña tiene un video, reconectar el stream persistente
-        refreshCameraOnTabChange(tabName);
       }
       
       item.classList.add('active');
@@ -96,22 +92,6 @@ function setupTabs() {
   });
 }
 
-/**
- * Asegura que el video se mantenga reproduciendo al cambiar de pestaña (Hot-Swap)
- */
-function refreshCameraOnTabChange(tabName) {
-    if (!window.ScannerService || !window.ScannerService.persistentStream) return;
-
-    // Buscar si hay un video en la pestaña activa
-    const activeTab = document.getElementById('tab-' + tabName);
-    const video = activeTab?.querySelector('video');
-
-    if (video) {
-        console.log(`🔗 [UI] Reconectando cámara a la pestaña: ${tabName}`);
-        window.ScannerService.attachToElement(video);
-    }
-}
-
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
@@ -119,121 +99,46 @@ function initUI() {
   console.log('🎨 Inicializando UI...');
   
   setupTabs();
-  connectGlobalScanButtons();
+  
+  // ✅ BOTÓN ESCÁNER AGREGAR - CORREGIDO
+  const btnScanAdd = document.getElementById('btn-scan-add');
+  if (btnScanAdd) {
+    btnScanAdd.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('🎬 Abriendo escáner para agregar...');
+      
+      if (typeof window.openScanner === 'function') {
+        console.log('✅ openScanner disponible, abriendo...');
+        window.openScanner((code) => {
+          console.log('📦 Código escaneado:', code);
+          const input = document.getElementById('add-barcode');
+          if (input) {
+            input.value = code;
+            showToast('✅ Código detectado: ' + code, 'success');
+          }
+        });
+      } else {
+        console.error('❌ openScanner NO está disponible');
+        showToast('❌ El escáner no está disponible', 'error');
+      }
+    });
+  } else {
+    console.warn('⚠️ Botón btn-scan-add no encontrado');
+  }
+  
+  // ✅ BOTÓN CERRAR ESCÁNER
+  const closeBtn = document.getElementById('close-scanner');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('🔴 Cerrando escáner...');
+      if (typeof window.closeScanner === 'function') {
+        window.closeScanner();
+      }
+    });
+  }
   
   console.log('✅ UI inicializado correctamente');
-}
-
-/**
- * Conector Global de Eventos de Cámara (Bridge V4.2)
- * Asegura que todos los botones de escaneo tengan un comportamiento consistente.
- */
-function connectGlobalScanButtons() {
-    // 1. Botón pestaña AÑADIR
-    document.getElementById('btn-scan-add')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('add-barcode');
-            if (input) {
-                input.value = code;
-                // Disparar eventos para activar validaciones y búsquedas automáticas
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.focus();
-
-                // Si existe una función para buscar en "Agregar", llamarla
-                if (typeof window.buscarProductoParaAgregar === 'function') {
-                    window.buscarProductoParaAgregar(code);
-                } else if (typeof window.buscarProductoPorCodigo === 'function') {
-                    // Fallback: verificar si ya existe el producto
-                    window.buscarProductoPorCodigo(code).then(prod => {
-                        if (prod && prod._exists) {
-                            showToast(`📦 Producto existente: ${prod.nombre}`, 'info');
-                            if (document.getElementById('add-product-name')) {
-                                document.getElementById('add-product-name').value = prod.nombre || '';
-                            }
-                            if (document.getElementById('add-brand')) {
-                                document.getElementById('add-brand').value = prod.marca || '';
-                            }
-                        }
-                    });
-                }
-            }
-        });
-    });
-
-    // 2. Botón pestaña RELLENAR
-    document.getElementById('btn-scan-refill')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('refill-barcode');
-            if (input) {
-                input.value = code;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.focus();
-
-                // Prioridad a refill-safe.js
-                if (typeof window.searchProductForRefillSafe === 'function') {
-                    window.searchProductForRefillSafe(code);
-                } else if (typeof window.searchProductForRefill === 'function') {
-                    window.searchProductForRefill(code);
-                }
-            }
-        });
-    });
-
-    // 3. Botón pestaña AUDITORÍA (Modo Normal)
-    document.getElementById('btn-scan-audit')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('audit-barcode');
-            if (input) {
-                input.value = code;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                // Llamar a la búsqueda de auditoría
-                if (typeof window.buscarProductoAudit === 'function') {
-                    window.buscarProductoAudit();
-                }
-            }
-        });
-    });
-
-    // 4. Botón Búsqueda Global (Si existe el ID)
-    document.getElementById('btn-trigger-scan')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            if (window.bridgeScanToSearch) {
-                window.bridgeScanToSearch(code);
-            } else {
-                const input = document.getElementById('global-search-input');
-                if (input) {
-                    input.value = code;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
-        });
-    });
-
-    // 5. Botón cerrar modal (APAGADO FÍSICO DE HARDWARE)
-    document.getElementById('close-scanner')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        // Ejecutar HARD STOP para liberar hardware y GPU
-        if (window.ScannerService && typeof window.ScannerService.hardStop === 'function') {
-            window.ScannerService.hardStop();
-        } else if (window.ScannerService) {
-            window.ScannerService.stop(); // Fallback
-        }
-
-        const modal = document.getElementById('scanner-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('active');
-        }
-        
-        console.log("📷 [UI] Cámara apagada y recursos liberados.");
-    });
 }
 
 // ============================================================

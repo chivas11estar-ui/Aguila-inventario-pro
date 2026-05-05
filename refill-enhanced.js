@@ -9,12 +9,10 @@
 // ============================================================
 
 let userDeterminanteRefill = null;
-  const piecesGroup = document.getElementById('refill-pieces-group');
 let currentRefillProduct = null;
 let todayRefillCount = 0;
 let todayPiecesCount = 0;
-let refillMode = 'exit'; // 'exit' (salida), 'pieces' (piezas sueltas) or 'entry' (entrada)
-let todayLoosePiecesCount = 0; // Contador de piezas sueltas del dia
+let refillMode = 'exit'; // 'exit' (salida) or 'entry' (entrada)
 
 console.log('🔄 Módulo de relleno HÍBRIDO iniciando...');
 
@@ -27,58 +25,41 @@ function setRefillMode(mode) {
 
   const btnEntry = document.getElementById('btn-refill-mode-entry');
   const btnExit = document.getElementById('btn-refill-mode-exit');
-  const btnPieces = document.getElementById('btn-refill-mode-pieces');
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
   const boxesLabel = document.getElementById('refill-boxes-label');
   const submitBtn = document.querySelector('#refill-form button[type="submit"]');
 
   if (mode === 'entry') {
+    // --- MODO ENTRADA ---
     btnEntry.classList.replace('secondary', 'primary');
     btnEntry.style.opacity = 1;
     btnExit.classList.replace('primary', 'secondary');
     btnExit.style.opacity = 0.6;
-    if (btnPieces) { btnPieces.classList.replace('warning', 'secondary'); btnPieces.style.opacity = 0.6; }
+
     expiryGroup.style.display = 'block';
     warehouseInput.readOnly = false;
-    warehouseInput.style.background = '';
-    boxesLabel.textContent = 'Cantidad de Cajas a ANADIR';
-    submitBtn.textContent = 'Registrar Entrada de Stock';
-    submitBtn.classList.replace('success', 'primary');
-    submitBtn.classList.replace('warning', 'primary');
-    if (piecesGroup) piecesGroup.style.display = 'none';
+    warehouseInput.style.background = '#fff';
+    boxesLabel.textContent = 'Cantidad de Cajas a AÑADIR';
+    submitBtn.textContent = '➕ Registrar Entrada de Stock';
+    submitBtn.classList.replace('primary', 'success');
 
-  } else if (mode === 'pieces') {
-    btnExit.classList.replace('primary', 'secondary');
-    btnExit.style.opacity = 0.6;
-    btnEntry.classList.replace('primary', 'secondary');
-    btnEntry.style.opacity = 0.6;
-    if (btnPieces) { btnPieces.classList.replace('secondary', 'warning'); btnPieces.style.opacity = 1; }
-    expiryGroup.style.display = 'none';
-    warehouseInput.readOnly = true;
-    warehouseInput.style.background = '#f8fafc';
-    boxesLabel.textContent = 'Cajas (calculadas automaticamente)';
-    submitBtn.textContent = 'Registrar Piezas Sueltas';
-    submitBtn.classList.replace('primary', 'warning');
-    submitBtn.classList.replace('success', 'warning');
-    if (piecesGroup) piecesGroup.style.display = 'block';
 
   } else {
+    // --- MODO SALIDA (DEFAULT) ---
     btnExit.classList.replace('secondary', 'primary');
     btnExit.style.opacity = 1;
     btnEntry.classList.replace('primary', 'secondary');
     btnEntry.style.opacity = 0.6;
-    if (btnPieces) { btnPieces.classList.replace('warning', 'secondary'); btnPieces.style.opacity = 0.6; }
+    
     expiryGroup.style.display = 'none';
     warehouseInput.readOnly = true;
     warehouseInput.style.background = '#f8fafc';
     boxesLabel.textContent = 'Cantidad de Cajas a MOVER';
-    submitBtn.textContent = 'Registrar Movimiento';
-    submitBtn.classList.replace('warning', 'primary');
+    submitBtn.textContent = '✅ Registrar Movimiento';
     submitBtn.classList.replace('success', 'primary');
-    if (piecesGroup) piecesGroup.style.display = 'none';
   }
-
+  
   // Re-evaluar el producto actual con el nuevo modo
   if (currentRefillProduct) {
     searchProductForRefill(currentRefillProduct.codigoBarras);
@@ -188,7 +169,7 @@ async function searchProductForRefill(barcode) {
           </div>
         </div>
       `;
-
+      
       showToast(`✅ ${currentRefillProduct.nombre} - ${totalCajas} cajas en sistema`, 'success');
       document.getElementById('refill-boxes').focus();
 
@@ -198,12 +179,12 @@ async function searchProductForRefill(barcode) {
         codigoBarras: barcode.trim(),
         existe: false
       };
-
+      
       // En modo salida, un producto no existente no puede ser rellenado.
       if (refillMode === 'exit') {
-        showToast('❌ Producto no existe. No se puede hacer una salida. Cambia a modo "Entrada" para agregarlo.', 'error');
-        limpiarFormularioRefill();
-        return;
+          showToast('❌ Producto no existe. No se puede hacer una salida. Cambia a modo "Entrada" para agregarlo.', 'error');
+          limpiarFormularioRefill();
+          return;
       }
 
       // En modo entrada, se permite la creación
@@ -214,7 +195,7 @@ async function searchProductForRefill(barcode) {
       document.getElementById('refill-piezas').style.background = '#fff';
       document.getElementById('refill-warehouse').readOnly = false;
       document.getElementById('refill-warehouse').style.background = '#fff';
-
+      
       showToast('🆕 Producto nuevo. Completa los datos para la ENTRADA.', 'info');
       document.getElementById('refill-nombre').focus();
     }
@@ -228,70 +209,12 @@ async function searchProductForRefill(barcode) {
 // ============================================================
 // MANEJADOR PRINCIPAL DE SUBMIT
 // ============================================================
-async function handleRefillSubmit() {
+async function handleRefillSubmit(event) {
+  event.preventDefault();
   if (refillMode === 'entry') {
     await handleRefillEntry();
-  } else if (refillMode === 'pieces') {
-    await handleRefillPieces();
   } else {
     await handleRefillExit();
-  }
-}
-
-// ============================================================
-// MODO PIEZAS SUELTAS: Relleno por piezas individuales
-// Convierte piezas a cajas equivalentes (decimal) y descuenta stock
-// ============================================================
-async function handleRefillPieces() {
-  console.log('Procesando relleno por PIEZAS...');
-  if (!currentRefillProduct) { showToast('Primero escanea un producto', 'warning'); return; }
-  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
-  if (piezasSueltas <= 0) { showToast('Ingresa un numero de piezas valido (> 0)', 'error'); return; }
-  const piezasPorCaja = parseInt(document.getElementById('refill-piezas').value) || 1;
-  const cajasEquivalentes = parseFloat((piezasSueltas / piezasPorCaja).toFixed(4));
-  const hint = document.getElementById('refill-pieces-hint');
-  if (hint) {
-    hint.textContent = piezasSueltas + ' pzs / ' + piezasPorCaja + ' pzs/caj = ' + cajasEquivalentes.toFixed(2) + ' cajas equiv.';
-    hint.style.display = 'block';
-  }
-  try {
-    const det = await INVENTORY_CORE.getCachedDeterminante();
-    if (!det) { showToast('No se pudo obtener determinante', 'error'); return; }
-    const primeraRef = currentRefillProduct.registros && currentRefillProduct.registros[0];
-    if (!primeraRef) { showToast('No se encontro lote del producto', 'error'); return; }
-    const loteId = primeraRef.id;
-    const stockActual = parseFloat(primeraRef.cajas) || 0;
-    const stockNuevo = parseFloat((stockActual - cajasEquivalentes).toFixed(4));
-    const updates = {};
-    const codigoProd = currentRefillProduct.codigoBarras || currentRefillProduct.codigoBarras;
-    updates['inventario/' + det + '/' + codigoProd + '/lotes/' + loteId + '/cajas'] = stockNuevo;
-    const movRef = firebase.database().ref('movimientos/' + det).push();
-    const movData = {
-      tipo: 'salida',
-      subTipo: 'piezas_sueltas',
-      productoNombre: currentRefillProduct.nombre || '',
-      productoCodigo: codigoProd,
-      marca: currentRefillProduct.marca || '',
-      cajasMovidas: cajasEquivalentes,
-      piezasMovidas: piezasSueltas,
-      piezasPorCaja: piezasPorCaja,
-      stockAnterior: stockActual,
-      stockNuevo: stockNuevo,
-      fecha: new Date().toISOString(),
-      realizadoPor: det,
-      motivo: 'Relleno por piezas sueltas'
-    };
-    updates['movimientos/' + det + '/' + movRef.key] = movData;
-    await firebase.database().ref().update(updates);
-    todayRefillCount++;
-    todayPiecesCount += piezasSueltas;
-    todayLoosePiecesCount += piezasSueltas;
-    updateTodayMovementsUI();
-    showToast(piezasSueltas + ' pzs registradas (~' + cajasEquivalentes.toFixed(2) + ' cajas). Stock nuevo: ' + stockNuevo.toFixed(2) + ' cajas', 'success');
-    limpiarFormularioRefill();
-  } catch (err) {
-    console.error('Error en handleRefillPieces:', err);
-    showToast('Error al registrar piezas: ' + err.message, 'error');
   }
 }
 
@@ -320,7 +243,7 @@ async function handleRefillEntry() {
     ubicacion: document.getElementById('refill-warehouse').value.trim(),
     fechaCaducidad: document.getElementById('refill-expiry-date').value,
     cajas: cajasAAgregar,
-    fechaActualizacion: getLocalISOString(),
+    fechaActualizacion: new Date().toISOString(),
     actualizadoPor: firebase.auth().currentUser.email,
   };
 
@@ -330,38 +253,19 @@ async function handleRefillEntry() {
   }
 
   try {
-    let existingLotId = null;
-    if (currentRefillProduct.existe && currentRefillProduct.registros) {
-      existingLotId = currentRefillProduct.registros.find(reg =>
-        reg.ubicacion === newProductData.ubicacion &&
-        reg.fechaCaducidad === newProductData.fechaCaducidad
-      )?.id;
-    }
-
-    if (existingLotId) {
-      // Update existing lot
-      const currentCajas = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${existingLotId}/cajas`).once('value')).val() || 0;
-      await firebase.database().ref(`inventario/${userDeterminanteRefill}/${existingLotId}`).update({
-        cajas: currentCajas + newProductData.cajas,
-        fechaActualizacion: newProductData.fechaActualizacion,
-        actualizadoPor: newProductData.actualizadoPor,
-      });
-      console.log(`📥 [ENTRADA] Actualizado lote existente con ID: ${existingLotId}. Añadido ${newProductData.cajas} cajas.`);
-    } else {
-      // Create new lot (original logic)
-      await firebase.database().ref('inventario/' + userDeterminanteRefill).push(newProductData);
-      console.log(`📥 [ENTRADA] Creado nuevo lote para ${newProductData.nombre}. Añadido ${newProductData.cajas} cajas.`);
-    }
+    // Registrar el nuevo lote en el inventario
+    await firebase.database().ref('inventario/' + userDeterminanteRefill).push(newProductData);
 
     // Registrar el movimiento de entrada
     const movimientoData = {
       tipo: 'entrada',
       productoNombre: newProductData.nombre,
       productoCodigo: newProductData.codigoBarras,
-      marca: newProductData.marca, // Añadido el campo marca
+      marca: newProductData.marca,
+      piezasPorCaja: newProductData.piezasPorCaja,
       cajasMovidas: newProductData.cajas,
       piezasMovidas: newProductData.cajas * newProductData.piezasPorCaja,
-      fecha: getLocalISOString(),
+      fecha: newProductData.fechaActualizacion,
       realizadoPor: newProductData.actualizadoPor,
       motivo: 'Recepción de mercancía',
     };
@@ -394,7 +298,7 @@ async function handleRefillExit() {
     showToast('❌ Ingresa una cantidad de cajas válida', 'error');
     return;
   }
-
+  
   // MODIFICACIÓN CRÍTICA: Permitir inventario negativo.
   // Se elimina el bloqueo de 'stock insuficiente' para adaptarse al flujo de trabajo real del promotor.
   // El promotor rellena desde stock físico no registrado y la auditoría corrige después.
@@ -404,7 +308,7 @@ async function handleRefillExit() {
 
   try {
     const updates = {};
-    const timestamp = getLocalISOString();
+    const timestamp = new Date().toISOString();
     const usuario = firebase.auth().currentUser.email;
     let cajasRestantes = cajasAMover;
 
@@ -414,7 +318,7 @@ async function handleRefillExit() {
       if (cajasRestantes <= 0) break;
       const cajasEnLote = parseInt(lote.cajas) || 0;
       if (cajasEnLote === 0) continue;
-
+      
       const cajasADescontar = Math.min(cajasRestantes, cajasEnLote);
       const nuevasCajas = cajasEnLote - cajasADescontar;
 
@@ -428,14 +332,14 @@ async function handleRefillExit() {
     // Si aún quedan cajas por mover (el stock del sistema era menor al movido),
     // se le resta al primer lote, llevándolo a negativo.
     if (cajasRestantes > 0) {
-      const primerLoteId = lotesOrdenados[0].id;
-      const cajasActualesPrimerLote = parseInt(lotesOrdenados[0].cajas) || 0;
-      // La lógica anterior ya puso los lotes existentes a 0 o menos, pero para asegurar,
-      // tomamos el valor del primer lote y le restamos lo que falta.
-      // El total ya habrá sido descontado, aquí forzamos el negativo en el primer lote disponible.
-      const idDelLoteARestar = lotesOrdenados[0].id;
-      const stockFinalNegativo = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`).once('value')).val() - cajasRestantes;
-      updates[`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`] = stockFinalNegativo;
+        const primerLoteId = lotesOrdenados[0].id;
+        const cajasActualesPrimerLote = parseInt(lotesOrdenados[0].cajas) || 0;
+        // La lógica anterior ya puso los lotes existentes a 0 o menos, pero para asegurar,
+        // tomamos el valor del primer lote y le restamos lo que falta.
+        // El total ya habrá sido descontado, aquí forzamos el negativo en el primer lote disponible.
+        const idDelLoteARestar = lotesOrdenados[0].id;
+        const stockFinalNegativo = (await firebase.database().ref(`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`).once('value')).val() - cajasRestantes;
+        updates[`inventario/${userDeterminanteRefill}/${idDelLoteARestar}/cajas`] = stockFinalNegativo;
     }
 
 
@@ -444,7 +348,8 @@ async function handleRefillExit() {
       tipo: 'salida',
       productoNombre: currentRefillProduct.nombre,
       productoCodigo: currentRefillProduct.codigoBarras,
-      marca: currentRefillProduct.marca, // Añadido el campo marca
+      marca: currentRefillProduct.marca,
+      piezasPorCaja: currentRefillProduct.piezasPorCaja,
       cajasMovidas: cajasAMover,
       piezasMovidas: piezasMovidas,
       stockAnterior: currentRefillProduct.totalCajas,
@@ -454,7 +359,7 @@ async function handleRefillExit() {
       motivo: 'Relleno de exhibidor',
     };
     updates[`movimientos/${userDeterminanteRefill}/${Date.now()}`] = movimientoData;
-
+    
     await firebase.database().ref().update(updates);
 
     todayRefillCount += cajasAMover;
@@ -480,22 +385,19 @@ function limpiarFormularioRefill() {
   document.getElementById('refill-form').reset();
 
   // Restaurar campos a su estado por defecto (readonly, etc.)
-  ['refill-nombre', 'refill-piezas', 'refill-pieces'].forEach(id => {
+  ['refill-nombre', 'refill-piezas'].forEach(id => {
     const el = document.getElementById(id);
     el.readOnly = true;
     el.style.background = '#f8fafc';
   });
   document.getElementById('refill-marca').disabled = true;
   document.getElementById('refill-warehouse').readOnly = true;
-  // Reset pieces fields
-  const piecesHint = document.getElementById('refill-pieces-hint');
-  if (piecesHint) { piecesHint.textContent = 'Conversion automatica: piezas / pzs/caj = cajas equivalentes'; piecesHint.style.display = 'none'; }
   document.getElementById('refill-warehouse').style.background = '#f8fafc';
   document.getElementById('refill-expiry-date-group').style.display = 'none';
 
   document.getElementById('refill-product-info').style.display = 'none';
   currentRefillProduct = null;
-
+  
   // Asegurarse de que el modo por defecto (salida) esté visualmente activo
   setRefillMode('exit');
 }
@@ -504,15 +406,14 @@ function limpiarFormularioRefill() {
 // ACTUALIZAR CONTADORES UI
 // ============================================================
 function updateTodayMovementsUI() {
-  const counterElement = document.getElementById('total-movements');
-  if (counterElement) {
-    counterElement.innerHTML = `
+    const counterElement = document.getElementById('total-movements');
+    if (counterElement) {
+        counterElement.innerHTML = `
           <div style="font-size:24px;font-weight:700;color:#10b981;">${todayRefillCount}</div>
           <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
           <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${todayPiecesCount} piezas</div>
-        <div style="font-size:12px; color:#7c3aed; margin-top:4px;">${todayLoosePiecesCount} pzs sueltas hoy</div>
         `;
-  }
+    }
 }
 
 // ============================================================
@@ -525,14 +426,13 @@ async function loadTodayMovements() {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  const movRef = firebase.database().ref('movimientos/' + userDeterminanteRefill).orderByChild('fecha').startAt(getLocalDayStart(hoy));
-
+  const movRef = firebase.database().ref('movimientos/' + userDeterminanteRefill).orderByChild('fecha').startAt(hoy.toISOString());
+  
   movRef.on('value', (snapshot) => {
     if (snapshot.exists()) {
       const movimientos = Object.values(snapshot.val()).filter(m => m.tipo === 'salida');
       todayRefillCount = movimientos.reduce((sum, m) => sum + (m.cajasMovidas || 0), 0);
       todayPiecesCount = movimientos.reduce((sum, m) => sum + (m.piezasMovidas || 0), 0);
-        todayLoosePiecesCount = movimientos.reduce((sum, m) => sum + (m.subTipo === 'piezas_sueltas' ? (m.piezasMovidas || 0) : 0), 0);
     } else {
       todayRefillCount = 0;
       todayPiecesCount = 0;
@@ -561,19 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
       searchProductForRefill(e.target.value);
     }
   });
-
-  // Listener para Modo Piezas Sueltas
-  const _btnPieces = document.getElementById('btn-refill-mode-pieces');
-  if (_btnPieces) {
-    _btnPieces.addEventListener('click', () => {
-      refillMode = 'pieces';
-      setRefillMode('pieces');
-      const pInput = document.getElementById('refill-pieces');
-      if (pInput) pInput.value = 0;
-      const bInput = document.getElementById('refill-boxes');
-      if (bInput) { bInput.value = 0; bInput.readOnly = true; }
-    });
-  }
 
   // Cargar datos iniciales
   firebase.auth().onAuthStateChanged((user) => {

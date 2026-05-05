@@ -1,7 +1,6 @@
 /* ============================================================
-   Águila Inventario Pro - app.js v7.6
+   Águila Inventario Pro - app.js v7.1
    Lógica principal de la aplicación
-   Copyright © 2025 José A. G. Betancourt
    ============================================================ */
 
 let isOnline = navigator.onLine;
@@ -34,76 +33,29 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.classList.remove('active');
   });
-
+  
   // Mostrar el tab seleccionado
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) {
     tab.classList.add('active');
-
-    // 🔧 FIX #2: Reset scroll al cambiar de tab
-    tab.scrollTop = 0;
-    window.scrollTo(0, 0);
   }
-
+  
   // Actualizar nav items
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
   });
-
+  
   const activeItem = document.querySelector(`[data-tab="${tabName}"]`);
   if (activeItem) {
     activeItem.classList.add('active');
   }
-
-  // Llama a la función de carga específica según la pestaña
-  if (tabName === 'analytics') {
-    console.log('✅ Navegando a: analytics');
-    if (typeof window.loadStats === 'function') {
-      window.loadStats();
-    } else {
-      console.warn('⚠️ window.loadStats no está definido. Asegúrate de que analytics.js se cargue correctamente.');
-    }
-  } else if (tabName === 'inventory') {
-    // Ejemplo para otras pestañas, asumiendo que existen loadInventory()
-    console.log('✅ Navegando a: inventory');
-    if (typeof window.loadInventory === 'function') {
-      window.loadInventory();
-    }
-  } else if (tabName === 'out-of-stock') {
-    console.log('✅ Navegando a: agotados');
-    if (typeof window.loadInventory === 'function') {
-      window.loadInventory();
-    }
-  } else if (tabName === 'audit') {
-    // Ejemplo para auditorías, asumiendo que existe loadAuditUI()
-    console.log('✅ Navegando a: audit');
-    if (typeof window.loadAuditUI === 'function') {
-      window.loadAuditUI();
-    }
-  } else if (tabName === 'system') { // Added for Profile/System tab
-    console.log('✅ Navegando a: system (Perfil)');
-    if (typeof window.loadUserProfile === 'function') {
-      window.loadUserProfile();
-    } else {
-      console.warn('⚠️ window.loadUserProfile no está definido. Intentando de nuevo en breve...');
-      setTimeout(() => {
-        if (typeof window.loadUserProfile === 'function') {
-          window.loadUserProfile();
-        } else {
-          console.error('❌ Fallo persistente: window.loadUserProfile sigue sin estar definido.');
-        }
-      }, 500); // Retry after 500ms
-    }
-  }
-
+  
   // Cerrar sidebar en mobile
   const sidebar = document.getElementById('sidebar');
   if (sidebar) {
     sidebar.classList.remove('active');
   }
 }
-// Expone switchTab globalmente si no lo está ya, para ser llamado desde HTML
-window.switchTab = switchTab;
 
 // Event Listeners del Menú
 document.getElementById('btn-menu')?.addEventListener('click', () => {
@@ -151,7 +103,7 @@ document.getElementById('btn-change-password')?.addEventListener('click', () => 
 
 // Inicializar app
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ App Águila Pro v8.0 iniciada');
+  console.log('✅ App Águila Pro v7.1 iniciada');
   updateOfflineStatus();
 });
 
@@ -162,7 +114,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     switchTab('inventory');
   }
-
+  
   // Esc para cerrar scanner
   if (e.key === 'Escape') {
     const modal = document.getElementById('scanner-modal');
