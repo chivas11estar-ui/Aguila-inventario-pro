@@ -1,6 +1,7 @@
 /* ============================================================
    Águila Inventario Pro - auth.js
    CORREGIDO: Recarga al salir + Limpieza de espacios
+   Copyright © 2025 José A. G. Betancourt
    ============================================================ */
 
 console.log('🔐 auth.js iniciando...');
@@ -62,15 +63,21 @@ async function handleRegister() {
   const email = document.getElementById('register-email')?.value.trim();
   const password = document.getElementById('register-password')?.value;
 
-  // CORRECCIÓN: Quitamos espacios vacíos al determinante
+  // SEGURIDAD FASE 1.2: Validación de determinante con regex
   const determinanteInput = document.getElementById('register-determinante')?.value;
-  const determinante = determinanteInput ? String(determinanteInput).trim() : '';
+  const determinante = determinanteInput ? String(determinanteInput).trim().toUpperCase() : '';
 
   const storeName = document.getElementById('register-store-name')?.value;
   const promoterName = document.getElementById('register-promoter-name')?.value;
 
   if (!email || !password || !determinante || !storeName || !promoterName) {
     showToast('❌ Completa todos los campos', 'error');
+    return;
+  }
+
+  // Validar determinante: 4-8 caracteres, mayúsculas y números solo
+  if (!/^[A-Z0-9]{4,8}$/.test(determinante)) {
+    showToast('❌ Determinante: debe ser 4-8 caracteres (letras mayúsculas y números)', 'error');
     return;
   }
 
@@ -89,7 +96,7 @@ async function handleRegister() {
       nombrePromotor: promoterName,
       nombreTienda: storeName,
       determinante: determinante, // Ya va sin espacios
-      fechaRegistro: new Date().toISOString()
+      fechaRegistro: getLocalISOString()
     });
 
     console.log('✅ Registro exitoso');
@@ -148,43 +155,67 @@ function showForgotForm() {
   document.getElementById('forgot-password-form').classList.remove('hidden');
 }
 
-function loadUserData(userId) {
-  firebase.database().ref('usuarios/' + userId).once('value')
-    .then((snapshot) => {
-      const userData = snapshot.val();
-      if (userData) {
-        if (userData.determinante !== undefined && typeof userData.determinante !== 'string') {
-          const determinanteNormalizada = String(userData.determinante).trim();
-          firebase.database().ref('usuarios/' + userId + '/determinante').set(determinanteNormalizada)
-            .then(() => console.log('Determinante normalizada como texto:', determinanteNormalizada))
-            .catch((error) => console.warn('No se pudo normalizar determinante:', error));
-          userData.determinante = determinanteNormalizada;
-        }
+async function loadUserData(userId) {
+  try {
+    console.log('🔐 [ARCHITECT] Iniciando secuencia de arranque sincronizada...');
 
-        console.log('📦 Datos cargados:', userData.nombrePromotor);
-        const userInfo = document.getElementById('user-info');
-        if (userInfo) {
-          userInfo.textContent = `👤 ${userData.email}`;
-        }
-        showApp();
-      } else {
-        // Fallback: Usuario existe en Auth pero no en DB (Inconsistencia)
-        console.warn('⚠️ Usuario autenticado sin perfil en DB. Intentando reparar o mostrar UI básica.');
-        showToast('⚠️ Perfil incompleto. Contacta soporte o regístrate de nuevo.', 'warning');
+    // ✅ FIX: Inicializar window.inventoryStore ANTES de usarlo
+    window.inventoryStore = window.inventoryStore || {};
 
-        // Opción: Cerrar sesión para que se registre bien, o dejarlo pasar con datos dummy.
-        // Por seguridad, forzamos mostrar la app pero limitando funcionalidad, o logout.
-        // Aquí elegimos mostrar la app para que no se quede trabado, usando datos temporales.
+    // 🌙 FIX: Aplicar preferencia de modo oscuro desde localStorage
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      console.log('🌙 Modo oscuro activado');
+    } else {
+      document.documentElement.classList.remove('dark');
+      console.log('☀️ Modo claro activado');
+    }
 
-        showApp();
-      }
-    })
-    .catch((error) => {
-      console.error('❌ Error cargando datos:', error);
-      showToast('Error al cargar datos del perfil. Revisa tu conexión.', 'error');
-      // Aún así intentamos mostrar la app si es posible
+    // 1. ESPERAR AL PERFIL (Fuente de la llave de desencriptación)
+    const snapshot = await firebase.database().ref('usuarios/' + userId).once('value');
+    const userData = snapshot.val();
+
+    if (userData && userData.determinante) {
+      // Inyectar en el estado global ANTES de cualquier desencriptación
+      window.PROFILE_STATE = window.PROFILE_STATE || {};
+      window.PROFILE_STATE.determinante = userData.determinante;
+      window.PROFILE_STATE.nombrePromotor = userData.nombrePromotor;
+      // ✅ FIX: Guardar determinante también en inventoryStore
+      window.inventoryStore.determinante = userData.determinante;
+      
+      console.log('✅ [ARCHITECT] Determinante listo:', userData.determinante);
+      
+      // Actualizar UI básica
+      const userInfo = document.getElementById('user-info');
+      if (userInfo) userInfo.textContent = `👤 ${userData.email}`;
+      
       showApp();
-    });
+
+      // 🚀 [FAST BOOT] Carga optimizada en paralelo
+      console.log('⚡ [ARCHITECT] Iniciando carga paralela optimizada...');
+      
+      // Lanzar carga de inventario de inmediato (no esperar)
+      if (typeof window.loadInventory === 'function') {
+        window.loadInventory();
+      }
+
+      // Retrasar analíticas 3 segundos para dar prioridad a la interacción
+      setTimeout(() => {
+        if (typeof window.loadStats === 'function') {
+          console.log('📊 [ARCHITECT] Cargando analíticas en segundo plano...');
+          window.loadStats();
+        }
+      }, 3000);
+      
+    } else {
+      console.warn('⚠️ Perfil incompleto o sin determinante. Redirigiendo a registro.');
+      showApp();
+    }
+  } catch (error) {
+    console.error('❌ [ARCHITECT] Error crítico en secuencia de arranque:', error);
+    showToast('Error de sincronización. Reintenta.', 'error');
+  }
 }
 
 // CORRECCIÓN CLAVE: Recargar página al salir

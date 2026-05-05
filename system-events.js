@@ -1,18 +1,19 @@
 // ============================================================
 // Águila Inventario Pro - System Events
 // Maneja eventos de los botones del sistema
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   console.log('⚙️ Configurando eventos del sistema...');
 
   // BOTÓN: DIAGNÓSTICO
   const btnDiagnostico = document.getElementById('btn-diagnostico');
   if (btnDiagnostico) {
-    btnDiagnostico.addEventListener('click', function(e) {
+    btnDiagnostico.addEventListener('click', function (e) {
       e.preventDefault();
       console.log('🔍 Abriendo diagnóstico...');
-      
+
       if (typeof window.diagnosticoFirebase === 'function') {
         window.diagnosticoFirebase();
       } else {
@@ -24,10 +25,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // BOTÓN: ESTADÍSTICAS
   const btnStats = document.getElementById('btn-stats');
   if (btnStats) {
-    btnStats.addEventListener('click', function(e) {
+    btnStats.addEventListener('click', function (e) {
       e.preventDefault();
       console.log('📊 Mostrando estadísticas...');
-      
+
       if (typeof window.showSystemStats === 'function') {
         window.showSystemStats();
       } else {
@@ -39,10 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // BOTÓN: LIMPIAR DATOS
   const btnClearData = document.getElementById('btn-clear-data');
   if (btnClearData) {
-    btnClearData.addEventListener('click', function(e) {
+    btnClearData.addEventListener('click', function (e) {
       e.preventDefault();
       console.log('🗑️ Limpiando datos...');
-      
+
       if (typeof window.clearAllData === 'function') {
         window.clearAllData();
       } else {

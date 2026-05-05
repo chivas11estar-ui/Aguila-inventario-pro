@@ -1,59 +1,74 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "usuarios": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
-        
-        // Permitir guardar frases de IA sin validar el perfil completo cada vez
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
         "frasesIA": {
-          ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && auth.uid === $uid"
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid"
+        },
+        "frasesMotivacionales": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid"
         }
       }
     },
     "productos": {
       "$determinante": {
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["codigoBarras", "marca", "fechaActualizacion"],
         "$codigoBarras": {
-          ".validate": "newData.hasChildren(['nombre', 'codigoBarras', 'stockTotal'])",
-          "stockTotal": {
-            ".validate": "newData.isNumber() && newData.val() >= 0"
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "marca": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "codigoBarras": {
+            ".validate": "newData.isString() && newData.val().length >= 8"
           },
           "piezasPorCaja": {
             ".validate": "newData.isNumber() && newData.val() > 0"
           },
-          "codigoBarras": {
-            ".validate": "newData.isString() && newData.val().length >= 8"
+          "stockTotal": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "lotes": {
+            "$loteId": {
+              "bodega": {
+                ".validate": "newData.isString() && newData.val().length > 0"
+              },
+              "fechaCaducidad": {
+                ".validate": "newData.isString()"
+              },
+              "stock": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "actualizado": {
+                ".validate": "newData.isNumber()"
+              }
+            }
           }
         }
       }
     },
     "movimientos": {
       "$determinante": {
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        
-        // Optimización de consultas
-        ".indexOn": ["fecha"],
-        
-        "$pushId": {
-          ".validate": "newData.hasChildren(['tipo', 'productoCodigo', 'cajasMovidas', 'fecha'])"
-        }
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["fecha", "tipo", "productoCodigo"]
       }
     },
     "auditorias": {
       "$determinante": {
-        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() === $determinante",
-        
-        // Optimización de consultas
-        ".indexOn": ["fecha"]
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["fecha", "productoCodigo"]
       }
-    },
-    ".read": false,
-    ".write": false
+    }
   }
 }

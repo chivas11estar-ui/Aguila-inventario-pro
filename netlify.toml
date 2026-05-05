@@ -2,6 +2,17 @@
   publish = "."
   command = ""
 
+[build.environment]
+  NODE_VERSION = "20"
+
+  # ============================================================
+  # NETLIFY FUNCTIONS (Serverless Backend para IA)
+  # ============================================================
+  [functions]
+    directory = "netlify/functions"
+      node_bundler = "esbuild"
+
+
 # ============================================================
 # CABECERAS HTTP OPTIMIZADAS
 # ============================================================

@@ -1,6 +1,7 @@
 // ============================================================
 // Águila Inventario Pro - Módulo: phrases.js
 // Gestión de Frases Motivacionales
+// Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
 let userMotivationalPhrases = [];
@@ -48,6 +49,16 @@ function initMotivationalPhrases(userId) {
   });
 
   setupPhrasesEventListeners();
+
+  // INICIO: Integración con IA
+  if (window.displayDailyAIPhrase) {
+    window.displayDailyAIPhrase().catch(err => {
+      console.warn('⚠️ Falló frase IA, usando frases manuales:', err);
+      displayRandomPhrase();
+    });
+  } else {
+    displayRandomPhrase();
+  }
 }
 
 // ============================================================
@@ -58,6 +69,13 @@ function displayRandomPhrase() {
   if (!phraseContainer || userMotivationalPhrases.length === 0) {
     return;
   }
+
+  // No sobrescribir si ya hay una frase de la IA (las de la IA vienen entre comillas)
+  if (phraseContainer.textContent && phraseContainer.textContent.startsWith('"') && !phraseContainer.dataset.isManual) {
+    console.log('✨ Manteniendo frase de la IA');
+    return;
+  }
+
   const randomIndex = Math.floor(Math.random() * userMotivationalPhrases.length);
   const randomPhrase = userMotivationalPhrases[randomIndex];
 
@@ -65,6 +83,7 @@ function displayRandomPhrase() {
   const finalText = randomPhrase.text.replace(/{nombre}/g, currentUserName);
 
   phraseContainer.textContent = `"${finalText}"`;
+  phraseContainer.dataset.isManual = 'true';
 }
 
 // ============================================================
@@ -98,15 +117,21 @@ function renderPhrasesList() {
 
 
 // ============================================================
-// AÑADIR UNA NUEVA FRASE
+// AÑADIR UNA NUEVA FRASE (CON SANITIZACIÓN)
 // ============================================================
 async function addMotivationalPhrase(event) {
   event.preventDefault();
   const input = document.getElementById('new-phrase-input');
-  const phraseText = input.value.trim();
+  
+  // SANITIZACIÓN: Eliminar etiquetas HTML y caracteres de control (Anti-Injection/XSS)
+  const rawText = input.value.trim();
+  const phraseText = rawText
+    .replace(/<[^>]*>/g, "") // Eliminar HTML
+    .replace(/[{}()[\]]/g, "") // Eliminar llaves que puedan confundir placeholders
+    .substring(0, 100); // Límite razonable
 
-  if (!phraseText) {
-    showToast('⚠️ Escribe una frase para añadir.', 'warning');
+  if (!phraseText || phraseText.length < 3) {
+    showToast('⚠️ La frase es muy corta o contiene caracteres prohibidos.', 'warning');
     return;
   }
 

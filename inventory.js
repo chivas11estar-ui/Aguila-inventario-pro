@@ -10,7 +10,8 @@ window.INVENTORY_STATE = {
   marcasExpandidas: {},
   searchTerm: '',
   determinante: null,
-  isLoading: false
+  isLoading: false,
+        isRenderingInventory: false
 };
 
 const BRAND_EXPIRY_CONFIG = {
@@ -18,7 +19,7 @@ const BRAND_EXPIRY_CONFIG = {
   'Gamesa': 60,
   'Quaker': 60,
   "Sonric's": 60,
-  'Cacahuate': 30,
+  'Cacahuates': 30,
   'default': 60
 };
 
@@ -40,7 +41,7 @@ async function getUserDeterminante() {
     const snapshot = await firebase.database()
       .ref('usuarios/' + user.uid)
       .once('value');
-    
+
     const userData = snapshot.val();
     if (userData && userData.determinante) {
       window.INVENTORY_STATE.determinante = userData.determinante;
@@ -57,11 +58,27 @@ async function getUserDeterminante() {
 }
 
 // ============================================================
-// CARGAR INVENTARIO DESDE FIREBASE
+// CARGAR INVENTARIO DESDE FIREBASE (V2 - DELEGA A inventory-core.js)
 // ============================================================
+// NOTA V2: Esta función ahora delega a cargarInventario() de
+// inventory-core.js, que lee de productos/{det}/{codigo} (nueva ruta).
+// Se mantiene el nombre loadInventory() porque app.js y otras partes
+// la llaman por ese nombre.
 async function loadInventory() {
-  console.log('📦 Cargando inventario desde Firebase...');
-  
+  console.log('📦 [V2] loadInventory → delegando a cargarInventario()...');
+
+  // REVISIÓN: Check para evitar doble render
+      if (window.INVENTORY_STATE.isRenderingInventory) {
+              console.warn('⚠️ Ya se está renderizando, abortando...');
+              return null;
+      }
+      if (typeof window.cargarInventario === 'function') {
+    window.INVENTORY_STATE.isRenderingInventory = true;
+            return window.cargarInventario();
+  }
+
+  // Fallback: si inventory-core.js aún no cargó, intentar la ruta antigua
+  console.warn('⚠️ cargarInventario() no disponible, usando ruta legacy...');
   window.INVENTORY_STATE.isLoading = true;
 
   const determinante = await getUserDeterminante();
@@ -79,42 +96,36 @@ async function loadInventory() {
   inventoryRef.on('value', (snapshot) => {
     try {
       const productsObject = snapshot.val();
-      
+
       if (productsObject) {
-        window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => ({
-          id: key,
-          ...productsObject[key]
-        }));
+        window.INVENTORY_STATE.productos = Object.keys(productsObject).map(key => {
+          const product = productsObject[key];
+          try {
+            if (typeof window.decryptData === 'function') {
+              product.nombre = window.decryptData(product.nombre) || product.nombre;
+              product.marca = window.decryptData(product.marca) || product.marca;
+              product.ubicacion = window.decryptData(product.ubicacion) || product.ubicacion;
+            }
+          } catch (e) {
+            console.warn('⚠️ Producto con formato antiguo o error de llave:', key);
+          }
+          return { id: key, ...product };
+        });
 
-        console.log(`✅ Inventario cargado: ${window.INVENTORY_STATE.productos.length} productos`);
-
-        applyFiltersAndRender();
+        console.log(`✅ Inventario cargado y desencriptado: ${window.INVENTORY_STATE.productos.length} productos`);
         loadBrandStates();
-
+        applyFiltersAndRender();
       } else {
         window.INVENTORY_STATE.productos = [];
         console.log('⚠️ Inventario vacío');
-        
-        // Renderizar mensaje de vacío
         if (typeof window.renderInventoryUI === 'function') {
           window.renderInventoryUI([]);
         }
       }
-
       window.INVENTORY_STATE.isLoading = false;
-
     } catch (error) {
       console.error('❌ Error procesando inventario:', error);
       window.INVENTORY_STATE.isLoading = false;
-      if (typeof showToast === 'function') {
-        showToast('Error al procesar inventario', 'error');
-      }
-    }
-  }, (error) => {
-    console.error('❌ Error de conexión Firebase:', error);
-    window.INVENTORY_STATE.isLoading = false;
-    if (typeof showToast === 'function') {
-      showToast('Error de conexión: ' + error.message, 'error');
     }
   });
 }
@@ -127,6 +138,8 @@ function groupProductsByBarcode(productos) {
 
   productos.forEach(prod => {
     const codigo = prod.codigoBarras || prod.id;
+    // V2: soportar tanto 'stockTotal' (nueva estructura) como 'cajas' (legacy)
+    const cajasProducto = parseFloat(prod.stockTotal) || parseFloat(prod.cajas) || 0;
 
     if (!agrupados[codigo]) {
       agrupados[codigo] = {
@@ -142,13 +155,13 @@ function groupProductsByBarcode(productos) {
 
     agrupados[codigo].bodegas.push({
       ubicacion: prod.ubicacion,
-      cajas: parseInt(prod.cajas) || 0,
+      cajas: cajasProducto,
       fechaCaducidad: prod.fechaCaducidad,
       id: prod.id
     });
 
-    agrupados[codigo].totalCajas += parseInt(prod.cajas) || 0;
-    agrupados[codigo].totalPiezas = 
+    agrupados[codigo].totalCajas += cajasProducto;
+    agrupados[codigo].totalPiezas =
       agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
   });
 
@@ -182,7 +195,7 @@ function groupProductsByBrand(productos) {
 function calculateBrandTotals(productos) {
   const totalCajas = productos.reduce((sum, p) => sum + p.totalCajas, 0);
   const totalProductos = productos.length;
-  
+
   return { totalCajas, totalProductos };
 }
 
@@ -234,52 +247,99 @@ function calculateExpiryInfo(product, brandConfig) {
 // APLICAR FILTROS Y RENDERIZAR
 // ============================================================
 function applyFiltersAndRender() {
-  const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
+  try {
+    const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
 
-  if (searchTerm.length > 0) {
-    window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
-      return (
-        (p.nombre && p.nombre.toLowerCase().includes(searchTerm)) ||
-        (p.marca && p.marca.toLowerCase().includes(searchTerm)) ||
-        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm))
-      );
-    });
-  } else {
-    window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
-  }
+    if (searchTerm.length > 0) {
+      window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
+        const nameMatch = p.nombre && p.nombre.toLowerCase().includes(searchTerm);
+        const brandMatch = p.marca && p.marca.toLowerCase().includes(searchTerm);
+        const fullBarcodeMatch = p.codigoBarras && p.codigoBarras.toLowerCase().includes(searchTerm);
 
-  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => 
-    (parseInt(p.cajas) || 0) > 0
-  );
+        // NUEVO: Coincidencia por los últimos 4 dígitos (si el término tiene 4 o más caracteres y es numérico)
+        let suffixMatch = false;
+        if (searchTerm.length >= 4 && /^\d+$/.test(searchTerm)) {
+            suffixMatch = p.codigoBarras && p.codigoBarras.endsWith(searchTerm);
+        }
 
-  console.log('📊 Productos con stock:', productsWithStock.length);
+        return nameMatch || brandMatch || fullBarcodeMatch || suffixMatch;
+      });
+    } else {
+      window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
+    }
 
-  if (typeof window.renderInventoryUI === 'function') {
-    window.renderInventoryUI(productsWithStock);
-  } else {
-    console.warn('⚠️ renderInventoryUI no está disponible');
+  // V2.1: Separar productos con stock de los agotados
+  // ✅ FIX v9.1b: Tolerancia a datos LEGACY (v2, v1, datos anteriores)
+  const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
+    // Soportar múltiples estructuras de datos:
+    // V3: totalCajas, totalPiezas
+    // V2: cajas, piezas, stockTotal
+    // Legacy: stockTotal, cajas
+    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
+    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
+    const stockAntiguo = parseInt(p.stockTotal) || 0;
+
+    return cajas > 0 || piezas > 0 || stockAntiguo > 0;
+  });
+
+  const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
+    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
+    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
+    const stockAntiguo = parseInt(p.stockTotal) || 0;
+
+    return cajas <= 0 && piezas <= 0 && stockAntiguo <= 0;
+  });
+
+    console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
+
+    if (typeof window.renderInventoryUI === 'function') {
+      // Renderizar en el contenedor de Stock
+      window.renderInventoryUI(productsWithStock, 'inventory-list');
+      // Renderizar en el contenedor de Agotados
+      window.renderInventoryUI(productsOutOfStock, 'out-of-stock-list');
+    } else {
+      console.warn('⚠️ renderInventoryUI no está disponible');
+    }
+  } catch (error) {
+    console.error('❌ [FILTER ERROR]:', error);
+    if (typeof showToast === 'function') {
+      showToast('⚠️ Error al procesar inventario. Reintenta.', 'error');
+    }
   }
 }
 
 // ============================================================
-// ESTABLECER TÉRMINO DE BÚSQUEDA
+// ESTABLECER TÉRMINO DE BÚSQUEDA (CON DEBOUNCE)
 // ============================================================
+let searchDebounceTimeout = null;
+
 function setSearchTerm(term) {
   window.INVENTORY_STATE.searchTerm = term;
-  applyFiltersAndRender();
+  
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
+  
+  searchDebounceTimeout = setTimeout(() => {
+      console.log('🔍 Filtrando por:', term);
+      applyFiltersAndRender();
+  }, 300); // Esperar 300ms antes de procesar
 }
 
 // ============================================================
 // TOGGLE ESTADO DE MARCA
 // ============================================================
 function toggleBrandState(brandName) {
+  // Si no existe, inicializar como true (expandido) antes de toglear
+  if (window.INVENTORY_STATE.marcasExpandidas[brandName] === undefined) {
+    window.INVENTORY_STATE.marcasExpandidas[brandName] = true;
+  }
+  
   const currentState = window.INVENTORY_STATE.marcasExpandidas[brandName];
   window.INVENTORY_STATE.marcasExpandidas[brandName] = !currentState;
-  
+
   console.log(`📁 Marca "${brandName}" ${!currentState ? 'expandida' : 'contraída'}`);
-  
+
   saveBrandStates();
-  
+
   return window.INVENTORY_STATE.marcasExpandidas[brandName];
 }
 
@@ -308,7 +368,7 @@ function loadBrandStates() {
       window.INVENTORY_STATE.marcasExpandidas = JSON.parse(saved);
       console.log('📂 Estado de marcas cargado:', window.INVENTORY_STATE.marcasExpandidas);
     } else {
-      const marcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Otra'];
+      const marcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra'];
       marcas.forEach(marca => {
         window.INVENTORY_STATE.marcasExpandidas[marca] = true;
       });
@@ -326,7 +386,7 @@ async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
 
   const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
-  
+
   if (!product) {
     if (typeof showToast === 'function') {
       showToast('❌ Producto no encontrado', 'error');
@@ -345,7 +405,8 @@ async function editarProducto(productId) {
     document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
     document.getElementById('add-warehouse').value = product.ubicacion || '';
     document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
-    document.getElementById('add-boxes').value = product.cajas || '';
+    // V2: soportar stockTotal (nuevo) y cajas (legacy)
+    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
 
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) {
@@ -367,82 +428,19 @@ async function editarProducto(productId) {
 }
 
 // ============================================================
-// AGREGAR O ACTUALIZAR PRODUCTO
+// AGREGAR O ACTUALIZAR PRODUCTO (LEGACY - DESACTIVADO EN V2)
 // ============================================================
+// NOTA V2: Esta función ya NO se usa directamente.
+// La lógica de escritura fue reemplazada por handleAddProductV2()
+// en inventory-core.js que usa productos/{det}/{codigoBarras}
+// en vez de push(). Se mantiene como fallback/referencia.
 async function handleAddProduct(event) {
   if (event) event.preventDefault();
-
-  const determinante = window.INVENTORY_STATE.determinante;
-  if (!determinante) {
-    if (typeof showToast === 'function') {
-      showToast('❌ Error: No se encontró información de la tienda', 'error');
-    }
-    return;
+  console.warn('⚠️ [LEGACY] handleAddProduct llamado. Redirigiendo a inventory-core V2...');
+  if (typeof window.handleAddProductV2 === 'function') {
+    return window.handleAddProductV2(event);
   }
-
-  try {
-    const formData = {
-      codigoBarras: document.getElementById('add-barcode')?.value.trim() || '',
-      nombre: document.getElementById('add-product-name')?.value.trim() || '',
-      marca: document.getElementById('add-brand')?.value || '',
-      piezasPorCaja: parseInt(document.getElementById('add-pieces-per-box')?.value || 0),
-      ubicacion: document.getElementById('add-warehouse')?.value.trim() || '',
-      fechaCaducidad: document.getElementById('add-expiry-date')?.value || '',
-      cajas: parseInt(document.getElementById('add-boxes')?.value || 0),
-      fechaActualizacion: new Date().toISOString(),
-      actualizadoPor: firebase.auth().currentUser?.email || 'sistema'
-    };
-
-    if (!formData.nombre || !formData.marca || !formData.fechaCaducidad || formData.piezasPorCaja <= 0) {
-      if (typeof showToast === 'function') {
-        showToast('❌ Completa todos los campos correctamente', 'error');
-      }
-      return;
-    }
-
-    if (window.EDITING_PRODUCT_ID) {
-      await firebase.database()
-        .ref('inventario/' + determinante + '/' + window.EDITING_PRODUCT_ID)
-        .update(formData);
-
-      if (typeof showToast === 'function') {
-        showToast('✅ Producto actualizado correctamente', 'success');
-      }
-
-      window.EDITING_PRODUCT_ID = null;
-    } else {
-      await firebase.database()
-        .ref('inventario/' + determinante)
-        .push(formData);
-
-      if (typeof showToast === 'function') {
-        showToast('✅ Producto guardado correctamente', 'success');
-      }
-    }
-
-    document.getElementById('add-product-form').reset();
-
-    const formTitle = document.querySelector('#tab-add h2');
-    if (formTitle) {
-      formTitle.textContent = '➕ Agregar Producto';
-    }
-
-    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
-    if (submitBtn) {
-      submitBtn.textContent = '✅ Guardar Producto';
-      submitBtn.style.background = '';
-    }
-
-    if (typeof window.switchTab === 'function') {
-      window.switchTab('inventory');
-    }
-
-  } catch (error) {
-    console.error('Error al guardar/actualizar producto:', error);
-    if (typeof showToast === 'function') {
-      showToast('❌ Error: ' + error.message, 'error');
-    }
-  }
+  console.error('❌ handleAddProductV2 no disponible. ¿Se cargó inventory-core.js?');
 }
 
 // ============================================================
@@ -451,18 +449,18 @@ async function handleAddProduct(event) {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📦 Inicializando módulo de inventario (lógica)...');
 
-  // Configurar formulario de agregar/editar
-  const addProductForm = document.getElementById('add-product-form');
-  if (addProductForm) {
-    addProductForm.addEventListener('submit', handleAddProduct);
-    console.log('✅ Formulario configurado');
-  }
+  // NOTA V2: El formulario de agregar/editar ahora es manejado
+  // por inventory-core.js (handleAddProductV2). No registrar listener aquí.
+  // Se mantiene handleAddProduct como fallback que redirige a V2.
+  console.log('📋 Formulario será configurado por inventory-core.js');
 
-  // CRÍTICO: Cargar inventario cuando el usuario esté autenticado
+  // NOTA [ARCHITECT]: Desactivado para evitar condición de carrera. 
+  // La carga ahora es gestionada secuencialmente por auth.js
+  /*
   firebase.auth().onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario autenticado, cargando inventario...');
-      
+
       // Cargar inmediatamente
       setTimeout(() => {
         loadInventory();
@@ -471,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('⏳ Esperando autenticación...');
     }
   });
+  */
 });
 
 // ============================================================
@@ -481,6 +480,7 @@ window.setSearchTerm = setSearchTerm;
 window.toggleBrandState = toggleBrandState;
 window.editarProducto = editarProducto;
 window.handleAddProduct = handleAddProduct;
+window.applyFiltersAndRender = applyFiltersAndRender;
 window.groupProductsByBarcode = groupProductsByBarcode;
 window.groupProductsByBrand = groupProductsByBrand;
 window.calculateBrandTotals = calculateBrandTotals;

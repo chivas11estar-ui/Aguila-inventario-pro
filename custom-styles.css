@@ -246,19 +246,32 @@ input[readonly]:focus {
   }
 }
 
-/* HEADER DE MARCA CON HOVER */
+/* HEADER DE MARCA CON HOVER SUBTLE */
 [data-brand-header] {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-brand-header]::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.2s;
+}
+
+[data-brand-header]:hover::after {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 [data-brand-header]:hover {
-  background: linear-gradient(135deg, #1d4ed8, #002f6c) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 74, 173, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
 }
 
 [data-brand-header]:active {
-  transform: translateY(0);
+  transform: scale(0.97);
 }
 
 /* ESTADOS DE CARGA */
@@ -319,4 +332,422 @@ html {
   .responsive-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+.ios-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+.profile-gradient {
+    background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
+}
+
+/* ============================================
+   ESTILOS PARA ANALYTICS WALMART
+   Agregar a custom-styles.css
+   ============================================ */
+
+.analytics-walmart {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 16px;
+    max-width: 800px;
+    margin: auto;
+}
+
+/* Grid de Métricas */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.metric-card {
+    background: linear-gradient(145deg, #ffffff, #f0f2f5);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.metric-card .metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.metric-card .metric-label {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-top: 8px;
+}
+
+/* Sección Top 3 por Marca */
+.top-by-brand, .product-search {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.top-by-brand h2, .product-search h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #0f172a;
+}
+
+.brand-group {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.brand-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.brand-group h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.brand-group div {
+    color: #475569;
+    font-size: 0.95rem;
+    padding: 4px 0;
+}
+
+/* Buscador de Productos */
+.search-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.search-controls input[type="text"] {
+    flex-grow: 1;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.search-controls button {
+    border: none;
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 0 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.search-controls button:hover {
+    background-color: #e2e8f0;
+}
+
+.search-controls button:first-child { /* Escanear */
+    background-color: #3b82f6;
+    color: white;
+}
+.search-controls button:first-child:hover {
+    background-color: #2563eb;
+}
+
+/* Tarjeta de Resultado */
+#search-results-container {
+    margin-top: 16px;
+}
+
+.search-result-card, .search-result-card-empty {
+    background-color: #f8fafc;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+}
+.search-result-card-empty {
+    text-align: center;
+    color: #64748b;
+}
+
+.search-result-card h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.search-result-card .brand-code {
+    margin: 0 0 20px 0;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.result-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    text-align: center;
+}
+
+.metric-display {
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-display .metric-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.metric-display .metric-label {
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.daily-metric {
+    background-color: #eff6ff;
+    color: #3b82f6;
+}
+
+.monthly-metric {
+    background-color: #f0fdf4;
+    color: #10b981;
+}
+
+.info-text {
+    margin-top: 16px;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-align: center;
+}
+
+#btn-generate-top-sellers {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+}
+
+/* ============================================================
+   HYBRID SEARCH & QUICK SCANNER
+   ============================================================ */
+.search-wrapper {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: #000;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.search-input-pro {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.search-input-pro:focus {
+    border-color: #2563eb;
+    background: #222;
+    outline: none;
+}
+
+.search-scan-btn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    width: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.hidden-scanner {
+    display: none;
+}
+
+.visible-scanner {
+    display: block !important;
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    background: #000;
+    margin: 10px 0;
+    border-radius: 16px;
+    overflow: hidden;
+    animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#search-video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scan-target-box {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 240px; height: 120px;
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1000px rgba(0,0,0,0.6);
+    pointer-events: none;
+}
+
+.scan-laser {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: #10b981;
+    box-shadow: 0 0 15px #10b981;
+    animation: laserMove 2s infinite linear;
+}
+
+@keyframes laserMove {
+    0% { top: 0; }
+    50% { top: 100%; }
+    100% { top: 0; }
+}
+
+.close-scan-btn {
+    position: absolute;
+    top: 15px; right: 15px;
+    background: rgba(0,0,0,0.5);
+    color: white; border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* ============================================================
+   AUDIT PRO - VISTA DE CÁMARA (FIX VISIBILIDAD)
+   ============================================================ */
+#audit-scanner-view {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 250px; /* Previene colapso a 0px */
+}
+
+#audit-scanner-view video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+.telescopic-sight {
+    z-index: 50 !important;
+}
+
+/* Animación de escaneo exitoso (Flash verde) */
+@keyframes scan-flash {
+    0% { background-color: rgba(16, 185, 129, 0); }
+    50% { background-color: rgba(16, 185, 129, 0.3); }
+    100% { background-color: rgba(16, 185, 129, 0); }
+}
+
+.scan-flash-active {
+    animation: scan-flash 0.3s ease-out;
+}
+
+/* ============================================================
+   GLOBAL SCANNER MODAL (FIX SUPERPOSICIÓN)
+   ============================================================ */
+.scanner-modal {
+    z-index: 10000 !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.scanner-modal.active, .scanner-modal:not(.hidden) {
+    display: flex !important;
+}
+
+.scanner-modal.hidden {
+    display: none !important;
+}
+
+.scanner-container {
+    border: 2px solid #2563eb;
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.4);
+    border-radius: 20px;
+    overflow: hidden;
+    width: 90%;
+    max-width: 400px;
+}
+
+#scanner-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    min-height: 300px;
+    background: #000;
+}
+
+.scanner-overlay {
+    z-index: 10001 !important;
+}
+
+/* ============================================================
+   SISTEMAS - FIX VISIBILIDAD DE VIDEO (MUTEX)
+   ============================================================ */
+#search-video-feed, 
+#scanner-video, 
+.audit-camera-zone video {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 300px !important;
+    object-fit: cover !important;
+    background: #000 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.visible-scanner {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #000 !important;
+}
+
+.search-wrapper {
+    background: #000 !important; /* OLED Priority */
+    border-bottom: 1px solid #222;
 }

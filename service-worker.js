@@ -4,34 +4,35 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v1.7";
+// ✅ FIX v9.1c: Incrementar versión para cachear archivos actualizados
+const CACHE_NAME = "aguila-pro-v3.3";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
 const APP_SHELL_ASSETS = [
   "/",
   "/index.html",
-  "/styles.css?v=1.2",
-  "/custom-styles.css?v=1.2",
+  "/styles.css",
+  "/custom-styles.css",
   "/manifest.json",
   "/icon-192x192.png",
   "/icon-512x512.png",
-  "/firebase-config.js?v=1.2",
-  "/ui.js?v=1.2",
-  "/scanner-mlkit.js?v=1.2",
-  "/scanner-events.js?v=1.2",
-  "/inventory.js?v=1.2",
-  "/inventory-ui.js?v=1.2",
-  "/refill-enhanced.js?v=1.3",
-  "/audit.js?v=1.2",
-  "/system.js?v=1.2",
-  "/system-events.js?v=1.2",
-  "/profile.js?v=1.2",
-  "/profile-ui.js?v=1.2",
-  "/analytics.js?v=1.3",
-  "/analytics-ui.js?v=1.3",
-  "/phrases.js?v=1.2",
-  "/auth.js?v=1.3",
-  "/app.js?v=1.2"
+  "/firebase-config.js",
+  "/ui.js",
+  "/scanner-mlkit.js",
+  "/scanner-events.js",
+  "/inventory.js",
+  "/inventory-ui.js",
+  "/refill-enhanced.js",
+  "/audit.js",
+  "/system.js",
+  "/system-events.js",
+  "/profile.js",
+  "/profile-ui.js",
+  "/analytics.js",
+  "/analytics-ui.js",
+  "/phrases.js",
+  "/auth.js",
+  "/app.js"
 ];
 
 // ============================================================

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es-MX" dir="ltr">
+
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://*.gstatic.com https://*.firebaseio.com https://*.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' https://fonts.googleapis.com https://*.gstatic.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src * 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; manifest-src 'self';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
   <meta name="author" content="José A. G. Betancourt">
-  <meta name="theme-color" content="#004aad">
+  <meta name="theme-color" content="#0021e4">
   <title>🦅 Águila Inventario Pro</title>
 
   <link rel="manifest" href="manifest.json">
@@ -19,6 +21,34 @@
 
   <link rel="stylesheet" href="styles.css?v=1.2">
   <link rel="stylesheet" href="custom-styles.css?v=1.2">
+  <link rel="stylesheet" href="tailwind-built.css?v=1.2">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+      <style>
+              footer, [role="contentinfo"] {
+                        background-color: #ffffff !important;
+                        color: #1a1a1a !important;
+                        padding: 20px !important;
+                        text-align: center !important;
+                        font-size: 14px !important;
+                        line-height: 1.6 !important;
+                        border-top: 1px solid #e0e0e0 !important;
+              }
+              footer p, [role="contentinfo"] p,
+              footer div, [role="contentinfo"] div {
+                        margin: 0 !important;
+                        color: #1a1a1a !important;
+                        font-weight: 500 !important;
+              }
+              @media (max-width: 768px) {
+                        footer, [role="contentinfo"] {
+                                    font-size: 12px !important;
+                                    padding: 15px !important;
+                        }
+              }
+            </style>
+      </style>
 </head>
 
 <body>
@@ -46,22 +76,25 @@
   <!-- ============================================================
        MODAL CREAR PRODUCTO NUEVO
        ============================================================ -->
-  <div id="create-product-modal" class="modal-overlay hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+  <div id="create-product-modal" class="modal-overlay hidden"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="modal-content card" style="max-width: 500px; padding: 24px; position: relative;">
-      <button style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;" onclick="cerrarModalCrearProducto()">✕</button>
-      
+      <button
+        style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;"
+        onclick="cerrarModalCrearProducto()">✕</button>
+
       <h3 style="color: #004aad; margin-bottom: 20px;">📝 Crear Nuevo Producto</h3>
-      
+
       <div class="form-group">
         <label for="create-product-barcode">Código de Barras</label>
         <input id="create-product-barcode" type="text" readonly style="background: #f0f9ff;" />
       </div>
-      
+
       <div class="form-group">
         <label for="create-product-name">Nombre del Producto *</label>
         <input id="create-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
       </div>
-      
+
       <div class="form-group">
         <label for="create-product-marca">Marca</label>
         <select id="create-product-marca">
@@ -72,49 +105,56 @@
           <option value="Sonric's">Sonric's</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label for="create-product-piezas">Piezas por Caja</label>
         <input id="create-product-piezas" type="number" value="24" min="1" />
       </div>
-      
+
       <div class="form-group">
         <label for="create-product-warehouse">Bodega/Ubicación *</label>
         <input id="create-product-warehouse" type="text" placeholder="Ej: Almacén 1" required />
       </div>
-      
+
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
         <button type="button" id="save-product-modal-btn" class="primary">💾 Crear Producto</button>
-        <button type="button" id="close-product-modal-btn" class="secondary" style="background: #e5e7eb; color: #1f2937;">❌ Cancelar</button>
+        <button type="button" id="close-product-modal-btn" class="secondary"
+          style="background: #e5e7eb; color: #1f2937;">❌ Cancelar</button>
       </div>
     </div>
   </div>
 
   <main id="main-app">
-    
+
     <!-- ============================================================
          PANTALLA AUTH
          ============================================================ -->
-    <section id="auth-setup" class="card" style="max-width:500px;margin:50px auto;">
-      <h2 style="text-align:center;color:var(--primary);margin-bottom:24px;">🦅 Águila Inventario Pro</h2>
+    <section id="auth-setup" class="card" style="max-width:450px; margin: 60px auto; padding: var(--spacing-xl); border: none;">
+      <div style="text-align:center; margin-bottom: var(--spacing-xl);">
+        <span style="font-size: 64px; margin-bottom: 16px; display: block;">🦅</span>
+        <h2 style="color: var(--primary); font-weight: 800; letter-spacing: -0.04em; font-size: 2rem;">Águila Pro</h2>
+        <p style="color: var(--muted); font-size: 0.875rem;">Gestión inteligente de inventario</p>
+      </div>
 
       <!-- LOGIN FORM -->
       <form id="login-form">
         <div class="form-group">
-          <label for="login-email">Email</label>
-          <input id="login-email" type="email" placeholder="tu.email@empresa.com" required />
+          <label for="login-email">Correo Electrónico</label>
+          <input id="login-email" type="email" placeholder="ejemplo@aguila.com" required />
         </div>
         <div class="form-group">
           <label for="login-password">Contraseña</label>
-          <input id="login-password" type="password" placeholder="Mínimo 6 caracteres" required />
+          <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" />
         </div>
-        <button type="button" id="btn-login" class="success" style="width:100%;">Iniciar Sesión</button>
-        <p style="text-align:center;margin-top:15px;">
-          <a href="#" id="show-forgot-password" style="color:var(--warning);">¿Olvidaste tu contraseña?</a>
-        </p>
-        <p style="text-align:center;">
-          <a href="#" id="show-register" style="color:var(--primary);">¿Eres nuevo? Regístrate aquí</a>
-        </p>
+        <button type="button" id="btn-login" class="primary" style="width:100%; margin-top: 10px;">Acceder al Sistema</button>
+        
+        <div style="margin-top: 24px; text-align: center; border-top: 1px solid var(--border); padding-top: 24px;">
+          <a href="#" id="show-forgot-password" style="color: var(--secondary); font-size: 0.875rem; text-decoration: none; font-weight: 600;">¿Olvidaste tu contraseña?</a>
+          <div style="margin-top: 12px;">
+            <span style="color: var(--muted); font-size: 0.875rem;">¿No tienes cuenta? </span>
+            <a href="#" id="show-register" style="color: var(--primary); font-size: 0.875rem; text-decoration: none; font-weight: 700;">Regístrate aquí</a>
+          </div>
+        </div>
       </form>
 
       <!-- FORGOT PASSWORD FORM -->
@@ -139,7 +179,7 @@
         </div>
         <div class="form-group">
           <label for="register-password">Contraseña</label>
-          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+          <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password" />
         </div>
         <div class="form-group">
           <label for="register-determinante">Determinante (Tienda)</label>
@@ -164,110 +204,137 @@
          APLICACIÓN PRINCIPAL
          ============================================================ -->
     <section id="app-container" style="display:none;">
-      
+
       <!-- HEADER APP -->
       <div class="app-header">
-        <div style="display:flex;align-items:center;gap:12px;">
-                  <div class="app-title">🦅 Águila Inventario Pro</div>
-                  <p id="motivational-phrase" style="color: var(--muted); font-size: 12px; font-style: italic; text-align: center; flex-grow: 1;"></p>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;">          <button class="btn-icon" id="btn-offline-status">📡</button>
-          <button class="btn-icon" id="btn-logout">🚪</button>
+        <div class="flex items-center gap-3">
+          <div class="app-title">
+            <span style="font-size: 28px;">🦅</span>
+            Águila Pro
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button class="btn-icon" id="btn-offline-status" title="Estado de conexión">
+            <span class="material-icons-round">sensors</span>
+          </button>
+          <button class="btn-icon" id="btn-logout" title="Cerrar sesión">
+            <span class="material-icons-round">logout</span>
+          </button>
         </div>
       </div>
+      <p id="motivational-phrase"
+        style="color: var(--muted); font-size: 11px; font-style: italic; text-align: center; margin: 8px 0; width: 100%; white-space: normal; line-height: 1.3;"></p>
 
       <!-- BOTTOM NAVIGATION -->
       <nav class="bottom-nav">
         <a href="#" class="nav-btn active" data-tab="inventory">
-          <span style="font-size:20px;">📦</span>
+          <span class="material-icons-round">inventory_2</span>
           <span>Stock</span>
         </a>
+        <a href="#" class="nav-btn" data-tab="out-of-stock">
+          <span class="material-icons-round">block</span>
+          <span>Agotados</span>
+        </a>
         <a href="#" class="nav-btn" data-tab="add">
-          <span style="font-size:20px;">➕</span>
+          <span class="material-icons-round">add_circle</span>
           <span>Añadir</span>
         </a>
         <a href="#" class="nav-btn" data-tab="refill">
-          <span style="font-size:20px;">🔄</span>
+          <span class="material-icons-round">autorenew</span>
           <span>Rellenar</span>
         </a>
         <a href="#" class="nav-btn" data-tab="audit">
-          <span style="font-size:20px;">✓</span>
+          <span class="material-icons-round">fact_check</span>
           <span>Auditar</span>
         </a>
         <a href="#" class="nav-btn" data-tab="analytics">
-          <span style="font-size:20px;">📊</span>
+          <span class="material-icons-round">bar_chart</span>
           <span>Datos</span>
         </a>
         <a href="#" class="nav-btn" data-tab="system">
-          <span style="font-size:20px;">⚙️</span>
+          <span class="material-icons-round">settings</span>
           <span>Ajustes</span>
         </a>
       </nav>
 
       <!-- CONTENIDO PRINCIPAL -->
       <div class="main-content">
-        
+
         <!-- TAB: INVENTARIO -->
         <div id="tab-inventory" class="tab-content active">
           <div class="card">
-            <h2>📦 Inventario por Marca</h2>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2>📦 Inventario por Marca</h2>
+            </div>
             <div id="inventory-list" style="margin-top:20px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
           </div>
         </div>
 
+        <!-- TAB: AGOTADOS -->
+        <div id="tab-out-of-stock" class="tab-content hidden">
+          <div class="card">
+            <h2>🚫 Productos Agotados</h2>
+            <div id="out-of-stock-list" style="margin-top:20px;">
+              <p style="color:var(--muted);">No hay productos agotados.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- TAB: AGREGAR PRODUCTO -->
         <div id="tab-add" class="tab-content hidden">
-          <div class="card">
-            <h2>➕ Agregar Producto</h2>
+          <div class="card" style="border-top: 4px solid var(--success);">
+            <h2 style="color: var(--primary); font-weight: 800;">➕ Agregar Producto</h2>
             <form id="add-product-form" style="margin-top:20px;">
               <div class="form-group">
-                <label for="add-barcode">Código de Barras</label>
+                <label for="add-barcode" style="color: #1e293b; font-weight: 700;">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
-                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" />
-                  <button type="button" id="btn-scan-add" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                  <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" style="color: #000; font-weight: 600;" />
+                  <button type="button" id="btn-scan-add" class="success"
+                    style="width:auto;padding:12px 16px;">📷</button>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="add-product-name">Nombre del Producto</label>
-                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
+                <label for="add-product-name" style="color: #1e293b; font-weight: 700;">Nombre del Producto</label>
+                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-brand">Marca</label>
-                <select id="add-brand" required>
+                <label for="add-brand" style="color: #1e293b; font-weight: 700;">Marca</label>
+                <select id="add-brand" required style="color: #000; font-weight: 600; background: #fff;">
                   <option value="">-- Selecciona una marca --</option>
                   <option value="Sabritas">Sabritas</option>
                   <option value="Gamesa">Gamesa</option>
                   <option value="Quaker">Quaker</option>
                   <option value="Sonric's">Sonric's</option>
+                  <option value="Cacahuates">Cacahuates</option>
                   <option value="Otra">Otra</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label for="add-pieces-per-box">Piezas por Caja</label>
-                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
+                <label for="add-pieces-per-box" style="color: #1e293b; font-weight: 700;">Piezas por Caja</label>
+                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-warehouse">Ubicación/Almacén</label>
-                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
+                <label for="add-warehouse" style="color: #1e293b; font-weight: 700;">Ubicación/Almacén</label>
+                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-expiry-date">Fecha de Caducidad</label>
-                <input id="add-expiry-date" type="date" required />
+                <label for="add-expiry-date" style="color: #1e293b; font-weight: 700;">Fecha de Caducidad</label>
+                <input id="add-expiry-date" type="date" required style="color: #000; font-weight: 600;" />
               </div>
 
               <div class="form-group">
-                <label for="add-boxes">Cantidad de Cajas</label>
-                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
+                <label for="add-boxes" style="color: #1e293b; font-weight: 700;">Cantidad de Cajas</label>
+                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required style="color: #000; font-weight: 600;" />
               </div>
 
-              <button type="submit" class="primary" style="width:100%;">✅ Guardar Producto</button>
+              <button type="submit" class="primary" style="width:100%; padding: 15px; font-weight: 800; font-size: 16px;">✅ Guardar Producto</button>
             </form>
           </div>
         </div>
@@ -277,10 +344,12 @@
           <div class="card">
             <h2>🔄 Reabastecimiento Inteligente</h2>
             <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
-            
-            <div id="refill-mode-selector" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
-              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">🔄 Salida (Rellenar Exhibidor)</button>
-              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">➕ Entrada (Añadir Stock)</button>
+
+            <div id="refill-mode-selector"
+              style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; flex-wrap: wrap;">
+              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">&#128230; Salida (Rellenar Exhibidor)</button>
+              <button id="btn-refill-mode-pieces" class="warning" style="flex: 1; opacity: 0.6;">&#129329; Por Piezas</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada (Añadir Stock)</button>
             </div>
 
             <form id="refill-form" style="margin-top: 20px;">
@@ -288,43 +357,58 @@
                 <label for="refill-barcode">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
                   <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
-                  <button type="button" id="btn-scan-refill" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                  <button type="button" id="btn-scan-refill" class="success"
+                    style="width:auto;padding:12px 16px;">📷</button>
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="refill-nombre">Nombre del Producto</label>
-                <input id="refill-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                <input id="refill-nombre" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
               </div>
 
               <div class="form-group">
                 <label for="refill-marca">Marca</label>
-                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
               </div>
 
               <div class="form-group">
                 <label for="refill-piezas">Piezas por Caja</label>
-                <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                <input id="refill-piezas" type="number" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
               </div>
 
               <div class="form-group">
                 <label for="refill-warehouse">Bodega/Ubicación</label>
-                <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                <input id="refill-warehouse" type="text" placeholder="Se llenará automáticamente" readonly
+                  style="background: #f8fafc;" />
               </div>
-              
+
               <div class="form-group" id="refill-expiry-date-group" style="display: none;">
                 <label for="refill-expiry-date">Fecha de Caducidad</label>
                 <input id="refill-expiry-date" type="date" />
               </div>
 
-              <div id="refill-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
+              <div id="refill-product-info"
+                style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
                 <p id="refill-product-name"></p>
                 <p id="refill-current-stock" style="color:var(--muted);"></p>
               </div>
 
-              <div class="form-group">
-                <label id="refill-boxes-label" for="refill-boxes">Cantidad de Cajas a Mover</label>
-                <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label id="refill-boxes-label" for="refill-boxes">Cajas</label>
+                  <input id="refill-boxes" type="number" placeholder="Ej: 5" min="0" value="0" />
+                </div>
+                <div class="form-group" id="refill-pieces-group">
+                <label for="refill-pieces">🧩 Piezas a Mover</label>
+                <input id="refill-pieces" type="number" placeholder="Ej: 12" min="0" value="0" />
+                <small id="refill-pieces-hint" style="color:#6b7280; margin-top:4px; display:block; display:none;">
+                  Ej: 36 pzs ÷ 50 pzs/caj = 0.72 cajas equivalentes
+                </small>
+            </div>
               </div>
 
               <button type="submit" class="primary" style="width:100%;">✅ Registrar Movimiento</button>
@@ -345,7 +429,8 @@
             <h2>✓ Auditoría</h2>
 
             <div style="margin: 20px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
-              <button id="btn-quick-audit-mode" class="secondary" style="width:100%;">⚡ Activar Modo de Auditoría Rápida</button>
+              <button id="btn-quick-audit-mode" class="secondary" style="width:100%;">⚡ Activar Modo de Auditoría
+                Rápida</button>
             </div>
 
             <div id="audit-normal-form">
@@ -354,11 +439,13 @@
                   <label for="audit-warehouse">Bodega a Auditar</label>
                   <div style="display:flex;gap:8px;">
                     <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
-                    <button type="button" id="save-warehouse-btn" class="success" style="width:auto;padding:12px 16px;">✓</button>
+                    <button type="button" id="save-warehouse-btn" class="success"
+                      style="width:auto;padding:12px 16px;">✓</button>
                   </div>
                 </div>
 
-                <div id="current-warehouse-display" style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
+                <div id="current-warehouse-display"
+                  style="padding:12px;background:var(--bg);border-radius:8px;color:var(--muted);text-align:center;margin-bottom:20px;">
                   Ninguna bodega seleccionada
                 </div>
 
@@ -366,7 +453,8 @@
                   <label for="audit-barcode">Código de Barras</label>
                   <div style="display:flex;gap:8px;">
                     <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
-                    <button type="button" id="btn-scan-audit" class="success" style="width:auto;padding:12px 16px;">📷</button>
+                    <button type="button" id="btn-scan-audit" class="success"
+                      style="width:auto;padding:12px 16px;">📷</button>
                   </div>
                 </div>
 
@@ -374,20 +462,24 @@
 
                 <div class="form-group">
                   <label for="audit-nombre">Nombre del Producto</label>
-                  <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                  <input id="audit-nombre" type="text" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
                 </div>
 
                 <div class="form-group">
                   <label for="audit-marca">Marca</label>
-                  <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                  <input id="audit-marca" type="text" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
                 </div>
 
                 <div class="form-group">
                   <label for="audit-piezas">Piezas por Caja</label>
-                  <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly style="background: #f8fafc;" />
+                  <input id="audit-piezas" type="number" placeholder="Se llenará automáticamente" readonly
+                    style="background: #f8fafc;" />
                 </div>
 
-                <div id="audit-product-info" style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
+                <div id="audit-product-info"
+                  style="display:none;margin:20px 0;padding:15px;background:var(--primary-light);border-radius:8px;border-left:4px solid var(--primary);">
                   <p id="audit-product-name"></p>
                   <p id="audit-product-brand" style="color:var(--muted);"></p>
                 </div>
@@ -407,12 +499,15 @@
 
             <div id="audit-quick-scan-container" class="hidden" style="margin-top:20px;">
               <h3 style="color: var(--primary);">⚡ Resultados de Auditoría Rápida</h3>
-              <p style="color: #6b7280; font-size: 13px;">Ajusta las cantidades si es necesario y guarda el conteo final.</p>
+              <p style="color: #6b7280; font-size: 13px;">Ajusta las cantidades si es necesario y guarda el conteo
+                final.</p>
               <div id="quick-audit-list" style="margin-top:20px;">
                 <!-- Los productos escaneados aparecerán aquí -->
               </div>
-              <button id="btn-save-quick-audit" class="success" style="width:100%; margin-top: 20px;">💾 Guardar Conteo Rápido</button>
-              <button id="btn-cancel-quick-audit" class="secondary" style="width:100%; margin-top: 10px;">❌ Cancelar</button>
+              <button id="btn-save-quick-audit" class="success" style="width:100%; margin-top: 20px;">💾 Guardar Conteo
+                Rápido</button>
+              <button id="btn-cancel-quick-audit" class="secondary" style="width:100%; margin-top: 10px;">❌
+                Cancelar</button>
             </div>
 
             <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -434,24 +529,8 @@
 
         <!-- TAB: ANALYTICS (CORREGIDO - SOLO CONTAINER) -->
         <div id="tab-analytics" class="tab-content hidden">
-          <div id="analytics-container">
-            <!-- El JS renderizará aquí los gráficos existentes -->
-          </div>
-
-          <div class="card" style="margin-top: 20px;">
-            <h2>📊 Estadísticas de Relleno Diario (Últimos 7 Días)</h2>
-            <div id="daily-average-refill-container" style="text-align: center; padding: 20px;">
-                <p style="color: var(--muted);">Calculando...</p>
-            </div>
-          </div>
-          
-          <div class="card" style="margin-top: 20px;">
-            <h2>⭐ Top 10 Más Vendidos</h2>
-            <p style="color: #6b7280; font-size: 13px;">Analiza los productos con más movimiento de salida (relleno de estantes).</p>
-            <button id="btn-generate-top-sellers" class="primary" style="width:100%; margin-top:15px;">📊 Generar Reporte</button>
-            <div id="top-sellers-container" style="margin-top: 20px;">
-              <!-- El reporte se renderizará aquí -->
-            </div>
+          <div id="stats-container">
+            <!-- El JS renderizará aquí la nueva interfaz de Analytics -->
           </div>
         </div>
 
@@ -468,7 +547,8 @@
           <div id="motivational-phrases-manager" class="card">
             <h3 style="color: var(--primary); margin-bottom: 20px;">💬 Mis Frases Motivacionales</h3>
             <form id="add-phrase-form" style="display: flex; gap: 8px; margin-bottom: 20px;">
-              <input id="new-phrase-input" type="text" placeholder="Escribe una nueva frase..." style="flex-grow: 1;" required />
+              <input id="new-phrase-input" type="text" placeholder="Escribe una nueva frase..." style="flex-grow: 1;"
+                required />
               <button type="submit" class="success" style="width: auto; padding: 12px 16px;">Añadir</button>
             </form>
             <div id="phrases-list">
@@ -486,9 +566,10 @@
   <!-- ============================================================
        FOOTER
        ============================================================ -->
-  <footer style="background:var(--card-bg);text-align:center;border-top:2px solid var(--border);margin-top:40px;">
-    <p style="margin:5px 0;font-weight:600;">Águila Inventario Pro v7.6</p>
-    <p style="margin:5px 0;color:var(--muted);font-size:18px;">&copy; 2025 José A. G. Betancourt - Todos los derechos reservados</p>
+  <footer style="background: var(--bg); text-align: center; padding: var(--spacing-xl) var(--spacing-lg); margin-top: 40px; border-top: 1px solid var(--border);">
+    <p style="margin: 0; font-weight: 800; color: var(--primary); font-size: 1.1rem; letter-spacing: -0.02em;">Águila Pro v8.0</p>
+    <p style="margin: 8px 0 0 0; color: var(--muted); font-size: 0.875rem; font-weight: 500;">&copy; 2026 José A. G. Betancourt</p>
+    <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 0.75rem; opacity: 0.7;">Desarrollado con Indigo Horizon Design System</p>
   </footer>
 
   <!-- ============================================================
@@ -497,6 +578,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- ============================================================
+       LIBRERÍA DE ENCRIPTACIÓN (CRYPTOJS)
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
   <!-- ============================================================
        CHART.JS (SOLO UNA VEZ)
@@ -507,50 +594,87 @@
        CONFIGURACIÓN Y UI BASE
        ============================================================ -->
   <script src="firebase-config.js?v=1.2"></script>
+  <script src="security-utils.js?v=1.2"></script>
+  <script src="date-utils.js?v=1.2"></script>
   <script src="ui.js?v=1.2"></script>
+
+  <!-- ============================================================
+       GESTIÓN DE LISTENERS (FASE 2.1 - MEMORY LEAK FIX)
+       ============================================================ -->
+  <script src="listener-manager.js?v=2.0" defer></script>
 
   <!-- ============================================================
        ESCÁNER
        ============================================================ -->
-  <script src="scanner-mlkit.js?v=1.2"></script>
-  <script src="scanner-events.js?v=1.2"></script>
+  <script src="scanner-mlkit.js?v=1.2" defer></script>
+  <script src="scanner-events.js?v=1.2" defer></script>
 
   <!-- ============================================================
-       INVENTARIO (FASE 2.1)
+       CONTROLLERS (NUEVO)
        ============================================================ -->
-  <script src="inventory.js?v=1.2"></script>
-  <script src="inventory-ui.js?v=1.2"></script>
+  <script src="search-controller.js?v=2.0" defer></script>
 
   <!-- ============================================================
-       OPERACIONES (FASE 1 - ESTABLES)
+       INVENTARIO (FASE 2.1) - Renderizado y estado base
        ============================================================ -->
-  <script src="refill-enhanced.js?v=1.3"></script>
-  <script src="audit.js?v=1.2"></script>
+  <script src="inventory.js?v=2.0" defer></script>
+  <script src="inventory-ui.js?v=2.1" defer></script>
+
+  <!-- ============================================================
+       INVENTORY-CORE V2 - Nueva arquitectura por código de barras
+       Reemplaza la lógica de escritura de inventory.js
+       Ruta: productos/{det}/{codigoBarras} en vez de push()
+       ============================================================ -->
+  <script src="inventory-core.js?v=2.0" defer></script>
+<script src="lote-mover.js?v=1.0" defer></script>
+
+  <!-- ============================================================
+       OPERACIONES (V2 - REFACTORIZADO)
+       refill-safe.js reemplaza refill-enhanced.js
+       ============================================================ -->
+  <!-- <script src="refill-enhanced.js?v=1.2" defer></script>  DESACTIVADO: reemplazado por refill-safe.js -->
+  <script src="refill-safe.js?v=2.2" defer></script>
+  <script src="audit.js?v=2.0" defer></script>
+  <script src="audit-pro-ui.js?v=2.0" defer></script>
+  <script src="audit-sync.js?v=2.0" defer></script>
 
   <!-- ============================================================
        SISTEMA Y PERFIL (FASE 2.2)
        ============================================================ -->
-  <script src="system.js?v=1.2"></script>
-  <script src="system-events.js?v=1.2"></script>
-  <script src="profile.js?v=1.2"></script>
-  <script src="profile-ui.js?v=1.2"></script>
+  <script src="system.js?v=1.2" defer></script>
+  <script src="system-events.js?v=1.2" defer></script>
+  <script src="weather.js?v=1.2" defer></script>
+  <script src="profile.js?v=1.3" defer></script>
+  <script src="profile-ui.js?v=1.2" defer></script>
 
   <!-- ============================================================
        ANALYTICS (FASE 2.3) - DESPUÉS DE PROFILE
        ============================================================ -->
-  <script src="analytics.js?v=1.3"></script>
-  <script src="analytics-ui.js?v=1.3"></script>
+  <script src="analytics.js?v=1.3" defer></script>
+  <script src="analytics-ui.js?v=1.3" defer></script>
 
   <!-- ============================================================
        FRASES MOTIVACIONALES (NUEVO)
        ============================================================ -->
+  <script src="ai-phrases.js?v=1.3"></script>
   <script src="phrases.js?v=1.2"></script>
+
+  <!-- ============================================================
+       MIGRACIÓN V2 (TEMPORAL - quitar después de migrar)
+       Ejecutar migrarInventarioAV2() desde consola del navegador
+       ============================================================ -->
+  <script src="migrate-to-v2.js?v=2.0"></script>
+
+  <!-- ============================================================
+       GENERADOR DE FRASES IA CONTEXTUAL
+       ============================================================ -->
+  <script src="ai-phrases-enhanced.js?v=1.0"></script>
 
   <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
-  <script src="auth.js?v=1.3"></script>
-  <script src="app.js?v=1.2"></script>
+  <script src="auth.js?v=2.0"></script>
+  <script src="app.js?v=2.0"></script>
 
   <!-- ============================================================
        SERVICE WORKER
@@ -569,14 +693,14 @@
        SISTEMA DE NAVEGACIÓN MOBILE
        ============================================================ -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       console.log('🎯 Sistema de navegación iniciando...');
 
       const navButtons = document.querySelectorAll('.nav-btn');
       const tabContents = document.querySelectorAll('.tab-content');
 
       navButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
+        btn.addEventListener('click', function (e) {
           e.preventDefault();
           const tabName = this.getAttribute('data-tab');
           console.log('📑 Navegando a:', tabName);
@@ -597,5 +721,79 @@
       console.log('✅ Navegación lista');
     });
   </script>
+<script>document.addEventListener('DOMContentLoaded', function() { setTimeout(function() { const footers = document.querySelectorAll('footer, [role="contentinfo"]'); footers.forEach(f => { f.textContent = '© Jose A. G. Betancourt - Águila Inventario Pro - Derechos Reservados'; }); }, 100); });</script></script>
+
+
+  <!-- SCANNER CLOSE BUTTON FIX V1.0 -->
+  <script>
+      document.addEventListener('DOMContentLoaded', function() {
+            const closeButton = document.getElementById('close-scanner');
+            const scannerModal = document.getElementById('scanner-modal');
+
+            if (closeButton && scannerModal) {
+                    // Click event para cerrar el escáner
+                    closeButton.addEventListener('click', function(e) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('✅ [SCANNER FIX] Botón Cerrar presionado');
+
+                              // Cerrar el modal
+                              scannerModal.classList.add('hidden');
+                              scannerModal.classList.remove('active');
+
+                              // Detener el escáner
+                              if (window.ScannerService) {
+                                          window.ScannerService.hardStop();
+                              }
+                    });
+
+                    // Escape key para cerrar
+                    document.addEventListener('keydown', function(e) {
+                              if (e.key === 'Escape' && !scannerModal.classList.contains('hidden')) {
+                                          console.log('✅ [SCANNER FIX] Tecla ESC presionada');
+                                          scannerModal.classList.add('hidden');
+                                          scannerModal.classList.remove('active');
+                                          if (window.ScannerService) {
+                                                        window.ScannerService.hardStop();
+                                          }
+                              }
+                    });
+
+                    // CSS para asegurar visibilidad del botón
+                    const style = document.createElement('style');
+                    style.textContent = `
+                            #close-scanner {
+                                      position: absolute !important;
+                                                top: 20px !important;
+                                                          right: 20px !important;
+                                                                    z-index: 9999 !important;
+                                                                              padding: 10px 20px !important;
+                                                                                        background-color: #dc3545 !important;
+                                                                                                  color: white !important;
+                                                                                                            border: none !important;
+                                                                                                                      border-radius: 4px !important;
+                                                                                                                                font-size: 14px !important;
+                                                                                                                                          cursor: pointer !important;
+                                                                                                                                                    opacity: 1 !important;
+                                                                                                                                                              visibility: visible !important;
+                                                                                                                                                                        display: block !important;
+                                                                                                                                                                                  pointer-events: auto !important;
+                                                                                                                                                                                          }
+                                                                                                                                                                                                  
+                                                                                                                                                                                                          #close-scanner:hover {
+                                                                                                                                                                                                                    background-color: #c82333 !important;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                            .scanner-overlay #close-scanner {
+                                                                                                                                                                                                                                                      pointer-events: auto !important;
+                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                                    `;
+                    document.head.appendChild(style);
+                    console.log('✅ [SCANNER FIX] CSS aplicado y event listeners añadidos');
+            }
+      });
+  </script>
+  </script>
 </body>
+
 </html>

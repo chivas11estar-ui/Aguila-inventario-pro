@@ -1,251 +1,206 @@
-// ============================================================
-// Águila Inventario Pro - ML Kit Barcode Scanner
-// Copyright © 2025 José A. G. Betancourt
-// Escáner profesional con ML Kit Vision (Modo Continuo Habilitado)
-// ============================================================
+/**
+ * Águila Pro - ScannerService (Singleton Persistent Bridge)
+ * V6.3 - Unified API & Crash Fix
+ * Copyright © 2026 José A. G. Betancourt
+ */
 
-let scannerStream = null;
-let scannerActive = false;
-let scanOptions = { onScan: null, continuous: false };
-let barcodeDetector = null;
-let animationFrameId = null;
-let lastDetectedCode = null;
-let detectionCount = 0;
+'use strict';
 
-console.log('📷 ML Kit Scanner (v2-continuo) iniciando...');
+window.ScannerService = {
+    persistentStream: null,
+    detector: null,
+    activeVideoElement: null,
+    isScanning: false,
 
-// ============================================================
-// INICIALIZAR BARCODE DETECTOR (ML KIT)
-// ============================================================
-async function initBarcodeDetector() {
-  if (barcodeDetector) return barcodeDetector;
-  console.log('🔍 Inicializando ML Kit Barcode Detector...');
-  if (!('BarcodeDetector' in window)) {
-    console.info('ℹ️ ML Kit BarcodeDetector no disponible nativamente (Usando fallback si es necesario)');
-    return null;
-  }
-  try {
-    barcodeDetector = new BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'qr_code', 'data_matrix']
-    });
-    console.log('✅ ML Kit Detector inicializado');
-    return barcodeDetector;
-  } catch (error) {
-    console.error('❌ Error inicializando detector:', error);
-    return null;
-  }
-}
-
-// ============================================================
-// ABRIR ESCÁNER (Refactorizado para Opciones)
-// ============================================================
-async function openScanner(options) {
-  console.log('📷 Abriendo escáner ML Kit con opciones:', options);
-
-  const { onScan, continuous = false } = options;
-
-  if (!onScan || typeof onScan !== 'function') {
-    console.error('❌ onScan callback no es una función válida');
-    return;
-  }
-
-  scanOptions = { onScan, continuous };
-  lastDetectedCode = null;
-  detectionCount = 0;
-
-  if (!barcodeDetector) {
-    barcodeDetector = await initBarcodeDetector();
-    if (!barcodeDetector) {
-      alert('❌ Tu navegador no soporta el escáner avanzado.\nUsa Chrome, Edge o Samsung Internet.');
-      return;
-    }
-  }
-
-  const modal = document.getElementById('scanner-modal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('active');
-  }
-
-  try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        focusMode: { ideal: 'continuous' }
-      },
-      audio: false
-    });
-
-    const video = document.getElementById('scanner-video');
-    if (video) {
-      video.srcObject = scannerStream;
-      video.onloadedmetadata = () => {
-        video.play().then(() => {
-          scannerActive = true;
-          startScanning(video);
-        }).catch(err => console.error('❌ Error reproduciendo video:', err));
-      };
-    }
-  } catch (error) {
-    console.error('❌ Error accediendo cámara:', error);
-    if (error.name === 'NotAllowedError') {
-      alert('❌ Permiso de cámara denegado. Actívalo en los ajustes de tu navegador.');
-    } else {
-      alert('❌ Error de cámara: ' + error.message);
-    }
-    closeScanner();
-  }
-}
-
-// ============================================================
-// ESCANEAR CONTINUAMENTE (Refactorizado para Modo Continuo)
-// ============================================================
-async function startScanning(video) {
-  if (!scannerActive || !barcodeDetector) {
-    return;
-  }
-
-  try {
-    const barcodes = await barcodeDetector.detect(video);
-
-    if (barcodes && barcodes.length > 0) {
-      const code = barcodes[0].rawValue;
-
-      if (code && code.length >= 8) {
-        if (lastDetectedCode === code) {
-          detectionCount++;
-
-          if (detectionCount >= 2) { // Confirmación de 2 lecturas
-            console.log('✅✅ CÓDIGO CONFIRMADO:', code);
-
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            playBeep();
-
-            if (scanOptions.onScan) {
-              scanOptions.onScan(code);
+    async requestCamera(target) {
+        console.log("📷 [ScannerService] Solicitando hardware...");
+        
+        let videoElement = (target instanceof HTMLElement) ? target : document.querySelector(target);
+        
+        if (videoElement && videoElement.tagName !== 'VIDEO') {
+            let internalVideo = videoElement.querySelector('video');
+            if (!internalVideo) {
+                internalVideo = document.createElement('video');
+                internalVideo.setAttribute('autoplay', '');
+                internalVideo.setAttribute('playsinline', '');
+                internalVideo.muted = true;
+                internalVideo.style.cssText = "width:100%; height:100%; object-fit:cover; background:#000;";
+                videoElement.prepend(internalVideo);
             }
-
-            if (scanOptions.continuous) {
-              // --- MODO CONTINUO ---
-              console.log('🔄 Modo continuo: reiniciando para siguiente escaneo');
-              lastDetectedCode = null; // Permite escanear el mismo código de nuevo
-              detectionCount = 0;
-              // Feedback visual
-              const overlay = document.querySelector('.scanner-overlay');
-              if (overlay) {
-                overlay.classList.add('flash-success');
-                setTimeout(() => overlay.classList.remove('flash-success'), 300);
-              }
-            } else {
-              // --- MODO ÚNICO ---
-              closeScanner();
-              return; // Detener el bucle
-            }
-          }
-        } else {
-          lastDetectedCode = code;
-          detectionCount = 1;
+            videoElement = internalVideo;
         }
-      }
+
+        if (!videoElement) return false;
+
+        if (this.persistentStream && this.persistentStream.active) {
+            return await this.attachToElement(videoElement);
+        }
+
+        try {
+            this.persistentStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            return await this.attachToElement(videoElement);
+        } catch (err) {
+            console.error("❌ [ScannerService] Error WebRTC:", err);
+            return false;
+        }
+    },
+
+    async attachToElement(videoElement) {
+        if (!this.persistentStream || !videoElement) return false;
+        if (this.activeVideoElement && this.activeVideoElement !== videoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+        }
+        videoElement.srcObject = this.persistentStream;
+        this.activeVideoElement = videoElement;
+        return new Promise((resolve) => {
+            videoElement.onloadedmetadata = async () => {
+                try { await videoElement.play(); this.initDetector(); resolve(true); } catch (e) { resolve(false); }
+            };
+        });
+    },
+
+    initDetector() {
+        if (!this.detector && 'BarcodeDetector' in window) {
+            this.detector = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'code_128', 'qr_code'] });
+        }
+    },
+
+    async scan(callback) {
+        if (!this.detector && !('BarcodeDetector' in window)) {
+            console.error("❌ BarcodeDetector no disponible en este navegador.");
+            if (typeof showToast === 'function') showToast("⚠️ Tu navegador no soporta el escáner nativo", "error");
+            this.isScanning = false;
+            return;
+        }
+        
+        this.isScanning = true;
+        const loop = async () => {
+            if (!this.isScanning || !this.activeVideoElement || this.activeVideoElement.paused) return;
+            try {
+                if (this.detector) {
+                    const barcodes = await this.detector.detect(this.activeVideoElement);
+                    if (barcodes.length > 0) {
+                        const code = barcodes[0].rawValue;
+                        console.log("🎯 Código detectado:", code);
+                        
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        
+                        callback(code);
+                        
+                        if (!window.ScannerService.continuousMode) {
+                            this.isScanning = false;
+                            return; 
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("⚠️ Error en ciclo de escaneo:", e);
+            }
+            if (this.isScanning) requestAnimationFrame(loop);
+        };
+        loop();
+    },
+
+    // ALIAS DE COMPATIBILIDAD
+    stop() {
+        this.isScanning = false;
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+        }
+        console.log("⏸️ [ScannerService] Flujo detenido.");
+    },
+
+    stopDataFlow() { this.stop(); },
+
+    /**
+     * MÉTODO HARD-STOP (Mobile Optimization)
+     * Apaga físicamente el hardware de la cámara y libera el buffer de la GPU.
+     */
+    hardStop() {
+        console.log("🛑 [ScannerService] Apagando hardware de cámara...");
+        
+        // 1. Detener el ciclo de detección
+        this.isScanning = false;
+        
+        // 2. Limpiar el elemento de video (Libera buffer GPU)
+        if (this.activeVideoElement) {
+            this.activeVideoElement.pause();
+            this.activeVideoElement.srcObject = null;
+            this.activeVideoElement.load(); // Fuerza limpieza del buffer
+            this.activeVideoElement = null;
+        }
+        
+        // 3. Matar físicamente los tracks del MediaStream
+        if (this.persistentStream) {
+            const tracks = this.persistentStream.getTracks();
+            tracks.forEach(track => {
+                track.stop();
+                console.log(`✅ Track detenido: ${track.kind}`);
+            });
+            this.persistentStream = null;
+        }
+
+        console.log("🔋 Hardware liberado correctamente.");
     }
-  } catch (error) {
-    // Ignorar errores menores de detección que ocurren a veces
-  }
+};
 
-  animationFrameId = requestAnimationFrame(() => startScanning(video));
-}
+/**
+ * BRIDGE GLOBAL BLINDADO
+ * Soporta: 
+ * 1. openScanner(callback)
+ * 2. openScanner({ onScan: callback, continuous: bool })
+ */
+Object.defineProperty(window, 'openScanner', {
+    value: async function(args) {
+        const modal = document.getElementById('scanner-modal');
+        const video = document.getElementById('scanner-video');
+        if (!modal || !video) {
+            console.error("❌ No se encontró el modal o video del escáner");
+            return;
+        }
 
-// ============================================================
-// SONIDO DE BEEP
-// ============================================================
-function playBeep() {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
-    gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
-  } catch (e) { /* Silencio si falla */ }
-}
+        // Determinar callback y modo
+        let callback = typeof args === 'function' ? args : (args?.onScan || null);
+        window.ScannerService.continuousMode = args?.continuous || false;
 
-// ============================================================
-// CERRAR ESCÁNER
-// ============================================================
-function closeScanner() {
-  console.log('🔴 Cerrando escáner...');
-  scannerActive = false;
+        if (!callback) {
+            console.error("❌ openScanner requiere un callback");
+            return;
+        }
 
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
+        modal.classList.remove('hidden');
+        modal.classList.add('active'); // Por si se usa CSS para mostrarlo
 
-  if (scannerStream) {
-    scannerStream.getTracks().forEach(track => track.stop());
-    scannerStream = null;
-  }
+        const ready = await window.ScannerService.requestCamera(video);
+        if (ready) {
+            window.ScannerService.scan((code) => {
+                callback(code);
+                
+                // Si hay un puente global para búsqueda (analytics/etc)
+                if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
 
-  const video = document.getElementById('scanner-video');
-  if (video) video.srcObject = null;
-
-  const modal = document.getElementById('scanner-modal');
-  if (modal) {
-    modal.classList.remove('active');
-    modal.classList.add('hidden');
-  }
-
-  scanOptions = { onScan: null, continuous: false };
-  lastDetectedCode = null;
-  detectionCount = 0;
-  console.log('✅ Escáner cerrado');
-}
-
-// ============================================================
-// INICIALIZACIÓN Y ESTILOS
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('📷 Inicializando módulo scanner ML Kit (v2-continuo)...');
-
-  const closeBtn = document.getElementById('close-scanner');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      closeScanner();
-    });
-  }
-
-  // Añadir estilos para el feedback visual
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .scanner-overlay.flash-success {
-      animation: flash-animation 0.3s ease-out;
-    }
-    @keyframes flash-animation {
-      0% { background-color: rgba(74, 222, 128, 0); }
-      50% { background-color: rgba(74, 222, 128, 0.4); }
-      100% { background-color: rgba(74, 222, 128, 0); }
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Pre-inicializar detector
-  setTimeout(initBarcodeDetector, 1500);
-
-  console.log('✅ Scanner ML Kit (v2-continuo) listo');
+                // Auto-cerrar si no es modo continuo (HARD STOP para liberar hardware)
+                if (!window.ScannerService.continuousMode) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('active');
+                    if (window.ScannerService.hardStop) {
+                        window.ScannerService.hardStop();
+                    } else {
+                        window.ScannerService.stop();
+                    }
+                }
+            });
+        } else {
+            if (typeof showToast === 'function') showToast("❌ No se pudo acceder a la cámara", "error");
+            modal.classList.add('hidden');
+        }
+    },
+    writable: false,
+    configurable: true
 });
 
-// ============================================================
-// EXPONER GLOBALMENTE
-// ============================================================
-window.openScanner = openScanner;
-window.closeScanner = closeScanner;
-
-console.log('✅ scanner-mlkit.js (v2-continuo) cargado correctamente');
+console.log('✅ [SCANNER] Motor V6.3 (API Unified) desplegado.');
