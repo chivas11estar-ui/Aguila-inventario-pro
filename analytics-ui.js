@@ -278,3 +278,78 @@ function renderSearchResult(data) {
 }
 
 console.log('✅ analytics-ui.js (Estilo Walmart) cargado correctamente');
+// Override V3: buscar primero en inventario y usar estadistica por codigo de barras.
+window.searchProduct = function() {
+    const query = document.getElementById('search-input')?.value.trim().toLowerCase();
+    if (!query) {
+        window.showToast && window.showToast('Escribe algo para buscar', 'warning');
+        return;
+    }
+
+    const movimientos = window.ANALYTICS_STATE?.movimientos || [];
+    const inventario = window.INVENTORY_STATE?.productos || [];
+
+    const productFromInventory = inventario.find(p => {
+        const nombre = String(p.nombre || '').toLowerCase();
+        const codigo = String(p.codigoBarras || '').toLowerCase();
+        return nombre.includes(query) || codigo.includes(query);
+    });
+
+    const productFromMovement = movimientos.find(m => {
+        const nombre = String(m.productoNombre || '').toLowerCase();
+        const codigo = String(m.productoCodigo || m.codigoBarra || '').toLowerCase();
+        return nombre.includes(query) || codigo.includes(query);
+    });
+
+    const productInfo = productFromInventory || (productFromMovement ? {
+        nombre: productFromMovement.productoNombre,
+        marca: productFromMovement.marca,
+        codigoBarras: productFromMovement.productoCodigo || productFromMovement.codigoBarra
+    } : null);
+
+    if (!productInfo) {
+        renderSearchResult(null);
+        return;
+    }
+
+    const productName = productInfo.nombre || productInfo.productoNombre;
+    const productCode = productInfo.codigoBarras || productInfo.productoCodigo || productInfo.codigoBarra || '';
+    const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
+    const codeKey = String(productCode).trim().toLowerCase();
+    const nameKey = String(productName).trim().toLowerCase();
+    const stats = analytics[codeKey] || analytics[nameKey] || calculateProductStatsFromMovements(productCode, productName, movimientos);
+
+    renderSearchResult({
+        nombre: productName,
+        marca: productInfo.marca || 'N/A',
+        codigo: productCode,
+        piezasPorDia: Number(stats.daily || 0).toFixed(2),
+        promedioMensual: Number(stats.monthly || 0).toFixed(0),
+        piezasSemana: Number(stats.weekly || 0).toFixed(0)
+    });
+};
+
+function calculateProductStatsFromMovements(productCode, productName, movimientos) {
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const code = String(productCode || '').trim().toLowerCase();
+    const name = String(productName || '').trim().toLowerCase();
+    const getTime = (m) => typeof m.fecha === 'number' ? m.fecha : new Date(m.fecha).getTime();
+
+    const productMovs = movimientos.filter(m => {
+        const movCode = String(m.productoCodigo || m.codigoBarra || '').trim().toLowerCase();
+        const movName = String(m.productoNombre || '').trim().toLowerCase();
+        const isRefill = m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel';
+        return isRefill && (movCode === code || movName === name);
+    });
+
+    const weekly = productMovs
+        .filter(m => now - getTime(m) <= sevenDays)
+        .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
+    const monthly = productMovs
+        .filter(m => now - getTime(m) <= thirtyDays)
+        .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
+
+    return { daily: Math.round(weekly / 7), weekly, monthly };
+}

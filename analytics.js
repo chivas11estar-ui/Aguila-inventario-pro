@@ -36,6 +36,14 @@ function analyticsTime(fecha) {
     return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function normalizeAnalyticsKey(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function movementProductKey(m) {
+    return normalizeAnalyticsKey(m?.productoCodigo || m?.codigoBarra || m?.productoNombre || 'desconocido');
+}
+
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
@@ -217,11 +225,15 @@ function procesarMetricas(fechaHoy) {
 
     refillMovements.forEach(m => {
         const productName = m.productoNombre || 'Desconocido';
+        const productKey = movementProductKey(m);
         const pieces = parseInt(m.piezasMovidas) || 0;
         const movFecha = analyticsTime(m.fecha);
 
-        if (!statsPerProduct[productName]) {
-            statsPerProduct[productName] = { 
+        if (!statsPerProduct[productKey]) {
+            statsPerProduct[productKey] = {
+                nombre: productName,
+                codigo: m.productoCodigo || m.codigoBarra || '',
+                marca: m.marca || 'Otra',
                 currentCyclePieces: 0, 
                 last7DaysPieces: 0, 
                 last30DaysPieces: 0 
@@ -230,45 +242,63 @@ function procesarMetricas(fechaHoy) {
 
         // Ciclo actual (desde el último Viernes 00:00)
         if (movFecha >= startOfCycleMs) {
-            statsPerProduct[productName].currentCyclePieces += pieces;
+            statsPerProduct[productKey].currentCyclePieces += pieces;
         }
         
         // Últimos 7 días (ventana deslizante)
         if ((ahora - movFecha) <= unaSemanaMs) {
-            statsPerProduct[productName].last7DaysPieces += pieces;
+            statsPerProduct[productKey].last7DaysPieces += pieces;
         }
         
         // Últimos 30 días (ventana deslizante completa)
         if ((ahora - movFecha) <= unMesMs) {
-            statsPerProduct[productName].last30DaysPieces += pieces;
+            statsPerProduct[productKey].last30DaysPieces += pieces;
         }
     });
 
     // 2. Generar objeto de analítica avanzada
     const analyticsPerProduct = {};
-    Object.keys(statsPerProduct).forEach(name => {
-        const stats = statsPerProduct[name];
+    Object.keys(statsPerProduct).forEach(key => {
+        const stats = statsPerProduct[key];
         
         // Promedio Diario: Ciclo actual / días ciclo
-        const dailyAvg = Math.round(stats.currentCyclePieces / daysInCurrentCycle);
+        const dailyAvg = Math.round(stats.last7DaysPieces / 7);
         // Semanal: Total últimos 7 días
         const weeklyTotal = stats.last7DaysPieces;
         // Mensual: Total últimos 30 días
         const monthlyTotal = stats.last30DaysPieces;
 
-        analyticsPerProduct[name] = {
+        const result = {
+            nombre: stats.nombre,
+            codigo: stats.codigo,
+            marca: stats.marca,
             daily: dailyAvg,
             weekly: weeklyTotal,
             monthly: monthlyTotal,
+            cycleDaily: Math.round(stats.currentCyclePieces / daysInCurrentCycle),
             cycleDays: daysInCurrentCycle
         };
+
+        analyticsPerProduct[key] = result;
+        if (stats.nombre) analyticsPerProduct[normalizeAnalyticsKey(stats.nombre)] = result;
+        if (stats.codigo) analyticsPerProduct[normalizeAnalyticsKey(stats.codigo)] = result;
     });
 
     res.analyticsPerProduct = analyticsPerProduct;
     // Compatibilidad con el formato anterior
-    res.dailyAveragePiecesPerProduct = Object.keys(analyticsPerProduct).map(name => ({
-        nombre: name,
-        dailyAverage: analyticsPerProduct[name].daily
+    const uniqueProducts = {};
+    Object.values(analyticsPerProduct).forEach(item => {
+        const itemKey = item.codigo || item.nombre;
+        if (!itemKey || uniqueProducts[itemKey]) return;
+        uniqueProducts[itemKey] = item;
+    });
+    res.dailyAveragePiecesPerProduct = Object.values(uniqueProducts).map(item => ({
+        nombre: item.nombre,
+        codigo: item.codigo,
+        marca: item.marca,
+        dailyAverage: item.daily,
+        weekly: item.weekly,
+        monthly: item.monthly
     })).sort((a, b) => b.dailyAverage - a.dailyAverage);
 
     console.log(`📊 Motor de Analítica Walmart-Style activo:`, res.analyticsPerProduct);

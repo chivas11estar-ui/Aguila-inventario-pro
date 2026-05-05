@@ -172,9 +172,9 @@ function renderProductCard(product, targetId) {
   // Metadata Avanzada
   let analytics = { daily: 0, weekly: 0, monthly: 0 };
   const analyticsData = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
-  if (analyticsData[productName]) {
-    analytics = analyticsData[productName];
-  }
+  const productCodeKey = String(product.codigoBarras || '').trim().toLowerCase();
+  const productNameKey = String(productName || '').trim().toLowerCase();
+  analytics = analyticsData[productCodeKey] || analyticsData[productNameKey] || analyticsData[productName] || analytics;
 
   const diasInventario = analytics.daily > 0 ? Math.ceil(product.totalPiezas / analytics.daily) : 0;
 
