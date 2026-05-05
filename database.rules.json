@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "inventario": {
+      "$determinante": {
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["codigoBarras", "marca", "fechaCaducidad", "fechaActualizacion"]
+      }
+    },
+    "movimientos": {
+      "$determinante": {
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["fecha", "tipo", "productoCodigo"]
+      }
+    },
+    "auditorias": {
+      "$determinante": {
+        ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
+        ".indexOn": ["fecha", "productoCodigo"]
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v1.6";
+const CACHE_NAME = "aguila-pro-v1.7";
 
 // Lista completa de los archivos que componen la aplicación (App Shell)
 const APP_SHELL_ASSETS = [
@@ -21,7 +21,7 @@ const APP_SHELL_ASSETS = [
   "/scanner-events.js?v=1.2",
   "/inventory.js?v=1.2",
   "/inventory-ui.js?v=1.2",
-  "/refill-enhanced.js?v=1.2",
+  "/refill-enhanced.js?v=1.3",
   "/audit.js?v=1.2",
   "/system.js?v=1.2",
   "/system-events.js?v=1.2",
@@ -30,7 +30,7 @@ const APP_SHELL_ASSETS = [
   "/analytics.js?v=1.3",
   "/analytics-ui.js?v=1.3",
   "/phrases.js?v=1.2",
-  "/auth.js?v=1.2",
+  "/auth.js?v=1.3",
   "/app.js?v=1.2"
 ];
 

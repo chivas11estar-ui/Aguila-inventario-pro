@@ -153,15 +153,20 @@ function loadUserData(userId) {
     .then((snapshot) => {
       const userData = snapshot.val();
       if (userData) {
+        if (userData.determinante !== undefined && typeof userData.determinante !== 'string') {
+          const determinanteNormalizada = String(userData.determinante).trim();
+          firebase.database().ref('usuarios/' + userId + '/determinante').set(determinanteNormalizada)
+            .then(() => console.log('Determinante normalizada como texto:', determinanteNormalizada))
+            .catch((error) => console.warn('No se pudo normalizar determinante:', error));
+          userData.determinante = determinanteNormalizada;
+        }
+
         console.log('📦 Datos cargados:', userData.nombrePromotor);
         const userInfo = document.getElementById('user-info');
         if (userInfo) {
           userInfo.textContent = `👤 ${userData.email}`;
         }
         showApp();
-        if (typeof loadInventory === 'function') {
-          loadInventory();
-        }
       } else {
         // Fallback: Usuario existe en Auth pero no en DB (Inconsistencia)
         console.warn('⚠️ Usuario autenticado sin perfil en DB. Intentando reparar o mostrar UI básica.');
@@ -172,9 +177,6 @@ function loadUserData(userId) {
         // Aquí elegimos mostrar la app para que no se quede trabado, usando datos temporales.
 
         showApp();
-        if (typeof loadInventory === 'function') {
-          loadInventory();
-        }
       }
     })
     .catch((error) => {
