@@ -256,7 +256,7 @@ function renderProductCard(product, targetId) {
         <!-- Botones de Acción Estilo Indigo -->
         <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
-            onclick="window.editarProducto('${product.bodegas[0].id}')"
+            onclick="window.editarProducto('${product.h[0].id}')"
             class="secondary"
             style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
           >
@@ -275,7 +275,7 @@ function renderProductCard(product, targetId) {
             </button>
           ` : `
             <button 
-              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.bodegas[0].id}')"
+              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.id}')"
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
             >
