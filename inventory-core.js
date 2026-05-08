@@ -179,6 +179,11 @@ async function guardarProducto(formData) {
   console.log(`✅ [CORE V3] Lote guardado: ${formData.nombre} | ${formData.ubicacion} | ${formData.fechaCaducidad}`);
 
   return { action: 'saved', codigoBarras: safeCode, loteId };
+
+      // Recalcular contador de productos agotados (FIX v3.0)
+      if (typeof recalculateOutOfStock === 'function') {
+              recalculateOutOfStock();
+      }
 }
 
 // ============================================================
