@@ -385,6 +385,10 @@ function loadBrandStates() {
 async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
 
+      // Decodificar productId del Base64 si es necesario
+      try {
+              productId = atob(productId);
+      } catch (e) {}
   const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
 
   if (!product) {
