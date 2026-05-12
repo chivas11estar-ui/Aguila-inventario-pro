@@ -385,10 +385,6 @@ function loadBrandStates() {
 async function editarProducto(productId) {
   console.log('✏️ Editando producto:', productId);
 
-      // Decodificar productId del Base64 si es necesario
-      try {
-              productId = atob(productId);
-      } catch (e) {}
   const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
 
   if (!product) {
@@ -476,21 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
   */
 });
 
-
-// 🔧 FUNCIÓN: Recalcular contador de productos agotados (FIX v3.0)
-function recalculateOutOfStock() {
-    const productsWithStock = window.INVENTORY_STATE.productos.filter(p => {
-          const cajas = parseFloat(p.cajas) || 0;
-          const piezas = parseFloat(p.piezas) || 0;
-          return cajas > 0 || piezas > 0;
-    });
-    const productsOutOfStock = window.INVENTORY_STATE.productos.filter(p => {
-          const cajas = parseFloat(p.cajas) || 0;
-          const piezas = parseFloat(p.piezas) || 0;
-          return cajas <= 0 && piezas <= 0;
-    });
-    console.log('\ud83d� Stock: ' + productsWithStock.length + ' | Agotados: ' + productsOutOfStock.length);
-}
 // ============================================================
 // EXPONER FUNCIONES PÚBLICAS
 // ============================================================

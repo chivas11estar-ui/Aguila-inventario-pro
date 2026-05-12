@@ -148,7 +148,9 @@ function renderBrandSection(marca, productos, targetId) {
 // RENDERIZAR TARJETA DE PRODUCTO
 // ============================================================
 function renderProductCard(product, targetId) {
-  const tieneMuchasBodegas = product.bodegas.length > 1;
+  const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
+  const firstBodega = bodegas[0] || null;
+  const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
   const totalAntiguo = parseInt(product.stockTotal) || 0;
@@ -176,7 +178,7 @@ function renderProductCard(product, targetId) {
   const productNameKey = String(productName || '').trim().toLowerCase();
   analytics = analyticsData[productCodeKey] || analyticsData[productNameKey] || analyticsData[productName] || analytics;
 
-  const diasInventario = analytics.daily > 0 ? Math.ceil(product.totalPiezas / analytics.daily) : 0;
+  const diasInventario = analytics.daily > 0 ? Math.ceil(totalPiezas / analytics.daily) : 0;
 
   // Lógica de Colores de Estado (Indigo Horizon)
   let statusBorder = 'var(--border)';
@@ -256,7 +258,7 @@ function renderProductCard(product, targetId) {
         <!-- Botones de Acción Estilo Indigo -->
         <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
-            onclick="window.editarProducto('${product.h[0].id}')"
+            onclick="${firstBodega?.id ? `window.editarProducto('${firstBodega.id}')` : `if(typeof showToast==='function') showToast('⚠️ Sin lote/bodega para editar','info')`}"
             class="secondary"
             style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
           >
@@ -275,7 +277,7 @@ function renderProductCard(product, targetId) {
             </button>
           ` : `
             <button 
-              onclick="event.stopPropagation(); window.moverProducto && window.moverProducto('${product.id}')"
+              onclick="${firstBodega?.id ? `event.stopPropagation(); window.moverProducto && window.moverProducto('${firstBodega.id}')` : `if(typeof showToast==='function') showToast('⚠️ Sin lote/bodega para mover','info')`}"
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
             >
@@ -330,7 +332,16 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
 // RENDERIZAR BODEGA ÚNICA
 // ============================================================
 function renderSingleWarehouse(product, salesAvg = 0) {
-  const bodega = product.bodegas[0];
+  const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
+  const bodega = bodegas[0];
+  if (!bodega) {
+    return `
+      <div style="padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+        <div style="font-size: 12px; color: #64748b; font-weight: 600;">Sin bodega/lote asociado</div>
+        <div style="font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px;">Promedio de venta: ${salesAvg} pzas/dia</div>
+      </div>
+    `;
+  }
   const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
   const bodegaDays = bodegaExpiry 
     ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
