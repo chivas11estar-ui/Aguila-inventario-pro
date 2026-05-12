@@ -73,6 +73,7 @@ body {
   color: var(--text);
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
 }
 
 /* ============================================
@@ -255,4 +256,12 @@ input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px soli
 .main-content {
   padding: var(--spacing-md);
   padding-bottom: 100px;
+}
+
+/* Footer visible por encima de la barra inferior fija */
+footer,
+[role="contentinfo"] {
+  position: relative;
+  z-index: 1;
+  margin-bottom: calc(75px + env(safe-area-inset-bottom));
 }
