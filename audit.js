@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cargar catálogo de bodegas al abrir y refrescarlo periódicamente.
   hydrateAuditWarehouseOptions();
   setInterval(hydrateAuditWarehouseOptions, 6000);
+
+  document.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('[data-tab="audit"]');
+    if (tabBtn) {
+      setTimeout(hydrateAuditWarehouseOptions, 120);
+    }
+  });
 });
 
 // ============================================================
@@ -84,8 +91,8 @@ function saveBodega() {
 }
 
 function hydrateAuditWarehouseOptions() {
-  const datalist = document.getElementById('audit-warehouse-list');
-  if (!datalist) return;
+  const select = document.getElementById('audit-warehouse');
+  if (!select) return;
 
   const seen = new Set();
   const productos = window.INVENTORY_STATE?.productos || [];
@@ -99,7 +106,15 @@ function hydrateAuditWarehouseOptions() {
   }
 
   availableAuditWarehouses = Array.from(seen).sort((a, b) => a.localeCompare(b, 'es-MX'));
-  datalist.innerHTML = availableAuditWarehouses.map(b => `<option value="${b}"></option>`).join('');
+
+  const selectedBefore = select.value;
+  const options = ['<option value="">Selecciona una bodega...</option>']
+    .concat(availableAuditWarehouses.map(b => `<option value="${b}">${b}</option>`));
+  select.innerHTML = options.join('');
+
+  if (selectedBefore && availableAuditWarehouses.includes(selectedBefore)) {
+    select.value = selectedBefore;
+  }
 }
 
 // ============================================================
