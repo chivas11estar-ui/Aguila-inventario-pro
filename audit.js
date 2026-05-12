@@ -12,6 +12,7 @@ let currentAuditProduct   = null;
 let currentAuditLoteId    = null;
 let isQuickAuditMode      = false;
 let quickAuditItems       = [];
+let availableAuditWarehouses = [];
 
 // Fuente única de verdad — sin onAuthStateChanged propio
 function getStoreId() {
@@ -40,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-quick-audit-mode').onclick = toggleQuickAuditMode;
   document.getElementById('btn-save-quick-audit').onclick  = saveQuickAudit;
   document.getElementById('btn-cancel-quick-audit').onclick = endQuickAudit;
+
+  // Cargar catálogo de bodegas al abrir y refrescarlo periódicamente.
+  hydrateAuditWarehouseOptions();
+  setInterval(hydrateAuditWarehouseOptions, 6000);
 });
 
 // ============================================================
@@ -52,6 +57,12 @@ function saveBodega() {
 
   if (!val) {
     showToast('⚠️ Escribe el nombre de la bodega', 'warning');
+    input.focus();
+    return;
+  }
+
+  if (availableAuditWarehouses.length > 0 && !availableAuditWarehouses.includes(val)) {
+    showToast('⚠️ Selecciona una bodega válida de la lista', 'warning');
     input.focus();
     return;
   }
@@ -70,6 +81,25 @@ function saveBodega() {
 
   showToast(`📍 Bodega fijada: ${currentAuditWarehouse}`, 'success');
   setTimeout(() => document.getElementById('audit-barcode').focus(), 300);
+}
+
+function hydrateAuditWarehouseOptions() {
+  const datalist = document.getElementById('audit-warehouse-list');
+  if (!datalist) return;
+
+  const seen = new Set();
+  const productos = window.INVENTORY_STATE?.productos || [];
+
+  for (const p of productos) {
+    const lotes = Array.isArray(p.lotes) ? p.lotes : [];
+    for (const l of lotes) {
+      const b = String(l?.bodega || '').trim();
+      if (b) seen.add(b);
+    }
+  }
+
+  availableAuditWarehouses = Array.from(seen).sort((a, b) => a.localeCompare(b, 'es-MX'));
+  datalist.innerHTML = availableAuditWarehouses.map(b => `<option value="${b}"></option>`).join('');
 }
 
 // ============================================================

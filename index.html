@@ -438,7 +438,8 @@
                 <div class="form-group">
                   <label for="audit-warehouse">Bodega a Auditar</label>
                   <div style="display:flex;gap:8px;">
-                    <input id="audit-warehouse" type="text" placeholder="Ej: Almacén 1" />
+                    <input id="audit-warehouse" type="text" list="audit-warehouse-list" placeholder="Selecciona una bodega existente" />
+                    <datalist id="audit-warehouse-list"></datalist>
                     <button type="button" id="save-warehouse-btn" class="success"
                       style="width:auto;padding:12px 16px;">✓</button>
                   </div>
@@ -634,7 +635,7 @@
        ============================================================ -->
   <!-- <script src="refill-enhanced.js?v=1.2" defer></script>  DESACTIVADO: reemplazado por refill-safe.js -->
   <script src="refill-safe.js?v=2.2" defer></script>
-  <script src="audit.js?v=2.0" defer></script>
+  <script src="audit.js?v=2.1" defer></script>
   <script src="audit-pro-ui.js?v=2.0" defer></script>
   <script src="audit-sync.js?v=2.0" defer></script>
 
