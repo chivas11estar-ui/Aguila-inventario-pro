@@ -127,10 +127,8 @@ async function searchProductForRefillSafe(barcode) {
     // ✅ FIX: Limpiar warehouse (especialmente si viene de Agotados)
     document.getElementById('refill-warehouse').value = '';
 
-    // ✅ FIX: Filtrar lotes - en modo EXIT (Resurtido), solo mostrar con stock actual
-    const lotesValidos = refillMode === 'exit'
-      ? (producto.lotes || []).filter(l => l.stock > 0)
-      : (producto.lotes || []);
+    // Mostrar solo lotes activos (stock > 0) para evitar ruido de bodegas agotadas
+    const lotesValidos = (producto.lotes || []).filter(l => (parseFloat(l.stock) || 0) > 0);
 
     // Renderizar selector de lotes si hay más de uno
     renderLoteSelector(lotesValidos);
@@ -154,7 +152,8 @@ function renderLoteSelector(lotes) {
   if (lotes.length === 0) {
     infoDiv.innerHTML = `
       <div style="padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;">
-        <strong style="color:#92400e;">⚠️ Sin stock en ninguna bodega</strong>
+        <strong style="color:#92400e;">⚠️ Sin stock activo en bodegas</strong>
+        ${refillMode === 'entry' ? '<div style="font-size:12px;color:#b45309;margin-top:6px;">Puedes escribir una bodega destino para registrar entrada.</div>' : ''}
       </div>`;
     refillCurrentLoteId = null;
     return;
