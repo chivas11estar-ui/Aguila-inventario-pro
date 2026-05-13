@@ -161,8 +161,9 @@ function groupProductsByBarcode(productos) {
     });
 
     agrupados[codigo].totalCajas += cajasProducto;
-    agrupados[codigo].totalPiezas =
-      agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0);
+    agrupados[codigo].totalPiezas = Math.round(
+      agrupados[codigo].totalCajas * (prod.piezasPorCaja || 0)
+    );
   });
 
   return Object.values(agrupados);

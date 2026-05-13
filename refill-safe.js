@@ -345,27 +345,17 @@ async function handleRefillExitSafe() {
     return;
   }
 
-  // ✅ FIX LÓGICO v9.2: BODEGA = CAJAS ENTERAS SOLO
-  // RESTRICCIÓN: No permitir piezasSueltas cuando se extrae de bodega
   const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
   const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
 
-  // Si hay piezas sueltas, rechazar (no se pueden sacar fracciones de bodega)
-  if (piezasSueltas > 0) {
-    showToast('⚠️ La bodega solo permite sacar Cajas Enteras. Las piezas sueltas van directamente al piso en Entrada.', 'warning');
-    return;
-  }
-
-  if (cajasEnteras === 0) {
-    showToast('⚠️ Ingresa una cantidad de CAJAS a bajar', 'warning');
+  if (cajasEnteras === 0 && piezasSueltas === 0) {
+    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
     return;
   }
 
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
-
-  // ✅ FIX: Las cajas se restan completas, sin fracciones
-  const cajasAMover = cajasEnteras; // SIEMPRE ENTERAS
-  const piezasMovidas = cajasEnteras * piezasPorCaja; // Conversión: cajas → piezas para auditoría
+  const cajasAMover = cajasEnteras + (piezasSueltas / piezasPorCaja);
+  const piezasMovidas = (cajasEnteras * piezasPorCaja) + piezasSueltas;
 
   if (isNaN(cajasAMover) || cajasAMover <= 0 || cajasAMover > 9999) {
     showToast('❌ Cantidad inválida', 'error');

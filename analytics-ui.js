@@ -142,7 +142,7 @@ function createTopByBrandSection(refillAverages) {
                 <div class="brand-group">
                     <h3>${brandName}</h3>
                     ${productos.map((p, index) => {
-                        const pzsPorDia = (p.piezas / 7).toFixed(1);
+                        const pzsPorDia = Math.round((p.piezas || 0) / 7);
                         return `
                             <div>
                                 ${medals[index]} ${p.nombre} - <strong>${pzsPorDia} pzs/día</strong>
@@ -246,8 +246,8 @@ window.searchProduct = function() {
         sum + (parseInt(m.piezasMovidas) || 0), 0
     );
 
-    const piezasPorDia = (totalPiezas / 7).toFixed(2);
-    const promedioMensual = (piezasPorDia * 30).toFixed(2);
+    const piezasPorDia = Math.round(totalPiezas / 7);
+    const promedioMensual = Math.round(piezasPorDia * 30);
 
     renderSearchResult({
         nombre: productName,
@@ -339,9 +339,9 @@ window.searchProduct = function() {
         nombre: productName,
         marca: productInfo.marca || 'N/A',
         codigo: productCode,
-        piezasPorDia: Number(stats.daily || 0).toFixed(2),
-        promedioMensual: Number(stats.monthly || 0).toFixed(0),
-        piezasSemana: Number(stats.weekly || 0).toFixed(0)
+        piezasPorDia: Math.round(Number(stats.daily || 0)),
+        promedioMensual: Math.round(Number(stats.monthly || 0)),
+        piezasSemana: Math.round(Number(stats.weekly || 0))
     });
 };
 

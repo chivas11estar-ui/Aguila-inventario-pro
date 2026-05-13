@@ -353,7 +353,25 @@ const AIService = (function() {
                 return getFallbackPhrase(userName);
                        }
 
-                       return { generate, getLocalDateString, getSantoDia };
+                       function normalizePhrase(text) {
+                                       return String(text || '')
+                                           .toLowerCase()
+                                           .replace(/[^\w\sáéíóúñü]/gi, ' ')
+                                           .replace(/\s+/g, ' ')
+                                           .trim();
+                       }
+
+                       function isHighQualityPhrase(text) {
+                                       const clean = String(text || '').trim();
+                                       if (!clean) return false;
+                                       const words = clean.split(/\s+/);
+                                       if (words.length < 5 || words.length > 20) return false;
+                                       const generic = ['hola', 'buenos días', 'ánimo', 'vamos', 'excelente'];
+                                       const norm = normalizePhrase(clean);
+                                       return !generic.some(g => norm === g);
+                       }
+
+                       return { generate, getLocalDateString, getSantoDia, normalizePhrase, isHighQualityPhrase };
 })();
 
 
@@ -363,6 +381,7 @@ const AIService = (function() {
 // ============================================================
 async function getDailyAIPhrase(userId, userName) {
             const today = AIService.getLocalDateString();
+            const startedAt = Date.now();
 
     try {
                     // Verificar si ya hay una frase en caché para hoy
@@ -374,17 +393,58 @@ async function getDailyAIPhrase(userId, userName) {
                                     return snapshot.val();
                 }
 
+                // Cargar preferencias para tono de frase
+                const prefSnap = await firebase.database().ref(`usuarios/${userId}/preferencias/frases`).once('value');
+                const pref = prefSnap.val() || {};
+                const tone = String(pref.tone || 'motivacional');
+
+                // Historial corto para evitar repetición
+                const historySnap = await firebase.database().ref(`usuarios/${userId}/frasesIA`).once('value');
+                const historyObj = historySnap.val() || {};
+                const history = Object.entries(historyObj)
+                    .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
+                    .slice(0, 14)
+                    .map(([, v]) => AIService.normalizePhrase(v));
+
                 // Generar nueva frase vía cascada de IA
                 console.log('🆕 [IA] Generando nueva frase para ' + today + '...');
-                    const newPhrase = await AIService.generate(userName);
+                    let newPhrase = await AIService.generate(`${userName} (${tone})`);
+                    let usedFallback = false;
+
+                    if (!AIService.isHighQualityPhrase(newPhrase) || history.includes(AIService.normalizePhrase(newPhrase))) {
+                                        const alt = getFallbackPhrase(userName);
+                                        newPhrase = AIService.isHighQualityPhrase(alt) ? alt : `Hoy sumas valor en cada anaquel, ${userName}.`;
+                                        usedFallback = true;
+                    }
+
                     await phraseRef.set(newPhrase);
+
+                    // Telemetría ligera
+                    await firebase.database().ref(`usuarios/${userId}/frasesIA_telemetria/${today}`).set({
+                                        generatedAt: Date.now(),
+                                        latencyMs: Date.now() - startedAt,
+                                        usedFallback,
+                                        tone,
+                                        source: 'auto'
+                    });
+
                     return newPhrase;
 
     } catch (error) {
                     if (error.message === 'RATE_LIMIT_EXCEEDED') {
                                         console.log('🛡️ Usando fallback por límite de cuota');
                     }
-                    return getFallbackPhrase(userName);
+                    const fallback = getFallbackPhrase(userName);
+                    try {
+                                        await firebase.database().ref(`usuarios/${userId}/frasesIA_telemetria/${today}`).set({
+                                                            generatedAt: Date.now(),
+                                                            latencyMs: Date.now() - startedAt,
+                                                            usedFallback: true,
+                                                            tone: 'motivacional',
+                                                            source: 'fallback-error'
+                                        });
+                    } catch (_) {}
+                    return fallback;
     }
 }
 

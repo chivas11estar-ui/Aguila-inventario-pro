@@ -240,10 +240,10 @@ function renderProductCard(product, targetId) {
 
         <div class="product-stock" style="background: ${isOutOfStock ? 'var(--error-container)' : 'var(--primary-container)'}; color: white; box-shadow: var(--shadow-md);">
           <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 24px; font-weight: 900;">${product.totalCajas}</span>
+            <span style="font-size: 24px; font-weight: 900;">${Number(product.totalCajas || 0).toFixed(2)}</span>
             <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: -4px; opacity: 0.9;">cajas</span>
             <div style="width: 24px; height: 1.5px; background: rgba(255,255,255,0.3); margin: 4px 0;"></div>
-            <span style="font-size: 11px; font-weight: 700;">${product.totalPiezas} pzs</span>
+            <span style="font-size: 11px; font-weight: 700;">${totalPiezas} pzs</span>
           </div>
         </div>
       </div>

@@ -381,7 +381,7 @@ async function generateAndRenderTop10() {
                 stats.daily,
                 stats.weekly,
                 diasInv,
-                refillCajasHoy.toFixed(2),
+                Math.round(refillCajasHoy),
                 refillPiezasHoy
             ];
             
