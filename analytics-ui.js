@@ -80,9 +80,25 @@ function createTopByBrandSection(refillAverages) {
 
     // Agrupar por marca usando datos de movimientos y cruce con inventario
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
+    const now = Date.now();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    const toTimestamp = (m) => {
+        if (typeof m?.fecha === 'number') return m.fecha;
+        if (typeof m?.fecha === 'string') {
+            const t = Date.parse(m.fecha);
+            return Number.isFinite(t) ? t : 0;
+        }
+        return 0;
+    };
+
+    const movimientos7Dias = movimientos.filter((m) => {
+        const ts = toTimestamp(m);
+        return ts > 0 && (now - ts) <= sevenDaysMs;
+    });
     const productosPorMarca = {};
 
-    movimientos.forEach(m => {
+    movimientos7Dias.forEach(m => {
         if (m.tipo !== 'salida' && m.tipo !== 'entrada_directa_anaquel') return;
         
         // Intentar obtener datos más recientes del inventario cargado (que ya vienen desencriptados)
