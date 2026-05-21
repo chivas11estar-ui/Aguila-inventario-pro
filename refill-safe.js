@@ -291,8 +291,10 @@ async function handleRefillPiecesSafe() {
   }
 
   const det = await getCachedDeterminante();
-  const loteActual = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
-  const stockActual = loteActual?.stock || 0;
+  const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
+  const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
+  const stockActual = parseFloat(loteActual?.stock) || 0;
+  const stockTotalDisponible = lotesProducto.reduce((sum, l) => sum + (parseFloat(l.stock) || 0), 0);
 
   if (cajasEquivalentes > stockActual) {
     showToast(`❌ Stock insuficiente (${stockActual} cajas disponibles)`, 'error');
@@ -326,6 +328,7 @@ async function handleRefillPiecesSafe() {
     updateRefillTodayUI();
 
     showToast(`🧩 ${piezasSueltas} piezas movidas (${cajasEquivalentes.toFixed(2)} cajas)`, 'success');
+    refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
@@ -369,8 +372,10 @@ async function handleRefillExitSafe() {
   const det = await getCachedDeterminante();
   if (!det) { showToast('❌ Error: Sin información de tienda', 'error'); return; }
 
-  const loteActual = refillCurrentProduct.lotes?.find(l => l.loteId === refillCurrentLoteId);
-  const stockActual = loteActual?.stock || 0;
+  const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
+  const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
+  const stockActual = parseFloat(loteActual?.stock) || 0;
+  const stockTotalDisponible = lotesProducto.reduce((sum, l) => sum + (parseFloat(l.stock) || 0), 0);
   const productName = refillCurrentProduct.nombre;
   const timestamp   = Date.now();
   const usuario     = firebase.auth().currentUser?.email || 'sistema';
@@ -386,48 +391,43 @@ async function handleRefillExitSafe() {
     regla: 'BODEGA=CAJAS_ENTERAS_SOLO'
   });
 
-  // Relleno inteligente si stock === 0
-  if (stockActual === 0) {
-    try {
-      const nuevoStock = await modificarStock(codigo, cajasAMover, 'sumar', refillCurrentLoteId);
-
-      await firebase.database()
-        .ref(`movimientos/${det}`).push({
-          tipo: 'entrada_directa_anaquel',
-          productoNombre: refillCurrentProduct.nombre,
-          productoCodigo: codigo,
-          marca: refillCurrentProduct.marca || 'Otra',
-          cajasMovidas: cajasAMover,
-          piezasMovidas: piezasMovidas,
-          bodega: loteActual?.bodega || 'General',
-          loteId: refillCurrentLoteId,
-          stockAnterior: 0,
-          stockNuevo: nuevoStock,
-          fecha: timestamp,
-          realizadoPor: usuario
-        });
-
-      refillTodayCajas += cajasAMover;
-      refillTodayPiezas += piezasMovidas;
-      updateRefillTodayUI();
-
-      showToast(`💡 ${displayValue(cajasAMover)} cajas de ${productName} → anaquel directo`, 'success');
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      limpiarFormularioRefillSafe();
-      document.getElementById('refill-barcode')?.focus();
-    } catch (error) {
-      showToast('❌ Error: ' + error.message, 'error');
-    }
-    return;
-  }
-
-  if (cajasAMover > stockActual) {
-    showToast(`❌ Solo hay ${stockActual} cajas en ${loteActual?.bodega}`, 'error');
+  if (cajasAMover > stockTotalDisponible) {
+    showToast(`❌ Stock total insuficiente. Disponible: ${displayValue(stockTotalDisponible)} cajas`, 'error');
     return;
   }
 
   try {
-    const nuevoStock = await modificarStock(codigo, cajasAMover, 'restar', refillCurrentLoteId);
+    // FEFO: consumir primero lotes con caducidad más próxima.
+    const lotesOrdenados = [...lotesProducto]
+      .filter(l => (parseFloat(l.stock) || 0) > 0)
+      .sort((a, b) => {
+        const ta = a?.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+        const tb = b?.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      });
+
+    let restante = cajasAMover;
+    const consumos = [];
+
+    for (const lote of lotesOrdenados) {
+      if (restante <= 0) break;
+      const stockLote = parseFloat(lote.stock) || 0;
+      if (stockLote <= 0) continue;
+      const tomar = Math.min(stockLote, restante);
+      const nuevoStockLote = await modificarStock(codigo, tomar, 'restar', lote.loteId);
+      consumos.push({
+        loteId: lote.loteId,
+        bodega: lote.bodega || 'General',
+        tomado: tomar,
+        stockAnterior: stockLote,
+        stockNuevo: nuevoStockLote
+      });
+      restante -= tomar;
+    }
+
+    if (restante > 0.000001) {
+      throw new Error('STOCK_INSUFICIENTE_MULTI_LOTE');
+    }
 
     await firebase.database()
       .ref(`movimientos/${det}`).push({
@@ -437,10 +437,11 @@ async function handleRefillExitSafe() {
         marca: refillCurrentProduct.marca || 'Otra',
         cajasMovidas: cajasAMover,
         piezasMovidas: piezasMovidas,
-        bodega: loteActual?.bodega || 'General',
-        loteId: refillCurrentLoteId,
-        stockAnterior: stockActual,
-        stockNuevo: nuevoStock,
+        bodega: consumos.map(c => c.bodega).join(' | '),
+        loteId: consumos.map(c => c.loteId).join(','),
+        stockAnterior: stockTotalDisponible,
+        stockNuevo: Math.max(0, stockTotalDisponible - cajasAMover),
+        detalleLotes: consumos,
         fecha: timestamp,
         realizadoPor: usuario
       });
@@ -449,7 +450,8 @@ async function handleRefillExitSafe() {
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
-    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas (quedan ${nuevoStock})`, 'success');
+    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas`, 'success');
+    refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
@@ -528,6 +530,7 @@ async function handleRefillEntrySafe() {
       });
 
       showToast(`🆕 ${formData.nombre} creado con ${displayValue(cajasAAgregar)} cajas en ${formData.ubicacion}`, 'success');
+      refreshAnalyticsNow();
 
     } else {
       // Producto existente — nueva entrada en bodega específica
@@ -576,6 +579,7 @@ async function handleRefillEntrySafe() {
       });
 
       showToast(`📥 ${displayValue(cajasAAgregar)} cajas añadidas en ${bodega}`, 'success');
+      refreshAnalyticsNow();
     }
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -650,6 +654,16 @@ function updateRefillTodayUI() {
       <div style="font-size:12px;color:#6b7280;margin-top:4px;">cajas movidas hoy</div>
       <div style="font-size:14px;font-weight:600;color:#059669;margin-top:8px;">${refillTodayPiezas} piezas</div>`;
   }
+}
+
+function refreshAnalyticsNow() {
+  try {
+    if (typeof window.loadStats === 'function') {
+      window.loadStats();
+    } else if (typeof window.reloadAnalytics === 'function') {
+      window.reloadAnalytics();
+    }
+  } catch (_) {}
 }
 
 // ============================================================

@@ -59,8 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 function saveBodega() {
   const input   = document.getElementById('audit-warehouse');
+  const manual  = document.getElementById('audit-warehouse-manual');
   const display = document.getElementById('current-warehouse-display');
-  const val     = input.value.trim();
+  const valSelect = String(input?.value || '').trim();
+  const valManual = String(manual?.value || '').trim();
+  const val     = valSelect || valManual;
 
   if (!val) {
     showToast('⚠️ Escribe el nombre de la bodega', 'warning');
@@ -68,7 +71,7 @@ function saveBodega() {
     return;
   }
 
-  if (availableAuditWarehouses.length > 0 && !availableAuditWarehouses.includes(val)) {
+  if (availableAuditWarehouses.length > 0 && !availableAuditWarehouses.includes(val) && val !== valManual) {
     showToast('⚠️ Selecciona una bodega válida de la lista', 'warning');
     input.focus();
     return;
@@ -83,6 +86,7 @@ function saveBodega() {
     margin-bottom:15px; font-size:14px;`;
 
   input.disabled = true;
+  if (manual) manual.disabled = true;
   document.getElementById('save-warehouse-btn').style.display  = 'none';
   document.getElementById('finish-audit-btn').style.display    = 'block';
 
@@ -103,6 +107,15 @@ function hydrateAuditWarehouseOptions() {
       const b = String(l?.bodega || '').trim();
       if (b) seen.add(b);
     }
+
+    const bodegas = Array.isArray(p.bodegas) ? p.bodegas : [];
+    for (const b of bodegas) {
+      const name = String(b?.ubicacion || b?.bodega || '').trim();
+      if (name) seen.add(name);
+    }
+
+    const legacyUbicacion = String(p?.ubicacion || '').trim();
+    if (legacyUbicacion) seen.add(legacyUbicacion);
   }
 
   availableAuditWarehouses = Array.from(seen).sort((a, b) => a.localeCompare(b, 'es-MX'));
@@ -575,6 +588,11 @@ function finishNormalAudit() {
 
   warehouseInput.value    = '';
   warehouseInput.disabled = false;
+  const manualInput = document.getElementById('audit-warehouse-manual');
+  if (manualInput) {
+    manualInput.value = '';
+    manualInput.disabled = false;
+  }
   saveBtn.style.display   = 'block';
   finishBtn.style.display = 'none';
   display.innerHTML       = 'Ninguna bodega seleccionada';
