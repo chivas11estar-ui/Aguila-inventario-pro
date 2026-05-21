@@ -442,4 +442,96 @@ window.initAnalytics = initAnalytics;
 // Ya no es necesario exponer fetchAnalyticsData directamente, ya que se ha renombrado a window.loadStats
 // window.fetchAnalyticsData = fetchAnalyticsData; 
 
+// Exportador CSV v2 para supervisor (resumen + detalle redondeado)
+window.generateAndRenderTop10 = function exportSupervisorReportV2() {
+    try {
+        showToast('Generando reporte de inventario...', 'info');
+        const productos = window.INVENTORY_STATE?.productos || [];
+        const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
+        const movs = window.ANALYTICS_STATE?.movimientos || [];
+        const determinante = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante || '';
+        const promotor = window.PROFILE_STATE?.nombre || window.PROFILE_STATE?.displayName || window.PROFILE_STATE?.email || '';
+        const hoyStr = getLocalDateString(new Date());
+        const fechaCorte = getLocalDateString(new Date());
+        if (productos.length === 0) {
+            showToast('No hay productos en el inventario para exportar.', 'warning');
+            return;
+        }
+        const toInt = (value) => Math.max(0, Math.round(Number(value) || 0));
+        const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const productosConsolidados = {};
+        productos.forEach((p) => {
+            if (!productosConsolidados[p.nombre]) {
+                productosConsolidados[p.nombre] = { nombre: p.nombre, marca: p.marca || 'Otra', codigo: p.codigoBarras, cajas: 0, piezas: 0, ubicaciones: [] };
+            }
+            const cajas = parseFloat(p.stockTotal || p.cajas || p.totalCajas) || 0;
+            const piezasPorCaja = parseInt(p.piezasPorCaja, 10) || 0;
+            productosConsolidados[p.nombre].cajas += cajas;
+            productosConsolidados[p.nombre].piezas += (parseInt(p.piezas || p.totalPiezas, 10) || 0) || (cajas * piezasPorCaja);
+            if (p.ubicacion && !productosConsolidados[p.nombre].ubicaciones.includes(p.ubicacion)) productosConsolidados[p.nombre].ubicaciones.push(p.ubicacion);
+        });
+        const rows = Object.values(productosConsolidados).map((p) => {
+            const stats = analytics[p.codigo] || analytics[p.nombre] || { daily: 0, weekly: 0, monthly: 0 };
+            const stockCajas = toInt(p.cajas);
+            const stockPiezas = toInt(p.piezas);
+            const ventaDiaria = toInt(stats.daily);
+            const ventaSemanal = toInt(stats.weekly);
+            const ventaMensual = toInt(stats.monthly);
+            const diasInventario = ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D";
+            const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && analyticsDateKey(m.fecha) === hoyStr && isRefillMovement(m));
+            const rellenoHoyCajas = toInt(movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0));
+            const rellenoHoyPiezas = toInt(movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas, 10) || 0), 0));
+            let estado = 'OK', prioridad = 'Baja', accion = 'Mantener';
+            if (stockPiezas <= 0) { estado = 'Agotado'; prioridad = 'Alta'; accion = 'Rellenar inmediato'; }
+            else if (diasInventario !== "N/D" && diasInventario <= 2) { estado = 'Critico'; prioridad = 'Alta'; accion = 'Rellenar hoy'; }
+            else if (diasInventario !== "N/D" && diasInventario <= 5) { estado = 'Bajo'; prioridad = 'Media'; accion = 'Monitorear'; }
+            return {
+                fecha: fechaCorte, determinante, promotor, producto: p.nombre, marca: p.marca, codigo: p.codigo,
+                ubicPrincipal: p.ubicaciones[0] || '', ubicaciones: p.ubicaciones.join('; '), stockCajas, stockPiezas,
+                ventaDiaria, ventaSemanal, ventaMensual, diasInventario, rellenoHoyCajas, rellenoHoyPiezas,
+                estado, prioridad, accion, observaciones: ''
+            };
+        });
+        const totalProductos = rows.length;
+        const agotados = rows.filter((r) => r.stockPiezas === 0).length;
+        const conStock = totalProductos - agotados;
+        const piezasTotales = rows.reduce((acc, r) => acc + r.stockPiezas, 0);
+        const piezasRellenadasHoy = rows.reduce((acc, r) => acc + r.rellenoHoyPiezas, 0);
+        const top5Hoy = [...rows].filter((r) => r.rellenoHoyPiezas > 0).sort((a, b) => b.rellenoHoyPiezas - a.rellenoHoyPiezas).slice(0, 5);
+        const encabezados = ["Fecha", "Determinante", "Promotor", "Producto", "Marca", "Codigo", "Ubicacion Principal", "Ubicaciones", "Stock Cajas", "Stock Piezas", "Venta Diaria Pzas", "Venta Semanal Pzas", "Venta Mensual Pzas", "Dias Inventario", "Relleno Hoy Cajas", "Relleno Hoy Piezas", "Estado Operativo", "Prioridad", "Accion Sugerida", "Observaciones"];
+        let csvContent = "\uFEFF";
+        const writeSummary = (label, value = '') => { csvContent += [quote(label), quote(value)].join(",") + "\n"; };
+        writeSummary("RESUMEN EJECUTIVO", "");
+        writeSummary("Fecha", fechaCorte);
+        writeSummary("Tienda", determinante);
+        writeSummary("Promotor", promotor);
+        writeSummary("Total productos", totalProductos);
+        writeSummary("Con stock", conStock);
+        writeSummary("Agotados", agotados);
+        writeSummary("Piezas totales inventario", piezasTotales);
+        writeSummary("Piezas rellenadas hoy", piezasRellenadasHoy);
+        if (top5Hoy.length > 0) top5Hoy.forEach((r, idx) => writeSummary(`Top ${idx + 1} relleno hoy`, `${r.producto} (${r.rellenoHoyPiezas} pzas)`));
+        else writeSummary("Top relleno hoy", "Sin movimientos");
+        csvContent += "\n" + encabezados.join(",") + "\n";
+        rows.forEach((r) => {
+            const fila = [quote(r.fecha), quote(r.determinante), quote(r.promotor), quote(r.producto), quote(r.marca), quote(`="${r.codigo}"`), quote(r.ubicPrincipal), quote(r.ubicaciones), r.stockCajas, r.stockPiezas, r.ventaDiaria, r.ventaSemanal, r.ventaMensual, quote(r.diasInventario), r.rellenoHoyCajas, r.rellenoHoyPiezas, quote(r.estado), quote(r.prioridad), quote(r.accion), quote(r.observaciones)];
+            csvContent += fila.join(",") + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const fechaArchivo = new Date().toISOString().slice(0, 10);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Reporte descargado con exito', 'success');
+    } catch (error) {
+        console.error('Error generando reporte supervisor:', error);
+        showToast('Error al generar el archivo', 'error');
+    }
+};
+
 console.log('✅ analytics.js (con Top 10) cargado correctamente');
