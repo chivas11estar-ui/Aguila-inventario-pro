@@ -49,10 +49,30 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (e) => {
     const tabBtn = e.target.closest('[data-tab="audit"]');
     if (tabBtn) {
+      ensureManualWarehouseInput();
       setTimeout(hydrateAuditWarehouseOptions, 120);
     }
   });
+
+  ensureManualWarehouseInput();
 });
+
+function ensureManualWarehouseInput() {
+  const select = document.getElementById('audit-warehouse');
+  if (!select) return;
+
+  let manual = document.getElementById('audit-warehouse-manual');
+  if (manual) return;
+
+  manual = document.createElement('input');
+  manual.id = 'audit-warehouse-manual';
+  manual.type = 'text';
+  manual.placeholder = 'Si no aparece en lista, escribe la bodega aquí';
+  manual.style.marginTop = '8px';
+
+  const group = select.closest('.form-group');
+  if (group) group.appendChild(manual);
+}
 
 // ============================================================
 // FIJAR BODEGA
@@ -66,8 +86,8 @@ function saveBodega() {
   const val     = valSelect || valManual;
 
   if (!val) {
-    showToast('⚠️ Escribe el nombre de la bodega', 'warning');
-    input.focus();
+    showToast('⚠️ Selecciona una bodega de la lista o escríbela manualmente', 'warning');
+    (manual || input).focus();
     return;
   }
 

@@ -363,9 +363,50 @@ async function handleAddProductV2(event) {
       return;
     }
 
-    await guardarProducto(formData);
-    showToast(`✅ ${formData.nombre} guardado en ${formData.ubicacion}`, 'success');
+    const editingLoteId = window.EDITING_PRODUCT_ID || null;
+    if (editingLoteId) {
+      const det = await getCachedDeterminante();
+      if (!det) throw new Error('No se pudo obtener el determinante');
+
+      const safeCode = sanitizeBarcode(formData.codigoBarras);
+      if (!safeCode) throw new Error('Código de barras inválido');
+
+      const usuario = firebase.auth().currentUser?.email || 'sistema';
+      const ahora = Date.now();
+      const updates = {};
+
+      // Actualiza datos generales del producto.
+      updates[`productos/${det}/${safeCode}/nombre`] = formData.nombre.trim();
+      updates[`productos/${det}/${safeCode}/marca`] = formData.marca;
+      updates[`productos/${det}/${safeCode}/codigoBarras`] = safeCode;
+      updates[`productos/${det}/${safeCode}/piezasPorCaja`] = parseInt(formData.piezasPorCaja) || 1;
+      updates[`productos/${det}/${safeCode}/actualizadoPor`] = usuario;
+      updates[`productos/${det}/${safeCode}/fechaActualizacion`] = ahora;
+
+      // Actualiza el MISMO lote (no crea uno nuevo).
+      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/bodega`] = formData.ubicacion?.trim() || 'General';
+      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/fechaCaducidad`] = formData.fechaCaducidad || '';
+      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/stock`] = Math.max(0, parseFloat(formData.cajas) || 0);
+      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/actualizado`] = ahora;
+
+      await firebase.database().ref().update(updates);
+      showToast(`✅ ${formData.nombre} actualizado`, 'success');
+    } else {
+      await guardarProducto(formData);
+      showToast(`✅ ${formData.nombre} guardado en ${formData.ubicacion}`, 'success');
+    }
+
+    window.EDITING_PRODUCT_ID = null;
     document.getElementById('add-product-form')?.reset();
+    const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = '✅ Guardar Producto';
+      submitBtn.style.background = '';
+    }
+    const formTitle = document.querySelector('#tab-add h2');
+    if (formTitle) {
+      formTitle.textContent = '➕ Agregar Producto';
+    }
     if (typeof window.switchTab === 'function') window.switchTab('inventory');
   } catch (error) {
     showToast('❌ ' + error.message, 'error');
