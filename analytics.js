@@ -498,9 +498,13 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
         const piezasTotales = rows.reduce((acc, r) => acc + r.stockPiezas, 0);
         const piezasRellenadasHoy = rows.reduce((acc, r) => acc + r.rellenoHoyPiezas, 0);
         const top5Hoy = [...rows].filter((r) => r.rellenoHoyPiezas > 0).sort((a, b) => b.rellenoHoyPiezas - a.rellenoHoyPiezas).slice(0, 5);
+        if (!window.XLSX) {
+            showToast('No se pudo cargar el motor de Excel. Recarga la app.', 'error');
+            return;
+        }
         const headers = ["Fecha", "Determinante", "Promotor", "Producto", "Marca", "Codigo", "Ubicacion Principal", "Ubicaciones", "Stock Cajas", "Stock Piezas", "Venta Diaria Pzas", "Venta Semanal Pzas", "Venta Mensual Pzas", "Dias Inventario", "Relleno Hoy Cajas", "Relleno Hoy Piezas", "Estado Operativo", "Prioridad", "Accion Sugerida", "Observaciones"];
-        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const summaryRows = [
+            ['RESUMEN EJECUTIVO', ''],
             ['Fecha', fechaCorte],
             ['Tienda', determinante],
             ['Promotor', promotor],
@@ -510,74 +514,50 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
             ['Piezas totales inventario', piezasTotales],
             ['Piezas rellenadas hoy', piezasRellenadasHoy]
         ];
-        if (top5Hoy.length > 0) {
-            top5Hoy.forEach((r, idx) => summaryRows.push([`Top ${idx + 1} relleno hoy`, `${r.producto} (${r.rellenoHoyPiezas} pzas)`]));
-        } else {
-            summaryRows.push(['Top relleno hoy', 'Sin movimientos']);
+        if (top5Hoy.length > 0) top5Hoy.forEach((r, idx) => summaryRows.push([`Top ${idx + 1} relleno hoy`, `${r.producto} (${r.rellenoHoyPiezas} pzas)`]));
+        else summaryRows.push(['Top relleno hoy', 'Sin movimientos']);
+
+        const aoa = [];
+        summaryRows.forEach((r) => aoa.push([r[0], r[1]]));
+        aoa.push([]);
+        aoa.push(headers);
+        rows.forEach((r) => aoa.push([
+            r.fecha, r.determinante, r.promotor, r.producto, r.marca, r.codigo, r.ubicPrincipal, r.ubicaciones,
+            r.stockCajas, r.stockPiezas, r.ventaDiaria, r.ventaSemanal, r.ventaMensual, r.diasInventario,
+            r.rellenoHoyCajas, r.rellenoHoyPiezas, r.estado, r.prioridad, r.accion, r.observaciones
+        ]));
+
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws["!cols"] = [
+            { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 34 }, { wch: 16 }, { wch: 16 },
+            { wch: 22 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 15 },
+            { wch: 15 }, { wch: 15 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 22 }
+        ];
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const styleCenter = { alignment: { horizontal: "center", vertical: "center", wrapText: true } };
+        const styleLeft = { alignment: { horizontal: "left", vertical: "center", wrapText: true } };
+        const headerRow = summaryRows.length + 2; // +1 por blank y +1 porque base 1
+
+        for (let r = 0; r <= range.e.r; r++) {
+            for (let c = 0; c <= range.e.c; c++) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (!ws[addr]) continue;
+                const row1 = r + 1;
+                if (row1 === headerRow) {
+                    ws[addr].s = { alignment: { horizontal: "center", vertical: "center", wrapText: true }, font: { bold: true } };
+                } else if (row1 <= summaryRows.length) {
+                    ws[addr].s = c === 0 ? { alignment: { horizontal: "left", vertical: "center", wrapText: true }, font: { bold: true } } : styleLeft;
+                } else if (row1 > headerRow) {
+                    ws[addr].s = ([3, 4, 6, 7, 16, 17, 18, 19].includes(c)) ? styleLeft : styleCenter;
+                }
+            }
         }
 
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<style>
-body { font-family: Arial, sans-serif; }
-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-th, td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: middle; }
-th { background: #e2e8f0; text-align: center; font-weight: 700; }
-.title { background: #1e293b; color: #fff; text-align: center; font-weight: 700; }
-.label { background: #f8fafc; font-weight: 600; width: 240px; }
-.text { text-align: left; word-wrap: break-word; }
-.num { text-align: center; }
-.spacer td { border: 0; height: 10px; }
-.w-producto { width: 260px; }
-.w-codigo { width: 140px; }
-.w-ubi { width: 220px; }
-</style>
-</head>
-<body>
-<table>
-<tr><td class="title" colspan="20">RESUMEN EJECUTIVO</td></tr>
-${summaryRows.map(([k, v]) => `<tr><td class="label text">${esc(k)}</td><td class="text" colspan="19">${esc(v)}</td></tr>`).join('')}
-<tr class="spacer"><td colspan="20"></td></tr>
-<tr>${headers.map((h, idx) => `<th class="${idx === 3 ? 'w-producto' : idx === 5 ? 'w-codigo' : idx === 7 ? 'w-ubi' : ''}">${esc(h)}</th>`).join('')}</tr>
-${rows.map((r) => `
-<tr>
-<td class="num">${esc(r.fecha)}</td>
-<td class="num">${esc(r.determinante)}</td>
-<td class="text">${esc(r.promotor)}</td>
-<td class="text">${esc(r.producto)}</td>
-<td class="text">${esc(r.marca)}</td>
-<td class="num">${esc(r.codigo)}</td>
-<td class="text">${esc(r.ubicPrincipal)}</td>
-<td class="text">${esc(r.ubicaciones)}</td>
-<td class="num">${esc(r.stockCajas)}</td>
-<td class="num">${esc(r.stockPiezas)}</td>
-<td class="num">${esc(r.ventaDiaria)}</td>
-<td class="num">${esc(r.ventaSemanal)}</td>
-<td class="num">${esc(r.ventaMensual)}</td>
-<td class="num">${esc(r.diasInventario)}</td>
-<td class="num">${esc(r.rellenoHoyCajas)}</td>
-<td class="num">${esc(r.rellenoHoyPiezas)}</td>
-<td class="text">${esc(r.estado)}</td>
-<td class="text">${esc(r.prioridad)}</td>
-<td class="text">${esc(r.accion)}</td>
-<td class="text">${esc(r.observaciones)}</td>
-</tr>`).join('')}
-</table>
-</body>
-</html>`;
-
-        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Reporte");
         const fechaArchivo = new Date().toISOString().slice(0, 10);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.xls`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        XLSX.writeFile(wb, `Inventario_Aguila_${fechaArchivo}.xlsx`);
         showToast('Reporte descargado con exito', 'success');
     } catch (error) {
         console.error('Error generando reporte supervisor:', error);
