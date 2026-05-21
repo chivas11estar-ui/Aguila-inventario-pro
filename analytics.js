@@ -450,7 +450,7 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
         const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
         const movs = window.ANALYTICS_STATE?.movimientos || [];
         const determinante = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante || '';
-        const promotor = window.PROFILE_STATE?.nombre || window.PROFILE_STATE?.displayName || window.PROFILE_STATE?.email || '';
+        const promotor = window.PROFILE_STATE?.nombre || window.PROFILE_STATE?.displayName || window.PROFILE_STATE?.email || firebase.auth().currentUser?.email || '';
         const hoyStr = getLocalDateString(new Date());
         const fechaCorte = getLocalDateString(new Date());
         if (productos.length === 0) {
@@ -477,7 +477,7 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
             const ventaDiaria = toInt(stats.daily);
             const ventaSemanal = toInt(stats.weekly);
             const ventaMensual = toInt(stats.monthly);
-            const diasInventario = ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D";
+            const diasInventario = stockPiezas <= 0 ? "AGOTADO" : (ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D");
             const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && analyticsDateKey(m.fecha) === hoyStr && isRefillMovement(m));
             const rellenoHoyCajas = toInt(movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0));
             const rellenoHoyPiezas = toInt(movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas, 10) || 0), 0));
@@ -498,31 +498,82 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
         const piezasTotales = rows.reduce((acc, r) => acc + r.stockPiezas, 0);
         const piezasRellenadasHoy = rows.reduce((acc, r) => acc + r.rellenoHoyPiezas, 0);
         const top5Hoy = [...rows].filter((r) => r.rellenoHoyPiezas > 0).sort((a, b) => b.rellenoHoyPiezas - a.rellenoHoyPiezas).slice(0, 5);
-        const encabezados = ["Fecha", "Determinante", "Promotor", "Producto", "Marca", "Codigo", "Ubicacion Principal", "Ubicaciones", "Stock Cajas", "Stock Piezas", "Venta Diaria Pzas", "Venta Semanal Pzas", "Venta Mensual Pzas", "Dias Inventario", "Relleno Hoy Cajas", "Relleno Hoy Piezas", "Estado Operativo", "Prioridad", "Accion Sugerida", "Observaciones"];
-        let csvContent = "\uFEFF";
-        const writeSummary = (label, value = '') => { csvContent += [quote(label), quote(value)].join(",") + "\n"; };
-        writeSummary("RESUMEN EJECUTIVO", "");
-        writeSummary("Fecha", fechaCorte);
-        writeSummary("Tienda", determinante);
-        writeSummary("Promotor", promotor);
-        writeSummary("Total productos", totalProductos);
-        writeSummary("Con stock", conStock);
-        writeSummary("Agotados", agotados);
-        writeSummary("Piezas totales inventario", piezasTotales);
-        writeSummary("Piezas rellenadas hoy", piezasRellenadasHoy);
-        if (top5Hoy.length > 0) top5Hoy.forEach((r, idx) => writeSummary(`Top ${idx + 1} relleno hoy`, `${r.producto} (${r.rellenoHoyPiezas} pzas)`));
-        else writeSummary("Top relleno hoy", "Sin movimientos");
-        csvContent += "\n" + encabezados.join(",") + "\n";
-        rows.forEach((r) => {
-            const fila = [quote(r.fecha), quote(r.determinante), quote(r.promotor), quote(r.producto), quote(r.marca), quote(`="${r.codigo}"`), quote(r.ubicPrincipal), quote(r.ubicaciones), r.stockCajas, r.stockPiezas, r.ventaDiaria, r.ventaSemanal, r.ventaMensual, quote(r.diasInventario), r.rellenoHoyCajas, r.rellenoHoyPiezas, quote(r.estado), quote(r.prioridad), quote(r.accion), quote(r.observaciones)];
-            csvContent += fila.join(",") + "\n";
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const headers = ["Fecha", "Determinante", "Promotor", "Producto", "Marca", "Codigo", "Ubicacion Principal", "Ubicaciones", "Stock Cajas", "Stock Piezas", "Venta Diaria Pzas", "Venta Semanal Pzas", "Venta Mensual Pzas", "Dias Inventario", "Relleno Hoy Cajas", "Relleno Hoy Piezas", "Estado Operativo", "Prioridad", "Accion Sugerida", "Observaciones"];
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const summaryRows = [
+            ['Fecha', fechaCorte],
+            ['Tienda', determinante],
+            ['Promotor', promotor],
+            ['Total productos', totalProductos],
+            ['Con stock', conStock],
+            ['Agotados', agotados],
+            ['Piezas totales inventario', piezasTotales],
+            ['Piezas rellenadas hoy', piezasRellenadasHoy]
+        ];
+        if (top5Hoy.length > 0) {
+            top5Hoy.forEach((r, idx) => summaryRows.push([`Top ${idx + 1} relleno hoy`, `${r.producto} (${r.rellenoHoyPiezas} pzas)`]));
+        } else {
+            summaryRows.push(['Top relleno hoy', 'Sin movimientos']);
+        }
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+body { font-family: Arial, sans-serif; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: middle; }
+th { background: #e2e8f0; text-align: center; font-weight: 700; }
+.title { background: #1e293b; color: #fff; text-align: center; font-weight: 700; }
+.label { background: #f8fafc; font-weight: 600; width: 240px; }
+.text { text-align: left; word-wrap: break-word; }
+.num { text-align: center; }
+.spacer td { border: 0; height: 10px; }
+.w-producto { width: 260px; }
+.w-codigo { width: 140px; }
+.w-ubi { width: 220px; }
+</style>
+</head>
+<body>
+<table>
+<tr><td class="title" colspan="20">RESUMEN EJECUTIVO</td></tr>
+${summaryRows.map(([k, v]) => `<tr><td class="label text">${esc(k)}</td><td class="text" colspan="19">${esc(v)}</td></tr>`).join('')}
+<tr class="spacer"><td colspan="20"></td></tr>
+<tr>${headers.map((h, idx) => `<th class="${idx === 3 ? 'w-producto' : idx === 5 ? 'w-codigo' : idx === 7 ? 'w-ubi' : ''}">${esc(h)}</th>`).join('')}</tr>
+${rows.map((r) => `
+<tr>
+<td class="num">${esc(r.fecha)}</td>
+<td class="num">${esc(r.determinante)}</td>
+<td class="text">${esc(r.promotor)}</td>
+<td class="text">${esc(r.producto)}</td>
+<td class="text">${esc(r.marca)}</td>
+<td class="num">${esc(r.codigo)}</td>
+<td class="text">${esc(r.ubicPrincipal)}</td>
+<td class="text">${esc(r.ubicaciones)}</td>
+<td class="num">${esc(r.stockCajas)}</td>
+<td class="num">${esc(r.stockPiezas)}</td>
+<td class="num">${esc(r.ventaDiaria)}</td>
+<td class="num">${esc(r.ventaSemanal)}</td>
+<td class="num">${esc(r.ventaMensual)}</td>
+<td class="num">${esc(r.diasInventario)}</td>
+<td class="num">${esc(r.rellenoHoyCajas)}</td>
+<td class="num">${esc(r.rellenoHoyPiezas)}</td>
+<td class="text">${esc(r.estado)}</td>
+<td class="text">${esc(r.prioridad)}</td>
+<td class="text">${esc(r.accion)}</td>
+<td class="text">${esc(r.observaciones)}</td>
+</tr>`).join('')}
+</table>
+</body>
+</html>`;
+
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         const fechaArchivo = new Date().toISOString().slice(0, 10);
         link.setAttribute("href", url);
-        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.csv`);
+        link.setAttribute("download", `Inventario_Aguila_${fechaArchivo}.xls`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
