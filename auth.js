@@ -43,6 +43,7 @@ async function handleLogin() {
   const email = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
   const determinante = document.getElementById('login-determinante')?.value.trim();
+  const loginButton = document.getElementById('btn-login');
 
   if (!email || !password || !determinante) {
     showToast('❌ Completa todos los campos', 'error');
@@ -51,6 +52,12 @@ async function handleLogin() {
 
   try {
     console.log('🔐 Intentando login...');
+    if (loginButton) {
+      loginButton.disabled = true;
+      loginButton.dataset.originalText = loginButton.textContent;
+      loginButton.textContent = 'Validando...';
+    }
+
     if (!window.AuthLoginModule || typeof window.AuthLoginModule.loginWithDeterminante !== 'function') {
       throw new Error('AUTH_MODULE_UNAVAILABLE');
     }
@@ -70,6 +77,11 @@ async function handleLogin() {
       timestamp: new Date().toISOString()
     });
     showToast('❌ No se pudo iniciar sesión. Intenta de nuevo.', 'error');
+  } finally {
+    if (loginButton) {
+      loginButton.disabled = false;
+      loginButton.textContent = loginButton.dataset.originalText || 'Acceder al Sistema';
+    }
   }
 }
 
