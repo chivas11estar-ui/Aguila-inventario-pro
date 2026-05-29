@@ -42,20 +42,34 @@ function showApp() {
 async function handleLogin() {
   const email = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
+  const determinante = document.getElementById('login-determinante')?.value.trim();
 
-  if (!email || !password) {
+  if (!email || !password || !determinante) {
     showToast('❌ Completa todos los campos', 'error');
     return;
   }
 
   try {
     console.log('🔐 Intentando login...');
-    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-    console.log('✅ Login exitoso:', userCredential.user.email);
+    if (!window.AuthLoginModule || typeof window.AuthLoginModule.loginWithDeterminante !== 'function') {
+      throw new Error('AUTH_MODULE_UNAVAILABLE');
+    }
+
+    const result = await window.AuthLoginModule.loginWithDeterminante(email, password, determinante);
+
+    if (!result.success) {
+      showToast('❌ ' + result.error, 'error');
+      return;
+    }
+
+    console.log('✅ Login exitoso:', result.user.email);
     showToast('✅ Acceso concedido', 'success');
   } catch (error) {
-    console.error('❌ Error login:', error.code);
-    showToast(getErrorMessage(error.code), 'error');
+    console.error('❌ Error login:', {
+      code: error.code || error.message || 'unknown',
+      timestamp: new Date().toISOString()
+    });
+    showToast('❌ No se pudo iniciar sesión. Intenta de nuevo.', 'error');
   }
 }
 
@@ -221,25 +235,23 @@ async function loadUserData(userId) {
 // CORRECCIÓN CLAVE: Recargar página al salir
 async function logout() {
   try {
-    // 🔴 APAGAR LISTENERS ANTES
-    if (window.inventoryRef) {
-      window.inventoryRef.off();
-      window.inventoryRef = null;
+    if (!window.AuthLoginModule || typeof window.AuthLoginModule.logout !== 'function') {
+      throw new Error('AUTH_MODULE_UNAVAILABLE');
     }
 
-    if (window.auditRef) {
-      window.auditRef.off();
-      window.auditRef = null;
+    const result = await window.AuthLoginModule.logout();
+
+    if (result.success) {
+      showToast('Sesión cerrada', 'success');
+      return;
     }
 
-    // 🧹 Limpiar estados
-    window.INVENTORY_STATE = {};
-    window.PROFILE_STATE = {};
-
-    await firebase.auth().signOut();
-
-    showToast('Sesión cerrada', 'success');
-  } catch (e) {
+    showToast(result.error || 'Error al cerrar sesión', 'error');
+  } catch (error) {
+    console.error('❌ Error logout:', {
+      code: error.code || error.message || 'unknown',
+      timestamp: new Date().toISOString()
+    });
     showToast('Error al cerrar sesión', 'error');
   }
 }

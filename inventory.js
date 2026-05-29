@@ -201,6 +201,31 @@ function calculateBrandTotals(productos) {
 }
 
 // ============================================================
+// HELPERS DE STOCK POR PRODUCTO
+// ============================================================
+function getProductStockKey(product) {
+  return String(product.codigoBarras || product.id || product.nombre || '').trim().toLowerCase();
+}
+
+function getProductStockQuantity(product) {
+  const cajas = parseFloat(product.totalCajas ?? product.cajas ?? 0) || 0;
+  const piezas = parseFloat(product.totalPiezas ?? product.piezas ?? product.piezasSueltas ?? 0) || 0;
+  const stock = parseFloat(product.stockTotal ?? 0) || 0;
+
+  return cajas + piezas + stock;
+}
+
+function buildStockTotalsByProduct(productos) {
+  return productos.reduce((totals, product) => {
+    const key = getProductStockKey(product);
+    if (!key) return totals;
+
+    totals[key] = (totals[key] || 0) + getProductStockQuantity(product);
+    return totals;
+  }, {});
+}
+
+// ============================================================
 // CALCULAR DÍAS HASTA CADUCIDAD
 // ============================================================
 function calculateExpiryInfo(product, brandConfig) {
@@ -268,27 +293,18 @@ function applyFiltersAndRender() {
     } else {
       window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
     }
+  // V2.2: Separar por stock real del producto completo, no por lote.
+  // Si una bodega/caducidad queda en cero pero otro lote del mismo codigo tiene stock,
+  // el producto NO debe mostrarse en Agotados.
+  const stockTotalsByProduct = buildStockTotalsByProduct(window.INVENTORY_STATE.productos);
 
-  // V2.1: Separar productos con stock de los agotados
-  // ✅ FIX v9.1b: Tolerancia a datos LEGACY (v2, v1, datos anteriores)
   const productsWithStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
-    // Soportar múltiples estructuras de datos:
-    // V3: totalCajas, totalPiezas
-    // V2: cajas, piezas, stockTotal
-    // Legacy: stockTotal, cajas
-    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
-    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
-    const stockAntiguo = parseInt(p.stockTotal) || 0;
-
-    return cajas > 0 || piezas > 0 || stockAntiguo > 0;
+    return getProductStockQuantity(p) > 0;
   });
 
   const productsOutOfStock = window.INVENTORY_STATE.productosFiltrados.filter(p => {
-    const cajas = parseInt(p.totalCajas || p.cajas) || 0;
-    const piezas = parseInt(p.totalPiezas || p.piezas || p.piezasSueltas) || 0;
-    const stockAntiguo = parseInt(p.stockTotal) || 0;
-
-    return cajas <= 0 && piezas <= 0 && stockAntiguo <= 0;
+    const key = getProductStockKey(p);
+    return key && (stockTotalsByProduct[key] || 0) <= 0;
   });
 
     console.log(`📊 Stock: ${productsWithStock.length} | Agotados: ${productsOutOfStock.length}`);
@@ -486,6 +502,9 @@ window.groupProductsByBarcode = groupProductsByBarcode;
 window.groupProductsByBrand = groupProductsByBrand;
 window.calculateBrandTotals = calculateBrandTotals;
 window.calculateExpiryInfo = calculateExpiryInfo;
+window.getProductStockKey = getProductStockKey;
+window.getProductStockQuantity = getProductStockQuantity;
+window.buildStockTotalsByProduct = buildStockTotalsByProduct;
 window.BRAND_EXPIRY_CONFIG = BRAND_EXPIRY_CONFIG;
 
 console.log('✅ inventory.js (Inicialización corregida) cargado correctamente');

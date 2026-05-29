@@ -423,17 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     */
-
-    // Listener para el botón de la pestaña analytics (ahora llama a window.loadStats)
-    document.querySelectorAll('[data-tab]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.dataset.tab === 'analytics' && window.ANALYTICS_STATE.determinante) {
-                window.loadStats();
-            }
-        });
-    });
-
-
+    // app.js centraliza la navegacion y decide cuando refrescar estadisticas.
 });
 
 // Exponer funciones globalmente (solo las necesarias)

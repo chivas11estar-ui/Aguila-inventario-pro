@@ -48,7 +48,6 @@
                         }
               }
             </style>
-      </style>
 </head>
 
 <body>
@@ -145,6 +144,10 @@
         <div class="form-group">
           <label for="login-password">Contraseña</label>
           <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <div class="form-group">
+          <label for="login-determinante">Determinante (Tienda)</label>
+          <input id="login-determinante" type="text" placeholder="Ej: 12345" minlength="4" maxlength="8" required autocomplete="organization" />
         </div>
         <button type="button" id="btn-login" class="primary" style="width:100%; margin-top: 10px;">Acceder al Sistema</button>
         
@@ -578,29 +581,29 @@
   <!-- ============================================================
        FIREBASE SCRIPTS
        ============================================================ -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
 
   <!-- ============================================================
        LIBRERÍA DE ENCRIPTACIÓN (CRYPTOJS)
        ============================================================ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
 
   <!-- ============================================================
        CHART.JS (SOLO UNA VEZ)
        ============================================================ -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" defer></script>
 
   <!-- ============================================================
        CONFIGURACIÓN Y UI BASE
        ============================================================ -->
-  <script src="firebase-config.js?v=1.2"></script>
-  <script src="security-utils.js?v=1.2"></script>
-  <script src="date-utils.js?v=1.2"></script>
-  <script src="ui.js?v=1.2"></script>
+  <script src="firebase-config.js?v=1.2" defer></script>
+  <script src="security-utils.js?v=1.2" defer></script>
+  <script src="date-utils.js?v=1.2" defer></script>
+  <script src="ui.js?v=1.2" defer></script>
 
   <!-- ============================================================
        GESTIÓN DE LISTENERS (FASE 2.1 - MEMORY LEAK FIX)
@@ -621,7 +624,7 @@
   <!-- ============================================================
        INVENTARIO (FASE 2.1) - Renderizado y estado base
        ============================================================ -->
-  <script src="inventory.js?v=2.0" defer></script>
+  <script src="inventory.js?v=2.1" defer></script>
   <script src="inventory-ui.js?v=2.2" defer></script>
 
   <!-- ============================================================
@@ -630,7 +633,7 @@
        Ruta: productos/{det}/{codigoBarras} en vez de push()
        ============================================================ -->
   <script src="inventory-core.js?v=2.0" defer></script>
-<script src="lote-mover.js?v=1.0" defer></script>
+  <script src="lote-mover.js?v=1.0" defer></script>
 
   <!-- ============================================================
        OPERACIONES (V2 - REFACTORIZADO)
@@ -659,25 +662,26 @@
   <!-- ============================================================
        FRASES MOTIVACIONALES (NUEVO)
        ============================================================ -->
-  <script src="ai-phrases.js?v=1.3"></script>
-  <script src="phrases.js?v=1.2"></script>
+  <script src="ai-phrases.js?v=1.3" defer></script>
+  <script src="phrases.js?v=1.2" defer></script>
 
   <!-- ============================================================
        MIGRACIÓN V2 (TEMPORAL - quitar después de migrar)
        Ejecutar migrarInventarioAV2() desde consola del navegador
        ============================================================ -->
-  <script src="migrate-to-v2.js?v=2.0"></script>
+  <script src="migrate-to-v2.js?v=2.0" defer></script>
 
   <!-- ============================================================
        GENERADOR DE FRASES IA CONTEXTUAL
        ============================================================ -->
-  <script src="ai-phrases-enhanced.js?v=1.0"></script>
+  <script src="ai-phrases-enhanced.js?v=1.0" defer></script>
 
   <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
-  <script src="auth.js?v=2.0"></script>
-  <script src="app.js?v=2.0"></script>
+  <script src="src/auth/login.js?v=1.0" defer></script>
+  <script src="auth.js?v=2.0" defer></script>
+  <script src="app.js?v=2.0" defer></script>
 
   <!-- ============================================================
        SERVICE WORKER
@@ -690,112 +694,6 @@
           .catch(err => console.error('⚠️ SW no disponible:', err));
       });
     }
-  </script>
-
-  <!-- ============================================================
-       SISTEMA DE NAVEGACIÓN MOBILE
-       ============================================================ -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log('🎯 Sistema de navegación iniciando...');
-
-      const navButtons = document.querySelectorAll('.nav-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      navButtons.forEach(btn => {
-        btn.addEventListener('click', function (e) {
-          e.preventDefault();
-          const tabName = this.getAttribute('data-tab');
-          console.log('📑 Navegando a:', tabName);
-
-          navButtons.forEach(b => b.classList.remove('active'));
-          tabContents.forEach(t => t.classList.remove('active'));
-          tabContents.forEach(t => t.classList.add('hidden'));
-
-          this.classList.add('active');
-          const tab = document.getElementById('tab-' + tabName);
-          if (tab) {
-            tab.classList.remove('hidden');
-            tab.classList.add('active');
-          }
-        });
-      });
-
-      console.log('✅ Navegación lista');
-    });
-  </script>
-<script>document.addEventListener('DOMContentLoaded', function() { setTimeout(function() { const footers = document.querySelectorAll('footer, [role="contentinfo"]'); footers.forEach(f => { f.textContent = '© Jose A. G. Betancourt - Águila Inventario Pro - Derechos Reservados'; }); }, 100); });</script></script>
-
-
-  <!-- SCANNER CLOSE BUTTON FIX V1.0 -->
-  <script>
-      document.addEventListener('DOMContentLoaded', function() {
-            const closeButton = document.getElementById('close-scanner');
-            const scannerModal = document.getElementById('scanner-modal');
-
-            if (closeButton && scannerModal) {
-                    // Click event para cerrar el escáner
-                    closeButton.addEventListener('click', function(e) {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('✅ [SCANNER FIX] Botón Cerrar presionado');
-
-                              // Cerrar el modal
-                              scannerModal.classList.add('hidden');
-                              scannerModal.classList.remove('active');
-
-                              // Detener el escáner
-                              if (window.ScannerService) {
-                                          window.ScannerService.hardStop();
-                              }
-                    });
-
-                    // Escape key para cerrar
-                    document.addEventListener('keydown', function(e) {
-                              if (e.key === 'Escape' && !scannerModal.classList.contains('hidden')) {
-                                          console.log('✅ [SCANNER FIX] Tecla ESC presionada');
-                                          scannerModal.classList.add('hidden');
-                                          scannerModal.classList.remove('active');
-                                          if (window.ScannerService) {
-                                                        window.ScannerService.hardStop();
-                                          }
-                              }
-                    });
-
-                    // CSS para asegurar visibilidad del botón
-                    const style = document.createElement('style');
-                    style.textContent = `
-                            #close-scanner {
-                                      position: absolute !important;
-                                                top: 20px !important;
-                                                          right: 20px !important;
-                                                                    z-index: 9999 !important;
-                                                                              padding: 10px 20px !important;
-                                                                                        background-color: #dc3545 !important;
-                                                                                                  color: white !important;
-                                                                                                            border: none !important;
-                                                                                                                      border-radius: 4px !important;
-                                                                                                                                font-size: 14px !important;
-                                                                                                                                          cursor: pointer !important;
-                                                                                                                                                    opacity: 1 !important;
-                                                                                                                                                              visibility: visible !important;
-                                                                                                                                                                        display: block !important;
-                                                                                                                                                                                  pointer-events: auto !important;
-                                                                                                                                                                                          }
-                                                                                                                                                                                                  
-                                                                                                                                                                                                          #close-scanner:hover {
-                                                                                                                                                                                                                    background-color: #c82333 !important;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                            .scanner-overlay #close-scanner {
-                                                                                                                                                                                                                                                      pointer-events: auto !important;
-                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                    `;
-                    document.head.appendChild(style);
-                    console.log('✅ [SCANNER FIX] CSS aplicado y event listeners añadidos');
-            }
-      });
-  </script>
   </script>
 </body>
 

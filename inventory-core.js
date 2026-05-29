@@ -258,7 +258,10 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
 // ============================================================
 async function cargarInventario() {
   const det = await getCachedDeterminante();
-  if (!det) return;
+  if (!det) {
+    window.INVENTORY_STATE.isRenderingInventory = false;
+    return;
+  }
 
   if (window.LISTENERS_MANAGER) {
     window.LISTENERS_MANAGER.unsubscribe('inventario_listener');
@@ -325,6 +328,7 @@ async function cargarInventario() {
     console.log(`✅ [CORE V3] Inventario cargado: ${productosExpandidos.length} entradas`);
 
     if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+    window.INVENTORY_STATE.isRenderingInventory = false;
   }, (error) => {
     clearTimeout(timeoutId);
     console.error('❌ [CORE] Error Firebase:', error);
@@ -332,14 +336,14 @@ async function cargarInventario() {
       showToast('⛔ Error de permisos. Reintenta login.', 'error');
     }
     if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+    window.INVENTORY_STATE.isRenderingInventory = false;
   });
 
   if (window.LISTENERS_MANAGER) {
-    window.LISTENERS_MANAGER.register(inventoryRef, 'inventario_listener', () => {
+    window.LISTENERS_MANAGER.register('inventario_listener', () => {
       inventoryRef.off('value');
     });
   }
-      window.INVENTORY_STATE.isRenderingInventory = false;
 }
 
 // ============================================================
