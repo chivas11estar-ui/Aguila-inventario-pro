@@ -38,7 +38,7 @@ function switchTab(tabName) {
   if (!selectedTab) return;
 
   const currentTab = document.querySelector('.tab-content.active');
-  if (currentTab?.id === selectedTab.id) return;
+  if (currentTab?.id === selectedTab.id && !selectedTab.classList.contains('hidden')) return;
 
   document.querySelectorAll('.tab-content').forEach((tab) => {
     tab.classList.remove('active');

@@ -1,13 +1,13 @@
-// ============================================================
-// Águila Inventario Pro - Módulo: ui.js (FINAL)
-// Copyright © 2025 José A. G. Betancourt
+﻿// ============================================================
+// Ãguila Inventario Pro - MÃ³dulo: ui.js (FINAL)
+// Copyright Â© 2025 JosÃ© A. G. Betancourt
 // ============================================================
 
 // ============================================================
-// DEFINICIÓN GLOBAL Y SEGURA DE showToast
+// DEFINICIÃ“N GLOBAL Y SEGURA DE showToast
 // ============================================================
 window.showToast = function(message, type = 'info') {
-  console.log('[TOAST]', type.toUpperCase(), '→', message);
+  console.log('[TOAST]', type.toUpperCase(), 'â†’', message);
   
   const containerId = 'app-toast-container';
   let container = document.getElementById(containerId);
@@ -68,9 +68,17 @@ function setupTabs() {
     item.addEventListener('click', (e) => {
       e.preventDefault();
       const tabName = item.getAttribute('data-tab');
+
+      if (typeof window.switchTab === 'function') {
+        window.switchTab(tabName);
+        refreshCameraOnTabChange(tabName);
+        console.log('Tab activado:', tabName);
+        return;
+      }
       
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
+        tab.classList.add('hidden');
       });
       
       document.querySelectorAll('[data-tab]').forEach(nav => {
@@ -79,8 +87,8 @@ function setupTabs() {
       
       const tabElement = document.getElementById('tab-' + tabName);
       if (tabElement) {
+        tabElement.classList.remove('hidden');
         tabElement.classList.add('active');
-        // RECONEXIÓN CALIENTE: Si la pestaña tiene un video, reconectar el stream persistente
         refreshCameraOnTabChange(tabName);
       }
       
@@ -91,64 +99,63 @@ function setupTabs() {
         sidebar.classList.remove('active');
       }
       
-      console.log('📑 Tab activado:', tabName);
+      console.log('Tab activado:', tabName);
     });
   });
 }
-
 /**
- * Asegura que el video se mantenga reproduciendo al cambiar de pestaña (Hot-Swap)
+ * Asegura que el video se mantenga reproduciendo al cambiar de pestaÃ±a (Hot-Swap)
  */
 function refreshCameraOnTabChange(tabName) {
     if (!window.ScannerService || !window.ScannerService.persistentStream) return;
 
-    // Buscar si hay un video en la pestaña activa
+    // Buscar si hay un video en la pestaÃ±a activa
     const activeTab = document.getElementById('tab-' + tabName);
     const video = activeTab?.querySelector('video');
 
     if (video) {
-        console.log(`🔗 [UI] Reconectando cámara a la pestaña: ${tabName}`);
+        console.log(`ðŸ”— [UI] Reconectando cÃ¡mara a la pestaÃ±a: ${tabName}`);
         window.ScannerService.attachToElement(video);
     }
 }
 
 // ============================================================
-// INICIALIZACIÓN
+// INICIALIZACIÃ“N
 // ============================================================
 function initUI() {
-  console.log('🎨 Inicializando UI...');
+  console.log('ðŸŽ¨ Inicializando UI...');
   
   setupTabs();
   connectGlobalScanButtons();
   
-  console.log('✅ UI inicializado correctamente');
+  console.log('âœ… UI inicializado correctamente');
 }
 
 /**
- * Conector Global de Eventos de Cámara (Bridge V4.2)
+ * Conector Global de Eventos de CÃ¡mara (Bridge V4.2)
  * Asegura que todos los botones de escaneo tengan un comportamiento consistente.
  */
 function connectGlobalScanButtons() {
-    // 1. Botón pestaña AÑADIR
+    // 1. BotÃ³n pestaÃ±a AÃ‘ADIR
     document.getElementById('btn-scan-add')?.addEventListener('click', (e) => {
         e.preventDefault();
         window.openScanner((code) => {
             const input = document.getElementById('add-barcode');
             if (input) {
                 input.value = code;
-                // Disparar eventos para activar validaciones y búsquedas automáticas
+                // Disparar eventos para activar validaciones y bÃºsquedas automÃ¡ticas
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 input.focus();
 
-                // Si existe una función para buscar en "Agregar", llamarla
+                // Si existe una funciÃ³n para buscar en "Agregar", llamarla
                 if (typeof window.buscarProductoParaAgregar === 'function') {
                     window.buscarProductoParaAgregar(code);
                 } else if (typeof window.buscarProductoPorCodigo === 'function') {
                     // Fallback: verificar si ya existe el producto
                     window.buscarProductoPorCodigo(code).then(prod => {
                         if (prod && prod._exists) {
-                            showToast(`📦 Producto existente: ${prod.nombre}`, 'info');
+                            showToast(`ðŸ“¦ Producto existente: ${prod.nombre}`, 'info');
                             if (document.getElementById('add-product-name')) {
                                 document.getElementById('add-product-name').value = prod.nombre || '';
                             }
@@ -162,7 +169,7 @@ function connectGlobalScanButtons() {
         });
     });
 
-    // 2. Botón pestaña RELLENAR
+    // 2. BotÃ³n pestaÃ±a RELLENAR
     document.getElementById('btn-scan-refill')?.addEventListener('click', (e) => {
         e.preventDefault();
         window.openScanner((code) => {
@@ -183,7 +190,7 @@ function connectGlobalScanButtons() {
         });
     });
 
-    // 3. Botón pestaña AUDITORÍA (Modo Normal)
+    // 3. BotÃ³n pestaÃ±a AUDITORÃA (Modo Normal)
     document.getElementById('btn-scan-audit')?.addEventListener('click', (e) => {
         e.preventDefault();
         window.openScanner((code) => {
@@ -191,7 +198,7 @@ function connectGlobalScanButtons() {
             if (input) {
                 input.value = code;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
-                // Llamar a la búsqueda de auditoría
+                // Llamar a la bÃºsqueda de auditorÃ­a
                 if (typeof window.buscarProductoAudit === 'function') {
                     window.buscarProductoAudit();
                 }
@@ -199,7 +206,7 @@ function connectGlobalScanButtons() {
         });
     });
 
-    // 4. Botón Búsqueda Global (Si existe el ID)
+    // 4. BotÃ³n BÃºsqueda Global (Si existe el ID)
     document.getElementById('btn-trigger-scan')?.addEventListener('click', (e) => {
         e.preventDefault();
         window.openScanner((code) => {
@@ -215,7 +222,7 @@ function connectGlobalScanButtons() {
         });
     });
 
-    // 5. Botón cerrar modal (APAGADO FÍSICO DE HARDWARE)
+    // 5. BotÃ³n cerrar modal (APAGADO FÃSICO DE HARDWARE)
     document.getElementById('close-scanner')?.addEventListener('click', (e) => {
         e.preventDefault();
         
@@ -232,23 +239,23 @@ function connectGlobalScanButtons() {
             modal.classList.remove('active');
         }
         
-        console.log("📷 [UI] Cámara apagada y recursos liberados.");
+        console.log("ðŸ“· [UI] CÃ¡mara apagada y recursos liberados.");
     });
 }
 
 // ============================================================
-// MONITOREAR CONEXIÓN
+// MONITOREAR CONEXIÃ“N
 // ============================================================
 window.addEventListener('online', () => {
-  showToast('✅ Conexión restaurada', 'success');
+  showToast('âœ… ConexiÃ³n restaurada', 'success');
 });
 
 window.addEventListener('offline', () => {
-  showToast('📡 Sin conexión a internet', 'warning');
+  showToast('ðŸ“¡ Sin conexiÃ³n a internet', 'warning');
 });
 
 // ============================================================
-// INICIAR CUANDO DOM ESTÉ LISTO
+// INICIAR CUANDO DOM ESTÃ‰ LISTO
 // ============================================================
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initUI);
@@ -256,4 +263,4 @@ if (document.readyState === 'loading') {
   initUI();
 }
 
-console.log('✅ ui.js cargado correctamente');
+console.log('âœ… ui.js cargado correctamente');
