@@ -78,6 +78,25 @@ async function fallbackLoginWithDeterminante(email, password, determinante) {
   return { success: true, user };
 }
 
+async function fallbackLogout() {
+  if (window.LISTENERS_MANAGER && typeof window.LISTENERS_MANAGER.destroy === 'function') {
+    window.LISTENERS_MANAGER.destroy();
+  }
+
+  if (typeof firebase !== 'undefined' && firebase.database) {
+    firebase.database().ref().off();
+  }
+
+  window.INVENTORY_STATE = window.INVENTORY_STATE || {};
+  window.INVENTORY_STATE.productos = [];
+  window.PROFILE_STATE = {};
+  window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
+  window.ANALYTICS_STATE.determinante = null;
+
+  await firebase.auth().signOut();
+  return { success: true };
+}
+
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
@@ -300,11 +319,8 @@ async function loadUserData(userId) {
 // CORRECCIÓN CLAVE: Recargar página al salir
 async function logout() {
   try {
-    if (!window.AuthLoginModule || typeof window.AuthLoginModule.logout !== 'function') {
-      throw new Error('AUTH_MODULE_UNAVAILABLE');
-    }
-
-    const result = await window.AuthLoginModule.logout();
+    const logoutFn = window.AuthLoginModule?.logout || fallbackLogout;
+    const result = await logoutFn();
 
     if (result.success) {
       showToast('Sesión cerrada', 'success');
