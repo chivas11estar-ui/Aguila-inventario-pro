@@ -22,6 +22,62 @@ if (typeof window.showToast !== 'function') {
 
 let currentUser = null;
 
+function normalizeLoginDeterminante(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '');
+}
+
+function getProfileLoginDeterminantes(profile) {
+  return [
+    profile?.determinante,
+    profile?.determinanteTienda,
+    profile?.tienda,
+    profile?.storeId,
+    profile?.store_id
+  ]
+    .map(normalizeLoginDeterminante)
+    .filter(Boolean);
+}
+
+async function fallbackLoginWithDeterminante(email, password, determinante) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedDeterminante = normalizeLoginDeterminante(determinante);
+
+  if (!normalizedEmail || !password || !normalizedDeterminante) {
+    return { success: false, error: 'Completa todos los campos' };
+  }
+
+  if (!/^[A-Z0-9]{3,20}$/i.test(normalizedDeterminante)) {
+    return { success: false, error: 'Revisa el determinante. Usa solo letras o numeros.' };
+  }
+
+  const credential = await firebase.auth().signInWithEmailAndPassword(normalizedEmail, password);
+  const user = credential.user;
+  const snapshot = await firebase.database().ref('usuarios/' + user.uid).once('value');
+  const profile = snapshot.val();
+  const validDeterminantes = getProfileLoginDeterminantes(profile);
+
+  if (!profile || !validDeterminantes.includes(normalizedDeterminante)) {
+    await firebase.auth().signOut();
+    return { success: false, error: 'El determinante no coincide con esta cuenta.' };
+  }
+
+  window.PROFILE_STATE = window.PROFILE_STATE || {};
+  window.PROFILE_STATE.determinante = normalizedDeterminante;
+  window.PROFILE_STATE.nombrePromotor = profile.nombrePromotor;
+  window.PROFILE_STATE.userData = {
+    uid: user.uid,
+    email: user.email,
+    determinante: normalizedDeterminante,
+    nombrePromotor: profile.nombrePromotor || '',
+    nombreTienda: profile.nombreTienda || ''
+  };
+
+  return { success: true, user };
+}
+
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
@@ -58,11 +114,8 @@ async function handleLogin() {
       loginButton.textContent = 'Validando...';
     }
 
-    if (!window.AuthLoginModule || typeof window.AuthLoginModule.loginWithDeterminante !== 'function') {
-      throw new Error('AUTH_MODULE_UNAVAILABLE');
-    }
-
-    const result = await window.AuthLoginModule.loginWithDeterminante(email, password, determinante);
+    const loginFn = window.AuthLoginModule?.loginWithDeterminante || fallbackLoginWithDeterminante;
+    const result = await loginFn(email, password, determinante);
 
     if (!result.success) {
       showToast('❌ ' + result.error, 'error');
