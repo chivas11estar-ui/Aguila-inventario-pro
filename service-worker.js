@@ -3,7 +3,7 @@
 // Estrategia: stale-while-revalidate para el App Shell
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v4.0";
+const CACHE_NAME = "aguila-pro-v4.2";
 
 const APP_SHELL_ASSETS = [
   "/",
@@ -20,7 +20,6 @@ const APP_SHELL_ASSETS = [
   "/ui.js",
   "/listener-manager.js",
   "/scanner-mlkit.js",
-  "/scanner-events.js",
   "/search-controller.js",
   "/inventory.js",
   "/inventory-ui.js",
@@ -42,7 +41,7 @@ const APP_SHELL_ASSETS = [
   "/app.js"
 ];
 
-const APP_SHELL_SET = new Set(APP_SHELL_ASSETS);
+const APP_SHELL_SET = new Set(APP_SHELL_ASSETS.map((url) => url.trim()));
 const IGNORED_HOST_PARTS = [
   "firebase",
   "googleapis",
