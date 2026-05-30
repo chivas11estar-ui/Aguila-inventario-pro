@@ -1,11 +1,11 @@
-// ============================================
+﻿// ============================================
 // ARCHIVO: analytics-ui.js (COMPLETO Y CORREGIDO)
 // ============================================
 
 window.renderAnalyticsUI = function() {
     const container = document.getElementById('stats-container');
     if (!container) {
-        console.error('❌ Contenedor stats-container no encontrado');
+        console.error('âŒ Contenedor stats-container no encontrado');
         return;
     }
 
@@ -13,7 +13,7 @@ window.renderAnalyticsUI = function() {
     const res = window.ANALYTICS_STATE?.resumen || {};
     const movs = window.ANALYTICS_STATE?.movimientos || [];
 
-    // Preparar datos para las métricas
+    // Preparar datos para las mÃ©tricas
     const analyticsData = {
         refillsToday: res.totalRellenosHoy || 0,
         boxesMoved: res.cajasMovidasHoy || 0,
@@ -27,12 +27,12 @@ window.renderAnalyticsUI = function() {
             ${createMetricsGrid(analyticsData)}
             ${createTopByBrandSection(analyticsData.refillAverages)}
             ${createProductSearchSection()}
-            <button id="btn-generate-top-sellers" class="btn-main mt-4">📋 Ver Reporte Completo</button>
+            <button id="btn-generate-top-sellers" class="btn-main mt-4">ðŸ“‹ Ver Reporte Completo</button>
             <div id="top-sellers-container"></div>
         </div>
     `;
 
-    // Asignar evento al botón de reporte
+    // Asignar evento al botÃ³n de reporte
     const btn = document.getElementById('btn-generate-top-sellers');
     if (btn && typeof window.generateAndRenderTop10 === 'function') {
         btn.addEventListener('click', window.generateAndRenderTop10);
@@ -40,7 +40,7 @@ window.renderAnalyticsUI = function() {
 };
 
 /**
- * Crea el grid 2x2 de métricas principales.
+ * Crea el grid 2x2 de mÃ©tricas principales.
  */
 function createMetricsGrid(data) {
     return `
@@ -55,7 +55,7 @@ function createMetricsGrid(data) {
             </div>
             <div class="metric-card">
                 <span class="metric-value">${data.audits}</span>
-                <span class="metric-label">Auditorías</span>
+                <span class="metric-label">AuditorÃ­as</span>
             </div>
             <div class="metric-card">
                 <span class="metric-value">${data.totalProducts}</span>
@@ -66,13 +66,13 @@ function createMetricsGrid(data) {
 }
 
 /**
- * Crea la sección "Top 3 por Marca"
+ * Crea la secciÃ³n "Top 3 por Marca"
  */
 function createTopByBrandSection(refillAverages) {
     if (!refillAverages || refillAverages.length === 0) {
         return `
             <div class="top-by-brand">
-                <h2>🏆 Top 3 por Marca</h2>
+                <h2>ðŸ† Top 3 por Marca</h2>
                 <p style="text-align: center; color: #94a3b8;">No hay datos disponibles</p>
             </div>
         `;
@@ -80,35 +80,24 @@ function createTopByBrandSection(refillAverages) {
 
     // Agrupar por marca usando datos de movimientos y cruce con inventario
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
-    const now = Date.now();
-    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-
-    const toTimestamp = (m) => {
-        if (typeof m?.fecha === 'number') return m.fecha;
-        if (typeof m?.fecha === 'string') {
-            const t = Date.parse(m.fecha);
-            return Number.isFinite(t) ? t : 0;
-        }
-        return 0;
-    };
+    const last7DateKeys = getRecentAnalyticsDateKeys(7);
 
     const movimientos7Dias = movimientos.filter((m) => {
-        const ts = toTimestamp(m);
-        return ts > 0 && (now - ts) <= sevenDaysMs;
+        return last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha));
     });
     const productosPorMarca = {};
 
     movimientos7Dias.forEach(m => {
         if (m.tipo !== 'salida' && m.tipo !== 'entrada_directa_anaquel') return;
         
-        // Intentar obtener datos más recientes del inventario cargado (que ya vienen desencriptados)
+        // Intentar obtener datos mÃ¡s recientes del inventario cargado (que ya vienen desencriptados)
         const productInInventory = window.INVENTORY_STATE?.productos?.find(p => p.codigoBarras === m.productoCodigo);
         
-        // RECUPERAR Y DESENCRIPTAR (Fallback a datos de movimiento si no está en inventario local)
+        // RECUPERAR Y DESENCRIPTAR (Fallback a datos de movimiento si no estÃ¡ en inventario local)
         let marca = productInInventory ? productInInventory.marca : m.marca || 'SIN MARCA';
         let producto = productInInventory ? productInInventory.nombre : m.productoNombre || 'Desconocido';
 
-        // Doble capa de seguridad: asegurar desencriptación si los datos vienen de m (movimiento)
+        // Doble capa de seguridad: asegurar desencriptaciÃ³n si los datos vienen de m (movimiento)
         if (typeof window.decryptData === 'function') {
             marca = window.decryptData(marca) || marca;
             producto = window.decryptData(producto) || producto;
@@ -130,7 +119,7 @@ function createTopByBrandSection(refillAverages) {
 
     // Generar HTML para cada marca
     let brandGroupsHTML = '';
-    const medals = ['🥇', '🥈', '🥉'];
+    const medals = ['ðŸ¥‡', 'ðŸ¥ˆ', 'ðŸ¥‰'];
 
     for (const brandName in productosPorMarca) {
         const productos = Object.values(productosPorMarca[brandName])
@@ -145,7 +134,7 @@ function createTopByBrandSection(refillAverages) {
                         const pzsPorDia = Math.round((p.piezas || 0) / 7);
                         return `
                             <div>
-                                ${medals[index]} ${p.nombre} - <strong>${pzsPorDia} pzs/día</strong>
+                                ${medals[index]} ${p.nombre} - <strong>${pzsPorDia} pzs/dÃ­a</strong>
                             </div>
                         `;
                     }).join('')}
@@ -156,23 +145,23 @@ function createTopByBrandSection(refillAverages) {
 
     return `
         <div class="top-by-brand">
-            <h2>🏆 Top 3 por Marca (Últimos 7 días)</h2>
+            <h2>ðŸ† Top 3 por Marca (Ãšltimos 7 dÃ­as)</h2>
             ${brandGroupsHTML}
         </div>
     `;
 }
 
 /**
- * Crea la sección del buscador
+ * Crea la secciÃ³n del buscador
  */
 function createProductSearchSection() {
     return `
         <div class="product-search">
-            <h2>🔍 Buscar Producto Individual</h2>
+            <h2>ðŸ” Buscar Producto Individual</h2>
             <div class="search-controls">
-                <button onclick="openProductScanner()">📷 Escanear</button>
-                <input type="text" id="search-input" placeholder="Nombre o código de barras...">
-                <button onclick="searchProduct()">🔎</button>
+                <button onclick="openProductScanner()">ðŸ“· Escanear</button>
+                <input type="text" id="search-input" placeholder="Nombre o cÃ³digo de barras...">
+                <button onclick="searchProduct()">ðŸ”Ž</button>
             </div>
             <div id="search-results-container"></div>
         </div>
@@ -180,11 +169,11 @@ function createProductSearchSection() {
 }
 
 /**
- * Abre el escáner
+ * Abre el escÃ¡ner
  */
 window.openProductScanner = function() {
     if (typeof window.openScanner === 'function') {
-        window.showToast && window.showToast('Abriendo escáner...', 'info');
+        window.showToast && window.showToast('Abriendo escÃ¡ner...', 'info');
         window.openScanner((codigo) => {
             const input = document.getElementById('search-input');
             if (input) {
@@ -193,8 +182,8 @@ window.openProductScanner = function() {
             }
         });
     } else {
-        window.showToast && window.showToast('Escáner no disponible', 'error');
-        console.error('window.openScanner no está definida');
+        window.showToast && window.showToast('EscÃ¡ner no disponible', 'error');
+        console.error('window.openScanner no estÃ¡ definida');
     }
 };
 
@@ -232,14 +221,13 @@ window.searchProduct = function() {
     const productName = productInfo.productoNombre;
     const brandName = productInfo.marca;
 
-    // Calcular métricas
-    const hace7Dias = new Date();
-    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    // Calcular metricas con 7 dias naturales: hoy + 6 dias anteriores
+    const last7DateKeys = getRecentAnalyticsDateKeys(7);
 
     const movimientosProducto = movimientos.filter(m =>
         (m.productoCodigo || m.codigoBarra) === (productInfo.productoCodigo || productInfo.codigoBarra) &&
         (m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel') &&
-        new Date(m.fecha) >= hace7Dias
+        last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha))
     );
 
     const totalPiezas = movimientosProducto.reduce((sum, m) => 
@@ -259,7 +247,7 @@ window.searchProduct = function() {
 };
 
 /**
- * Renderiza resultado de búsqueda
+ * Renderiza resultado de bÃºsqueda
  */
 function renderSearchResult(data) {
     const container = document.getElementById('search-results-container');
@@ -268,7 +256,7 @@ function renderSearchResult(data) {
     if (!data) {
         container.innerHTML = `
             <div class="search-result-card-empty">
-                🔍 Producto no encontrado
+                ðŸ” Producto no encontrado
             </div>
         `;
         return;
@@ -281,19 +269,19 @@ function renderSearchResult(data) {
             <div class="result-metrics">
                 <div class="metric-display daily-metric">
                     <span class="metric-value">${data.piezasPorDia}</span>
-                    <span class="metric-label">pzs/día</span>
+                    <span class="metric-label">pzs/dÃ­a</span>
                 </div>
                 <div class="metric-display monthly-metric">
                     <span class="metric-value">${data.promedioMensual}</span>
                     <span class="metric-label">pzs/mes (est.)</span>
                 </div>
             </div>
-            <p class="info-text">*Cálculos basados en salidas de los últimos 7 días</p>
+            <p class="info-text">*CÃ¡lculos basados en salidas de los Ãºltimos 7 dÃ­as</p>
         </div>
     `;
 }
 
-console.log('✅ analytics-ui.js (Estilo Walmart) cargado correctamente');
+console.log('âœ… analytics-ui.js (Estilo Walmart) cargado correctamente');
 // Override V3: buscar primero en inventario y usar estadistica por codigo de barras.
 window.searchProduct = function() {
     const query = document.getElementById('search-input')?.value.trim().toLowerCase();
@@ -345,13 +333,34 @@ window.searchProduct = function() {
     });
 };
 
+function getAnalyticsLocalDateKey(fecha) {
+    if (!fecha) return '';
+    if (typeof window.analyticsDateKey === 'function') return window.analyticsDateKey(fecha);
+    if (typeof window.isoToLocalDate === 'function') return window.isoToLocalDate(fecha);
+    const d = new Date(fecha);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+}
+
+function getRecentAnalyticsDateKeys(days, baseDate = new Date()) {
+    const keys = new Set();
+    for (let i = 0; i < days; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
+        if (typeof window.getLocalDateString === 'function') {
+            keys.add(window.getLocalDateString(d));
+        } else {
+            keys.add(d.toISOString().slice(0, 10));
+        }
+    }
+    return keys;
+}
+
 function calculateProductStatsFromMovements(productCode, productName, movimientos) {
-    const now = Date.now();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const last7DateKeys = getRecentAnalyticsDateKeys(7);
+    const last30DateKeys = getRecentAnalyticsDateKeys(30);
     const code = String(productCode || '').trim().toLowerCase();
     const name = String(productName || '').trim().toLowerCase();
-    const getTime = (m) => typeof m.fecha === 'number' ? m.fecha : new Date(m.fecha).getTime();
 
     const productMovs = movimientos.filter(m => {
         const movCode = String(m.productoCodigo || m.codigoBarra || '').trim().toLowerCase();
@@ -361,10 +370,10 @@ function calculateProductStatsFromMovements(productCode, productName, movimiento
     });
 
     const weekly = productMovs
-        .filter(m => now - getTime(m) <= sevenDays)
+        .filter(m => last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha)))
         .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
     const monthly = productMovs
-        .filter(m => now - getTime(m) <= thirtyDays)
+        .filter(m => last30DateKeys.has(getAnalyticsLocalDateKey(m.fecha)))
         .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
 
     return { daily: Math.round(weekly / 7), weekly, monthly };

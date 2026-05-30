@@ -1,7 +1,7 @@
-// ============================================================
-// Águila Inventario Pro - Módulo: analytics.js
-// Lógica de Analytics (con Top 10)
-// Copyright © 2025 José A. G. Betancourt
+﻿// ============================================================
+// Ãguila Inventario Pro - MÃ³dulo: analytics.js
+// LÃ³gica de Analytics (con Top 10)
+// Copyright Â© 2025 JosÃ© A. G. Betancourt
 // ============================================================
 
 window.ANALYTICS_STATE = {
@@ -29,6 +29,16 @@ function analyticsDateKey(fecha) {
     return isoToLocalDate(fecha);
 }
 
+function getRecentLocalDateKeys(days, baseDate = new Date()) {
+    const keys = new Set();
+    for (let i = 0; i < days; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
+        keys.add(getLocalDateString(d));
+    }
+    return keys;
+}
+
 function analyticsTime(fecha) {
     if (!fecha) return 0;
     if (typeof fecha === 'number') return fecha;
@@ -45,13 +55,13 @@ function movementProductKey(m) {
 }
 
 // ============================================================
-// INICIALIZACIÓN
+// INICIALIZACIÃ“N
 // ============================================================
 async function initAnalytics() {
-    console.log('📊 Iniciando Analytics...');
+    console.log('ðŸ“Š Iniciando Analytics...');
     const userId = firebase.auth().currentUser?.uid;
     if (!userId) {
-        console.warn('⚠️ Analytics: Usuario no autenticado');
+        console.warn('âš ï¸ Analytics: Usuario no autenticado');
         return;
     }
 
@@ -60,34 +70,34 @@ async function initAnalytics() {
         const userData = userSnap.val();
 
         if (!userData || !userData.determinante) {
-            console.error('❌ Analytics: No se encontró determinante');
-            showToast('Error: No se encontró información de la tienda', 'error');
+            console.error('âŒ Analytics: No se encontrÃ³ determinante');
+            showToast('Error: No se encontrÃ³ informaciÃ³n de la tienda', 'error');
             return;
         }
 
         window.ANALYTICS_STATE.determinante = userData.determinante;
-        console.log('✅ Analytics: Determinante cargado:', window.ANALYTICS_STATE.determinante);
+        console.log('âœ… Analytics: Determinante cargado:', window.ANALYTICS_STATE.determinante);
 
-        await window.loadStats(); // Ahora llama a la función loadStats expuesta globalmente
+        await window.loadStats(); // Ahora llama a la funciÃ³n loadStats expuesta globalmente
 
     } catch (error) {
-        console.error('❌ Error en initAnalytics:', error);
+        console.error('âŒ Error en initAnalytics:', error);
         showToast('Error al inicializar Analytics', 'error');
     }
 }
 
 // ============================================================
-// CARGAR DATOS DE FIREBASE (7 DÍAS) - Renombrado y expuesto como window.loadStats
+// CARGAR DATOS DE FIREBASE (7 DÃAS) - Renombrado y expuesto como window.loadStats
 // ============================================================
 window.loadStats = async function () { 
-    console.log("📊 [ARCHITECT] Verificando requisitos para carga de estadísticas...");
+    console.log("ðŸ“Š [ARCHITECT] Verificando requisitos para carga de estadÃ­sticas...");
 
-    // 1. ASIGNACIÓN EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
+    // 1. ASIGNACIÃ“N EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
     const det = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante;
 
-    // 2. VALIDACIÓN ESTRICTA (Race Condition evitada)
+    // 2. VALIDACIÃ“N ESTRICTA (Race Condition evitada)
     if (!det || det === "null" || det === "undefined") {
-        console.warn('🛑 [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
+        console.warn('ðŸ›‘ [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
         return; 
     }
 
@@ -95,11 +105,11 @@ window.loadStats = async function () {
     const hoyStr = getLocalDateString(hoy); 
 
     const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    hace30Dias.setDate(hace30Dias.getDate() - 29);
     const hace30DiasStr = getLocalDateString(hace30Dias);
 
     try {
-        console.log(`📡 [ARCHITECT] Consultando Firebase para Tienda: ${det}`);
+        console.log(`ðŸ“¡ [ARCHITECT] Consultando Firebase para Tienda: ${det}`);
         
         const [movSnap, auditSnap] = await Promise.all([
             firebase.database().ref(`movimientos/${det}`).once('value'),
@@ -111,7 +121,7 @@ window.loadStats = async function () {
         const auditorias = [];
         auditSnap.forEach(child => { auditorias.push(child.val()); });
 
-        // Filtrar solo los últimos 30 días en zona horaria local
+        // Filtrar solo los Ãºltimos 30 dÃ­as en zona horaria local
         const movimientosFiltrados = movimientos.filter(m => {
             if (!m.fecha) return false;
             const fechaMov = analyticsDateKey(m.fecha);
@@ -128,9 +138,9 @@ window.loadStats = async function () {
 
         procesarMetricas(hoyStr);
 
-        // ACTUALIZACIÓN DINÁMICA: Re-renderizar inventario para mostrar promedios
+        // ACTUALIZACIÃ“N DINÃMICA: Re-renderizar inventario para mostrar promedios
         if (typeof window.applyFiltersAndRender === 'function') {
-            console.log('🔄 [ANALYTICS] Actualizando promedios en lista de inventario...');
+            console.log('ðŸ”„ [ANALYTICS] Actualizando promedios en lista de inventario...');
             window.applyFiltersAndRender();
         }
 
@@ -141,13 +151,13 @@ window.loadStats = async function () {
         }
 
     } catch (error) {
-        console.error('❌ Error cargando datos de analytics:', error);
-        showToast('Error al cargar estadísticas', 'error');
+        console.error('âŒ Error cargando datos de analytics:', error);
+        showToast('Error al cargar estadÃ­sticas', 'error');
     }
 }
 
 // ============================================================
-// PROCESAR MÉTRICAS (7 DÍAS)
+// PROCESAR MÃ‰TRICAS (7 DÃAS)
 // ============================================================
 function procesarMetricas(fechaHoy) {
     const movs = window.ANALYTICS_STATE.movimientos;
@@ -155,7 +165,7 @@ function procesarMetricas(fechaHoy) {
     const res = window.ANALYTICS_STATE.resumen;
     const refillMovements = movs.filter(isRefillMovement);
 
-    // Métricas de Hoy (usando fecha local)
+    // MÃ©tricas de Hoy (usando fecha local)
     const movsHoy = refillMovements.filter(m => m.fecha && analyticsDateKey(m.fecha) === fechaHoy);
     res.totalRellenosHoy = movsHoy.length;
     res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0);
@@ -163,7 +173,7 @@ function procesarMetricas(fechaHoy) {
     res.auditoriasHoy = audits.filter(a => a.fecha && analyticsDateKey(a.fecha) === fechaHoy).length;
     res.productosDistintos = new Set(movsHoy.map(m => m.productoNombre).filter(Boolean)).size;
 
-    // Top 5 Productos (basado en cajas en 7 días)
+    // Top 5 Productos (basado en cajas en 7 dÃ­as)
     const conteoProd = {};
     refillMovements.forEach(m => {
         const nombre = m.productoNombre || 'Desconocido';
@@ -175,7 +185,7 @@ function procesarMetricas(fechaHoy) {
     });
     res.topProductos = Object.values(conteoProd).sort((a, b) => b.total - a.total).slice(0, 5);
 
-    // Top 5 Marcas (basado en cajas en 7 días)
+    // Top 5 Marcas (basado en cajas en 7 dÃ­as)
     const conteoMarcas = {};
     refillMovements.forEach(m => {
         const marca = m.marca || 'Otra';
@@ -184,7 +194,7 @@ function procesarMetricas(fechaHoy) {
     });
     res.topMarcas = Object.entries(conteoMarcas).map(([marca, total]) => ({ marca, total })).sort((a, b) => b.total - a.total).slice(0, 5);
 
-    // Histórico de Rellenos (7 días) usando zona horaria local
+    // HistÃ³rico de Rellenos (7 dÃ­as) usando zona horaria local
     res.historico7Dias = {};
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
@@ -196,13 +206,13 @@ function procesarMetricas(fechaHoy) {
 
     // NUEVO: Promedio Diario Inteligente (Ciclo Viernes-Jueves) + Semanal + Mensual
     
-    // Función para calcular el inicio del ciclo actual (Viernes 00:00:00 local)
+    // FunciÃ³n para calcular el inicio del ciclo actual (Viernes 00:00:00 local)
     const getStartOfCurrentCycle = () => {
         const ahora = new Date();
         const diaSemana = ahora.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
         
-        // Calcular cuántos días restar para llegar al último Viernes
-        // Si hoy es Viernes(5), restamos 0. Si es Sábado(6), restamos 1. Si es Jueves(4), restamos 6.
+        // Calcular cuÃ¡ntos dÃ­as restar para llegar al Ãºltimo Viernes
+        // Si hoy es Viernes(5), restamos 0. Si es SÃ¡bado(6), restamos 1. Si es Jueves(4), restamos 6.
         const daysToSubtract = (diaSemana + 2) % 7; 
         
         const start = new Date(ahora);
@@ -219,15 +229,15 @@ function procesarMetricas(fechaHoy) {
     const statsPerProduct = {};
 
     // 1. Calcular sumas por periodos
-    const ahora = Date.now();
-    const unaSemanaMs = 7 * 24 * 60 * 60 * 1000;
-    const unMesMs = 30 * 24 * 60 * 60 * 1000;
+    const last7DateKeys = getRecentLocalDateKeys(7, new Date());
+    const last30DateKeys = getRecentLocalDateKeys(30, new Date());
 
     refillMovements.forEach(m => {
         const productName = m.productoNombre || 'Desconocido';
         const productKey = movementProductKey(m);
         const pieces = parseInt(m.piezasMovidas) || 0;
         const movFecha = analyticsTime(m.fecha);
+        const movDateKey = analyticsDateKey(m.fecha);
 
         if (!statsPerProduct[productKey]) {
             statsPerProduct[productKey] = {
@@ -240,32 +250,32 @@ function procesarMetricas(fechaHoy) {
             };
         }
 
-        // Ciclo actual (desde el último Viernes 00:00)
+        // Ciclo actual (desde el Ãºltimo Viernes 00:00)
         if (movFecha >= startOfCycleMs) {
             statsPerProduct[productKey].currentCyclePieces += pieces;
         }
         
-        // Últimos 7 días (ventana deslizante)
-        if ((ahora - movFecha) <= unaSemanaMs) {
+        // Ultimos 7 dias naturales: hoy + 6 dias anteriores en fecha local
+        if (last7DateKeys.has(movDateKey)) {
             statsPerProduct[productKey].last7DaysPieces += pieces;
         }
         
-        // Últimos 30 días (ventana deslizante completa)
-        if ((ahora - movFecha) <= unMesMs) {
+        // Ultimos 30 dias naturales: hoy + 29 dias anteriores en fecha local
+        if (last30DateKeys.has(movDateKey)) {
             statsPerProduct[productKey].last30DaysPieces += pieces;
         }
     });
 
-    // 2. Generar objeto de analítica avanzada
+    // 2. Generar objeto de analÃ­tica avanzada
     const analyticsPerProduct = {};
     Object.keys(statsPerProduct).forEach(key => {
         const stats = statsPerProduct[key];
         
-        // Promedio Diario: Ciclo actual / días ciclo
+        // Promedio Diario: Ciclo actual / dÃ­as ciclo
         const dailyAvg = Math.round(stats.last7DaysPieces / 7);
-        // Semanal: Total últimos 7 días
+        // Semanal: Total Ãºltimos 7 dÃ­as
         const weeklyTotal = stats.last7DaysPieces;
-        // Mensual: Total últimos 30 días
+        // Mensual: Total Ãºltimos 30 dÃ­as
         const monthlyTotal = stats.last30DaysPieces;
 
         const result = {
@@ -301,22 +311,22 @@ function procesarMetricas(fechaHoy) {
         monthly: item.monthly
     })).sort((a, b) => b.dailyAverage - a.dailyAverage);
 
-    console.log(`📊 Motor de Analítica Walmart-Style activo:`, res.analyticsPerProduct);
+    console.log(`ðŸ“Š Motor de AnalÃ­tica Walmart-Style activo:`, res.analyticsPerProduct);
 }
 
 // ============================================================
-// LÓGICA DE EXPORTACIÓN A EXCEL/CSV (REPORTE COMPLETO)
+// LÃ“GICA DE EXPORTACIÃ“N A EXCEL/CSV (REPORTE COMPLETO)
 // ============================================================
 async function generateAndRenderTop10() {
     try {
-        showToast('🔄 Generando reporte de inventario...', 'info');
+        showToast('ðŸ”„ Generando reporte de inventario...', 'info');
         
         const productos = window.INVENTORY_STATE?.productos || [];
         const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
         const movs = window.ANALYTICS_STATE?.movimientos || [];
         
         if (productos.length === 0) {
-            showToast('⚠️ No hay productos en el inventario para exportar.', 'warning');
+            showToast('âš ï¸ No hay productos en el inventario para exportar.', 'warning');
             return;
         }
 
@@ -324,7 +334,7 @@ async function generateAndRenderTop10() {
         const reporteData = [];
         const hoyStr = getLocalDateString(new Date());
 
-        // Agrupar productos por código para consolidar stock de diferentes bodegas si es necesario
+        // Agrupar productos por cÃ³digo para consolidar stock de diferentes bodegas si es necesario
         const productosConsolidados = {};
         productos.forEach(p => {
             if (!productosConsolidados[p.nombre]) {
@@ -374,7 +384,7 @@ async function generateAndRenderTop10() {
             const fila = [
                 `"${p.nombre}"`,
                 `"${p.marca}"`,
-                `"=""${p.codigo}"""`, // Formato de Excel para mantener el número como texto completo
+                `"=""${p.codigo}"""`, // Formato de Excel para mantener el nÃºmero como texto completo
                 `"${p.ubicaciones.join('; ')}"`,
                 p.cajas,
                 p.piezas,
@@ -401,20 +411,20 @@ async function generateAndRenderTop10() {
         link.click();
         document.body.removeChild(link);
         
-        showToast('✅ Reporte descargado con éxito', 'success');
-        console.log('📊 Reporte generado y descargado.');
+        showToast('âœ… Reporte descargado con Ã©xito', 'success');
+        console.log('ðŸ“Š Reporte generado y descargado.');
 
     } catch (error) {
-        console.error('❌ Error generando reporte:', error);
+        console.error('âŒ Error generando reporte:', error);
         showToast('Error al generar el archivo', 'error');
     }
 }
 
 // ============================================================
-// INICIALIZACIÓN AUTOMÁTICA Y EVENTOS
+// INICIALIZACIÃ“N AUTOMÃTICA Y EVENTOS
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // NOTA [ARCHITECT]: Desactivado para evitar condición de carrera.
+    // NOTA [ARCHITECT]: Desactivado para evitar condiciÃ³n de carrera.
     // La carga ahora es gestionada secuencialmente por auth.js
     /*
     firebase.auth().onAuthStateChanged(user => {
@@ -555,4 +565,4 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
     }
 };
 
-console.log('✅ analytics.js (con Top 10) cargado correctamente');
+console.log('âœ… analytics.js (con Top 10) cargado correctamente');
