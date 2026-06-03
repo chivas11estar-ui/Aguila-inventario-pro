@@ -142,7 +142,7 @@
     };
   }
 
-  // ---------- Lógica: mover/fusionar lote ----------
+  // ---------- Lógica: mover/fusionar lote con Transacción Atómica ----------
   async function ejecutarMovimiento(producto, loteOrigen, bodegaDestino, cantidad) {
     const det = await getDeterminante();
     if (!det) throw new Error('Sin determinante');
@@ -151,68 +151,96 @@
     if (!safeCode) throw new Error('Código de barras inválido');
 
     const loteDestinoId = generarLoteId(bodegaDestino, loteOrigen.fechaCaducidad || '');
-    const refLotes = firebase.database().ref('productos/' + det + '/' + safeCode + '/lotes');
-
-    // Leer estado actual de los dos lotes para fusionar bien
-    const snap = await refLotes.once('value');
-    const lotesActuales = snap.val() || {};
-    const loteDestActual = lotesActuales[loteDestinoId];
-
-    const nuevoStockOrigen = Math.max(0, (loteOrigen.stock || 0) - cantidad);
-    const nuevoStockDestino = (loteDestActual ? (loteDestActual.stock || 0) : 0) + cantidad;
-
-    const updates = {};
-    const basePath = 'productos/' + det + '/' + safeCode + '/lotes/';
-
-    // Si el origen queda en 0 → eliminamos el lote completo
-    if (nuevoStockOrigen <= 0) {
-      updates[basePath + loteOrigen.loteId] = null;
-    } else {
-      updates[basePath + loteOrigen.loteId + '/stock'] = nuevoStockOrigen;
-      updates[basePath + loteOrigen.loteId + '/actualizado'] = Date.now();
+    if (loteDestinoId === loteOrigen.loteId) {
+      throw new Error('La bodega destino es igual al lote origen');
     }
+    const productRef = firebase.database().ref('productos/' + det + '/' + safeCode);
 
-    // Lote destino: si existía, sumamos. Si no, lo creamos completo.
-    if (loteDestActual) {
-      updates[basePath + loteDestinoId + '/stock'] = nuevoStockDestino;
-      updates[basePath + loteDestinoId + '/actualizado'] = Date.now();
-    } else {
-      updates[basePath + loteDestinoId] = {
-        bodega: bodegaDestino,
-        fechaCaducidad: loteOrigen.fechaCaducidad || '',
-        stock: nuevoStockDestino,
-        actualizado: Date.now()
-      };
-    }
+    console.log(`🚀 [lote-mover] Iniciando transacción atómica para mover ${cantidad} cajas...`);
 
-    await firebase.database().ref().update(updates);
+    return new Promise((resolve, reject) => {
+      productRef.transaction((currentData) => {
+        if (!currentData) return undefined; // Abortar si no existe el producto
 
-    // Registrar movimiento para auditoría
-    try {
-      const movRef = firebase.database().ref('movimientos/' + det).push();
-      await movRef.set({
-        timestamp: Date.now(),
-        tipo: 'movimiento_bodega',
-        codigoBarras: safeCode,
-        nombre: producto.nombre || '',
-        bodegaOrigen: loteOrigen.bodega,
-        bodegaDestino: bodegaDestino,
-        cajasMovidas: cantidad,
-        usuario: (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'desconocido'
+        const lotes = currentData.lotes || {};
+        const loteOrg = lotes[loteOrigen.loteId];
+
+        if (!loteOrg) {
+          console.error('[TRANSACTION] Lote origen no encontrado en DB');
+          return undefined; // Abortar: el lote ya no existe
+        }
+
+        const stockOrg = parseFloat(loteOrg.stock) || 0;
+        if (stockOrg < cantidad - 0.0001) {
+          console.error(`[TRANSACTION] Stock insuficiente: ${stockOrg} < ${cantidad}`);
+          return undefined; // Abortar: no hay suficiente stock
+        }
+
+        // 1. Restar del origen
+        const nuevoStockOrg = Math.max(0, stockOrg - cantidad);
+        if (nuevoStockOrg <= 0) {
+          delete lotes[loteOrigen.loteId];
+        } else {
+          lotes[loteOrigen.loteId].stock = parseFloat(nuevoStockOrg.toFixed(2));
+          lotes[loteOrigen.loteId].actualizado = Date.now();
+        }
+
+        // 2. Sumar al destino
+        const loteDestActual = lotes[loteDestinoId];
+        const nuevoStockDest = (loteDestActual ? (parseFloat(loteDestActual.stock) || 0) : 0) + cantidad;
+
+        if (loteDestActual) {
+          lotes[loteDestinoId].stock = parseFloat(nuevoStockDest.toFixed(2));
+          lotes[loteDestinoId].actualizado = Date.now();
+        } else {
+          lotes[loteDestinoId] = {
+            bodega: bodegaDestino,
+            fechaCaducidad: loteOrigen.fechaCaducidad || '',
+            stock: parseFloat(nuevoStockDest.toFixed(2)),
+            actualizado: Date.now()
+          };
+        }
+
+        currentData.lotes = lotes;
+        currentData.fechaActualizacion = Date.now();
+        currentData.actualizadoPor = (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'sistema';
+
+        return currentData;
+      }, async (error, committed, snapshot) => {
+        if (error) {
+          console.error('[TRANSACTION ERROR]', error);
+          reject(error);
+        } else if (!committed) {
+          console.warn('[TRANSACTION] No completada: conflicto o stock insuficiente');
+          reject(new Error('MOVIMIENTO_FALLIDO_O_INSUFICIENTE'));
+        } else {
+          console.log('✅ [TRANSACTION] Éxito. Movimiento completado.');
+
+          // Registrar en historial (fuera de la transacción pero esperado)
+          try {
+            await firebase.database().ref('movimientos/' + det).push({
+              timestamp: Date.now(),
+              tipo: 'movimiento_bodega',
+              codigoBarras: safeCode,
+              nombre: producto.nombre || '',
+              bodegaOrigen: loteOrigen.bodega,
+              bodegaDestino: bodegaDestino,
+              cajasMovidas: cantidad,
+              usuario: (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'sistema'
+            });
+          } catch (e) {
+            console.warn('[lote-mover] Error al registrar historial:', e);
+          }
+
+          showMsg(`✅ Movido ${cantidad} caja(s) a ${bodegaDestino}`, 'success');
+
+          if (typeof window.cargarInventario === 'function') {
+            await window.cargarInventario();
+          }
+          resolve();
+        }
       });
-    } catch (e) {
-      console.warn('[lote-mover] No se pudo registrar movimiento:', e);
-    }
-
-    const msgFusion = loteDestActual ? ' (fusionado)' : '';
-    showMsg('✅ Movido ' + cantidad + ' caja(s) a ' + bodegaDestino + msgFusion, 'success');
-
-    // Refrescar inventario
-    if (typeof window.cargarInventario === 'function') {
-      await window.cargarInventario();
-    } else if (typeof window.loadInventory === 'function') {
-      await window.loadInventory();
-    }
+    });
   }
 
   // ---------- API pública ----------
