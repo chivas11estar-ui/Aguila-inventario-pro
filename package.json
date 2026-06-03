@@ -1,14 +1,21 @@
 {
   "name": "app-aguila",
   "version": "1.0.0",
-  "description": "🦅 Águila Inventario Pro v7.6",
+  "description": "Aguila Inventario Pro - PWA de inventario lista para TWA/Google Play",
   "main": "ai-phrases.js",
   "scripts": {
     "build": "tailwindcss -i tailwind-input.css -o tailwind-built.css --minify",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "playstore:init": "bubblewrap init --manifest=https://aguilainventario.netlify.app/manifest.json",
+    "playstore:build": "bubblewrap build",
+    "test": "node --check analytics-ui.js && node --check service-worker.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "inventario",
+    "pwa",
+    "twa",
+    "google-play"
+  ],
+  "author": "Jose A. G. Betancourt",
   "license": "ISC",
   "engines": {
     "node": "20"

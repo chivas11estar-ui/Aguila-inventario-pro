@@ -21,7 +21,12 @@
   }
 
   function generarLoteId(bodega, fechaCaducidad) {
-    const raw = (bodega || 'General') + '_' + (fechaCaducidad || 'sinFecha');
+    if (typeof window.generarLoteId === 'function') {
+      return window.generarLoteId(bodega, fechaCaducidad);
+    }
+    const b = (bodega || 'General').trim();
+    const f = (fechaCaducidad || 'sin-fecha').trim();
+    const raw = b + '_' + f;
     return btoa(unescape(encodeURIComponent(raw)))
       .replace(/=/g, '')
       .replace(/\+/g, '-')

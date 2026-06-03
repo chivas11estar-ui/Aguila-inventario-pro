@@ -14,7 +14,7 @@ window.INVENTORY_CORE = {
 // Inicializar estado global del inventario
 if (!window.INVENTORY_STATE) {
     window.INVENTORY_STATE = {
-          productos: {},
+          productos: [],
           lotes: {},
           isRenderingInventory: false,
           lastUpdate: null,
@@ -57,7 +57,9 @@ function sanitizeBarcode(barcode) {
 // 3. GENERAR ID DE LOTE (bodega + fecha → llave única)
 // ============================================================
 function generarLoteId(bodega, fechaCaducidad) {
-  const raw = `${(bodega || 'general').trim()}_${fechaCaducidad || 'sin-fecha'}`;
+  const b = (bodega || 'General').trim();
+  const f = (fechaCaducidad || 'sin-fecha').trim();
+  const raw = `${b}_${f}`;
   return btoa(unescape(encodeURIComponent(raw)))
     .replace(/=/g, '')
     .replace(/\+/g, '-')
@@ -347,7 +349,7 @@ async function cargarInventario() {
 }
 
 // ============================================================
-    // limpiarLotesAgotados();  // TODO: Hacer síncrono para no bloquear carga    // 9. HANDLE FORM — agregar/editar desde el formulario
+// 9. HANDLE FORM — agregar/editar desde el formulario
 // ============================================================
 async function handleAddProductV2(event) {
   if (event) event.preventDefault();
@@ -461,8 +463,8 @@ async function limpiarLotesAgotados() {
 
           const lotesPorProducto = {};
           productos.forEach(prod => {
-                  if (!prod.lote) return;
-                  const key = `${prod.codigoBarras}|${prod.bodega}`;
+                  if (!prod.loteId) return;
+                  const key = `${prod.codigoBarras}|${prod.bodega || prod.ubicacion}`;
                   if (!lotesPorProducto[key]) lotesPorProducto[key] = [];
                   lotesPorProducto[key].push(prod);
           });
@@ -474,7 +476,7 @@ async function limpiarLotesAgotados() {
                             if (lote.stockTotal === 0 || lote.stockTotal === undefined) {
                                         // Marcar para eliminación
                                         lote.marcarEliminado = true;
-                                        console.log('🗑️ Lote agotado marcado: ', lote.lote, 'Bodega:', lote.bodega);
+                                        console.log('🗑️ Lote agotado marcado: ', lote.loteId, 'Bodega:', lote.bodega || lote.ubicacion);
                             }
                   });
           }
@@ -495,15 +497,15 @@ function consolidarLotes() {
                   // Saltar lotes marcados como eliminados
                   if (prod.marcarEliminado) return;
 
-                  const key = `${prod.codigoBarras}|${prod.bodega}`;
+                  const key = `${prod.codigoBarras}|${prod.ubicacion || prod.bodega}`;
                   if (!productosConsolidados[key]) {
                             productosConsolidados[key] = { ...prod, lotes: [] };
                   }
-                  if (prod.lote) {
+                  if (prod.loteId) {
                             productosConsolidados[key].lotes.push({
-                                        lote: prod.lote,
+                                        loteId: prod.loteId,
                                         stock: prod.stockTotal,
-                                        fechaVencimiento: prod.fechaVencimiento || 'N/A'
+                                        fechaCaducidad: prod.fechaCaducidad || 'N/A'
                             });
                   }
           });
