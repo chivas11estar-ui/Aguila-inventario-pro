@@ -100,6 +100,8 @@ function renderProfileHeader(userData, preferences) {
 // RENDERIZAR TARJETA DE CLIMA
 // ============================================================
 function renderWeatherCard(weather) {
+  const weatherCity = weather?.city || 'Ubicacion actual';
+
   if (!weather || weather.error) {
     return `
       <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
@@ -115,6 +117,7 @@ function renderWeatherCard(weather) {
         <div class="text-center py-6 text-slate-500 dark:text-slate-400">
           <span class="material-icons-round text-5xl mb-2">cloud_off</span>
           <p>No se pudo cargar el clima.</p>
+          <p class="text-xs mt-1">${weatherCity}</p>
         </div>
       </section>
     `;
@@ -135,6 +138,10 @@ function renderWeatherCard(weather) {
         <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
         <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
         <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+          <span class="material-icons-round text-[14px]">location_on</span>
+          <span>${weatherCity}</span>
+        </p>
       </div>
       <div class="grid grid-cols-2 gap-4 mt-6">
         <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
@@ -318,11 +325,13 @@ function updateWeatherUI() {
   }
   
   const { weather } = window.PROFILE_STATE;
+  const weatherCity = weather?.city || 'Ubicacion actual';
 
   if (!weather || weather.error) {
     weatherContainer.innerHTML = `
       <span class="material-icons-round text-6xl text-slate-400 mb-2">cloud_off</span>
       <p class="text-lg text-slate-500 dark:text-slate-400">Clima no disponible</p>
+      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">${weatherCity}</p>
     `;
     return;
   }
@@ -331,6 +340,10 @@ function updateWeatherUI() {
     <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
     <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+      <span class="material-icons-round text-[14px]">location_on</span>
+      <span>${weatherCity}</span>
+    </p>
   `;
 
   // Actualizar Humedad y Viento
