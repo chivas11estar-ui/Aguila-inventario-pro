@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aguila Inventario Pro, app de inventario para promotores con multi-lote, modo offline, analitica e IA.">
+  <meta name="theme-color" content="#0021e4">
+  <title>Aguila Inventario Pro | Inventario para promotores</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0021e4;
+      --primary-dark: #0016a8;
+      --primary-soft: #edf0ff;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --text: #12172f;
+      --muted: #596074;
+      --border: #dfe4f2;
+      --surface: #ffffff;
+      --page: #f8faff;
+      --shadow: 0 24px 70px rgba(0, 33, 228, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Manrope", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 82% 18%, rgba(0, 33, 228, 0.12), transparent 34%),
+        radial-gradient(circle at 4% 32%, rgba(16, 185, 129, 0.10), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, var(--page) 52%, #ffffff 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(223, 228, 242, 0.8);
+    }
+
+    .topbar-inner {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      box-shadow: 0 10px 26px rgba(0, 33, 228, 0.20);
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1rem;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--primary);
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      color: #25304f;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .nav a {
+      opacity: 0.86;
+    }
+
+    .nav a:hover {
+      opacity: 1;
+      color: var(--primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-weight: 850;
+      font-size: 0.95rem;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--primary);
+      box-shadow: 0 16px 34px rgba(0, 33, 228, 0.26);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      color: #12172f;
+      background: #ffffff;
+      border-color: var(--border);
+      box-shadow: 0 12px 28px rgba(18, 23, 47, 0.08);
+    }
+
+    .hero {
+      min-height: calc(100vh - 76px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.86fr);
+      align-items: center;
+      gap: clamp(36px, 6vw, 78px);
+      padding: 56px 0 34px;
+    }
+
+    .hero-copy {
+      max-width: 610px;
+    }
+
+    .country {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 42px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: #263153;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .country .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.12);
+    }
+
+    h1 {
+      max-width: 760px;
+      color: #111832;
+      font-size: clamp(3.3rem, 8vw, 6.5rem);
+      line-height: 0.94;
+      letter-spacing: -0.075em;
+      font-weight: 900;
+    }
+
+    h1 span {
+      color: var(--primary);
+    }
+
+    .lead {
+      max-width: 560px;
+      margin-top: 28px;
+      color: #3e4662;
+      font-size: clamp(1.05rem, 1.55vw, 1.25rem);
+      line-height: 1.65;
+      font-weight: 550;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 34px;
+      color: #27304c;
+      font-size: 0.84rem;
+      font-weight: 750;
+    }
+
+    .trust-row span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .trust-row .material-icons-round {
+      color: var(--success);
+      font-size: 18px;
+    }
+
+    .phone-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .phone {
+      width: min(385px, 100%);
+      border: 12px solid #10131d;
+      border-radius: 42px;
+      background: #ffffff;
+      box-shadow: var(--shadow), 0 18px 40px rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+      transform: rotate(1.5deg);
+    }
+
+    .phone-top {
+      min-height: 118px;
+      padding: 18px 18px 22px;
+      color: #ffffff;
+      background: linear-gradient(145deg, #0019b3, #0021e4);
+    }
+
+    .phone-status {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      opacity: 0.92;
+    }
+
+    .phone-brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .phone-brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #ffffff;
+    }
+
+    .phone-brand strong {
+      display: block;
+      font-size: 1rem;
+      letter-spacing: -0.03em;
+    }
+
+    .phone-body {
+      padding: 18px;
+      background: #fbfcff;
+    }
+
+    .hello {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .hello h2 {
+      font-size: 1.2rem;
+      letter-spacing: -0.04em;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      color: #047857;
+      background: #dcfce7;
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 104px;
+      padding: 14px;
+      border: 1px solid #e7ebf5;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 10px 22px rgba(18, 23, 47, 0.05);
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 0.73rem;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      color: #111832;
+      font-size: 1.55rem;
+      letter-spacing: -0.05em;
+    }
+
+    .metric span {
+      display: inline-flex;
+      margin-top: 8px;
+      color: #047857;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .scan-card {
+      margin: 12px 0;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 12px;
+      color: #ffffff;
+      background: var(--primary);
+      box-shadow: 0 16px 32px rgba(0, 33, 228, 0.20);
+    }
+
+    .scan-card .material-icons-round {
+      font-size: 30px;
+    }
+
+    .scan-card strong {
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    .scan-card small {
+      opacity: 0.85;
+    }
+
+    .warehouse-list {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 8px;
+    }
+
+    .warehouse-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #edf0f7;
+      color: #25304f;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .warehouse-row span:last-child {
+      color: #047857;
+    }
+
+    .features {
+      padding: 52px 0 70px;
+    }
+
+    .section-title {
+      max-width: 760px;
+      margin: 0 auto 30px;
+      text-align: center;
+    }
+
+    .section-title h2 {
+      font-size: clamp(1.9rem, 4vw, 2.6rem);
+      line-height: 1.12;
+      letter-spacing: -0.055em;
+    }
+
+    .section-title p {
+      max-width: 620px;
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.65;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .feature {
+      min-height: 236px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 14px 36px rgba(18, 23, 47, 0.06);
+    }
+
+    .feature .material-icons-round {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 22px;
+      border-radius: 12px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-size: 28px;
+    }
+
+    .feature h3 {
+      font-size: 1.05rem;
+      letter-spacing: -0.035em;
+      margin-bottom: 10px;
+    }
+
+    .feature p {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.62;
+      font-weight: 550;
+    }
+
+    .security {
+      margin-top: 34px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      border: 1px solid #dfe5ff;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ffffff, #f0f4ff);
+      box-shadow: 0 16px 40px rgba(0, 33, 228, 0.08);
+    }
+
+    .security-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .security-icon {
+      width: 62px;
+      height: 62px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 12px 28px rgba(0, 33, 228, 0.12);
+    }
+
+    .security h3 {
+      font-size: 1.15rem;
+      letter-spacing: -0.035em;
+      margin-bottom: 5px;
+    }
+
+    .security p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+      font-weight: 600;
+    }
+
+    .footer {
+      padding: 28px 0 38px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 650;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 18px;
+      color: var(--primary);
+      font-weight: 850;
+    }
+
+    @media (max-width: 920px) {
+      .nav {
+        display: none;
+      }
+
+      .hero {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        padding-top: 42px;
+      }
+
+      .hero-copy {
+        max-width: none;
+      }
+
+      .phone {
+        max-width: 360px;
+        transform: none;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: min(100% - 24px, 1120px);
+      }
+
+      .topbar-inner {
+        height: 68px;
+      }
+
+      .brand img {
+        width: 42px;
+        height: 42px;
+      }
+
+      .topbar .btn {
+        min-height: 42px;
+        padding: 0 13px;
+        font-size: 0.85rem;
+      }
+
+      .country {
+        margin-bottom: 26px;
+      }
+
+      h1 {
+        font-size: clamp(3rem, 16vw, 4.7rem);
+      }
+
+      .hero-actions {
+        display: grid;
+      }
+
+      .trust-row {
+        display: grid;
+        gap: 10px;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .security,
+      .security-info,
+      .footer-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="landing.html" aria-label="Aguila Inventario Pro">
+        <img src="icon-192x192.png" alt="Aguila Inventario Pro">
+        <span>
+          <strong>Aguila</strong>
+          <span>Inventario Pro</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Secciones">
+        <a href="#funciones">Funciones</a>
+        <a href="#beneficios">Beneficios</a>
+        <a href="#seguridad">Seguridad</a>
+        <a href="privacy.html">Privacidad</a>
+      </nav>
+      <a class="btn btn-primary" href="index.html">
+        <span class="material-icons-round" aria-hidden="true">open_in_new</span>
+        Abrir app
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="shell hero">
+      <div class="hero-copy">
+        <div class="country"><span class="dot"></span> Hecha en Mexico para promotores de campo</div>
+        <h1><span>Aguila</span><br>Inventario Pro</h1>
+        <p class="lead">
+          Controla existencias, caducidades y bodegas desde cualquier lugar.
+          Trabaja incluso sin conexion, sincroniza movimientos y toma mejores decisiones con analitica e IA.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="index.html">
+            <span class="material-icons-round" aria-hidden="true">login</span>
+            Abrir app
+          </a>
+          <a class="btn btn-secondary" href="privacy.html">
+            <span class="material-icons-round" aria-hidden="true">shield</span>
+            Ver privacidad
+          </a>
+        </div>
+        <div class="trust-row" aria-label="Beneficios principales">
+          <span><span class="material-icons-round" aria-hidden="true">check_circle</span>Datos por tienda</span>
+          <span><span class="material-icons-round" aria-hidden="true">check_circle</span>Modo offline</span>
+          <span><span class="material-icons-round" aria-hidden="true">check_circle</span>Listo para Android</span>
+        </div>
+      </div>
+
+      <div class="phone-wrap" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-top">
+            <div class="phone-status">
+              <span>9:41</span>
+              <span>Online</span>
+            </div>
+            <div class="phone-brand">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img src="icon-192x192.png" alt="">
+                <strong>Aguila Pro</strong>
+              </div>
+              <span class="material-icons-round">notifications</span>
+            </div>
+          </div>
+          <div class="phone-body">
+            <div class="hello">
+              <div>
+                <h2>Hola, promotor</h2>
+                <small>Resumen de hoy</small>
+              </div>
+              <span class="status">Online</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><small>Stock activo</small><strong>41</strong><span>productos</span></div>
+              <div class="metric"><small>Agotados</small><strong>119</strong><span>prioridad</span></div>
+              <div class="metric"><small>Rellenos</small><strong>28</strong><span>hoy</span></div>
+              <div class="metric"><small>Promedio</small><strong>30d</strong><span>movil</span></div>
+            </div>
+            <div class="scan-card">
+              <span class="material-icons-round">qr_code_scanner</span>
+              <div><strong>Escanear producto</strong><small>Codigo de barras o QR</small></div>
+            </div>
+            <div class="warehouse-list">
+              <div class="warehouse-row"><span>Bodega 1</span><span>+ 9%</span></div>
+              <div class="warehouse-row"><span>Caducidad proxima</span><span>FEFO</span></div>
+              <div class="warehouse-row"><span>Frase IA</span><span>lista</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell features" id="funciones">
+      <div class="section-title" id="beneficios">
+        <h2>Hecha para promotores. Pensada para resultados.</h2>
+        <p>
+          Una herramienta rapida para operar inventario real: lotes, bodegas, caducidades,
+          rellenos, auditorias y estadisticas sin perder el ritmo en tienda.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature">
+          <span class="material-icons-round" aria-hidden="true">inventory_2</span>
+          <h3>Multi-lote y caducidades</h3>
+          <p>Controla multiples lotes, fechas de caducidad y bodegas para trabajar con metodo FEFO.</p>
+        </article>
+        <article class="feature">
+          <span class="material-icons-round" aria-hidden="true">cloud_sync</span>
+          <h3>Trabajo offline</h3>
+          <p>La PWA queda disponible en el dispositivo y sincroniza informacion cuando vuelve internet.</p>
+        </article>
+        <article class="feature">
+          <span class="material-icons-round" aria-hidden="true">auto_awesome</span>
+          <h3>IA para frases</h3>
+          <p>Netlify genera frases personalizadas con contexto de clima, tienda e inventario.</p>
+        </article>
+        <article class="feature">
+          <span class="material-icons-round" aria-hidden="true">android</span>
+          <h3>Lista para Android</h3>
+          <p>Base PWA preparada para instalarse y evolucionar hacia publicacion en Google Play.</p>
+        </article>
+      </div>
+
+      <div class="security" id="seguridad">
+        <div class="security-info">
+          <div class="security-icon">
+            <span class="material-icons-round" aria-hidden="true">verified_user</span>
+          </div>
+          <div>
+            <h3>Seguridad y privacidad ante todo</h3>
+            <p>Autenticacion con Firebase, datos separados por determinante y politica de privacidad publica.</p>
+          </div>
+        </div>
+        <a class="btn btn-secondary" href="privacy.html">
+          Ver privacidad
+          <span class="material-icons-round" aria-hidden="true">arrow_forward</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell footer-inner">
+      <span>Aguila Inventario Pro. Desarrollado para operacion de campo.</span>
+      <div class="footer-links">
+        <a href="index.html">Abrir app</a>
+        <a href="privacy.html">Privacidad</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
