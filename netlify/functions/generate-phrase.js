@@ -54,10 +54,11 @@ exports.handler = async function(event, context) {
                     };
         }
 
-        // Leer la API Key desde variables de entorno de Netlify
-        const API_KEY = process.env.GEMMA_API_KEY;
+        // Leer la API Key desde variables de entorno de Netlify.
+        // GROQ_API_KEY es el nombre correcto; GEMMA_API_KEY queda como respaldo legacy.
+        const API_KEY = process.env.GROQ_API_KEY || process.env.GEMMA_API_KEY;
         if (!API_KEY) {
-                    console.error('GEMMA_API_KEY no configurada');
+                    console.error('GROQ_API_KEY/GEMMA_API_KEY no configurada');
                     return {
                                     statusCode: 500,
                                     headers: {
