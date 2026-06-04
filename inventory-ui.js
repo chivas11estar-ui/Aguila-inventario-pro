@@ -150,6 +150,14 @@ function renderBrandSection(marca, productos, targetId) {
 function renderProductCard(product, targetId) {
   const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
   const firstBodega = bodegas[0] || null;
+  const productCodeArg = JSON.stringify(product.codigoBarras || '');
+  const firstBodegaIdArg = JSON.stringify(firstBodega?.id || '');
+  const editAction = firstBodega?.id
+    ? `window.editarProducto(${firstBodegaIdArg}, ${productCodeArg})`
+    : `if(typeof showToast==='function') showToast('Sin lote/bodega para editar','info')`;
+  const moveAction = firstBodega?.id
+    ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
+    : `if(typeof showToast==='function') showToast('Sin lote/bodega para mover','info')`;
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -258,7 +266,7 @@ function renderProductCard(product, targetId) {
         <!-- Botones de Acción Estilo Indigo -->
         <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
-            onclick="${firstBodega?.id ? `window.editarProducto('${firstBodega.id}')` : `if(typeof showToast==='function') showToast('⚠️ Sin lote/bodega para editar','info')`}"
+            onclick="${editAction}"
             class="secondary"
             style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
           >
@@ -277,7 +285,7 @@ function renderProductCard(product, targetId) {
             </button>
           ` : `
             <button 
-              onclick="${firstBodega?.id ? `event.stopPropagation(); window.moverProducto && window.moverProducto('${firstBodega.id}')` : `if(typeof showToast==='function') showToast('⚠️ Sin lote/bodega para mover','info')`}"
+              onclick="${moveAction}"
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
             >
@@ -368,10 +376,14 @@ function renderSingleWarehouse(product, salesAvg = 0) {
 // ============================================================
 // EDITAR PRODUCTO (GLOBAL WINDOW)
 // ============================================================
-window.editarProducto = async function(productId) {
+window.editarProducto = async function(productId, codigoBarras = null) {
   console.log('✏️ Editando producto:', productId);
 
-  const product = window.INVENTORY_STATE.productos.find(p => p.id === productId);
+  const productos = (window.INVENTORY_STATE && window.INVENTORY_STATE.productos) || [];
+  const safeCode = String(codigoBarras || '').trim();
+  const product = safeCode
+    ? productos.find(p => String(p.codigoBarras || '').trim() === safeCode && (p.id === productId || p.loteId === productId))
+    : productos.find(p => p.id === productId || p.loteId === productId);
 
   if (!product) {
     if (typeof showToast === 'function') showToast('❌ Producto no encontrado', 'error');
@@ -398,7 +410,7 @@ window.editarProducto = async function(productId) {
       submitBtn.style.background = '#f59e0b';
     }
 
-    window.EDITING_PRODUCT_ID = productId;
+    window.EDITING_PRODUCT_ID = product.loteId || product.id || productId;
     if (typeof showToast === 'function') showToast('✏️ Editando: ' + product.nombre, 'info');
   }, 100);
 };

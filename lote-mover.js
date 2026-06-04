@@ -276,11 +276,14 @@
   };
 
   // Alias para compatibilidad con botón "Mover" antiguo (primer lote)
-  window.moverProducto = async function (productId) {
+  window.moverProducto = async function (productId, codigoBarras = null) {
     // productId tiene formato loteId. Buscamos el producto que lo contenga.
     try {
       const productos = (window.INVENTORY_STATE && window.INVENTORY_STATE.productos) || [];
-      const item = productos.find(p => p.id === productId || p.loteId === productId);
+      const safeCode = String(codigoBarras || '').trim();
+      const item = safeCode
+        ? productos.find(p => String(p.codigoBarras || '').trim() === safeCode && (p.id === productId || p.loteId === productId))
+        : productos.find(p => p.id === productId || p.loteId === productId);
       if (!item) {
         showMsg('❌ Lote no encontrado en estado local', 'error');
         return;

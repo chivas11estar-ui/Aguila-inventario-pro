@@ -253,6 +253,18 @@ window.seleccionarLote = function(loteId, bodega, fecha, stock) {
   showToast(`📍 Lote seleccionado: ${bodega} (${stock} cajas)`, 'info');
 };
 
+function roundCajas(value) {
+  return parseFloat((parseFloat(value) || 0).toFixed(2));
+}
+
+function stockToPieces(stockCajas, piezasPorCaja) {
+  return Math.max(0, Math.round((parseFloat(stockCajas) || 0) * (parseInt(piezasPorCaja) || 1)));
+}
+
+function piecesToRoundedCajas(piezas, piezasPorCaja) {
+  return roundCajas((parseInt(piezas) || 0) / (parseInt(piezasPorCaja) || 1));
+}
+
 // ============================================================
 // SUBMIT
 // ============================================================
@@ -283,7 +295,7 @@ async function handleRefillPiecesSafe() {
   }
 
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
-  const cajasEquivalentes = piezasSueltas / piezasPorCaja;
+  const cajasEquivalentes = piecesToRoundedCajas(piezasSueltas, piezasPorCaja);
 
   if (!refillCurrentLoteId) {
     showToast('⚠️ Selecciona una bodega primero', 'warning');
@@ -294,15 +306,16 @@ async function handleRefillPiecesSafe() {
   const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
   const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
   const stockActual = parseFloat(loteActual?.stock) || 0;
-  const stockTotalDisponible = lotesProducto.reduce((sum, l) => sum + (parseFloat(l.stock) || 0), 0);
+  const piezasDisponibles = stockToPieces(stockActual, piezasPorCaja);
+  const cajasARestar = Math.min(stockActual, cajasEquivalentes);
 
-  if (cajasEquivalentes > stockActual) {
-    showToast(`❌ Stock insuficiente (${stockActual} cajas disponibles)`, 'error');
+  if (piezasSueltas > piezasDisponibles) {
+    showToast(`❌ Stock insuficiente (${piezasDisponibles} piezas disponibles)`, 'error');
     return;
   }
 
   try {
-    const nuevoStock = await modificarStock(refillCurrentProduct.codigoBarras, cajasEquivalentes, 'restar', refillCurrentLoteId);
+    const nuevoStock = await modificarStock(refillCurrentProduct.codigoBarras, cajasARestar, 'restar', refillCurrentLoteId);
     
     const timestamp = Date.now();
     const usuario = firebase.auth().currentUser?.email || 'sistema';
@@ -313,7 +326,7 @@ async function handleRefillPiecesSafe() {
       productoNombre: refillCurrentProduct.nombre,
       productoCodigo: refillCurrentProduct.codigoBarras,
       marca: refillCurrentProduct.marca || 'Otra',
-      cajasMovidas: cajasEquivalentes,
+      cajasMovidas: cajasARestar,
       piezasMovidas: piezasSueltas,
       bodega: loteActual?.bodega || 'General',
       loteId: refillCurrentLoteId,
@@ -323,11 +336,11 @@ async function handleRefillPiecesSafe() {
       realizadoPor: usuario
     });
 
-    refillTodayCajas += cajasEquivalentes;
+    refillTodayCajas += cajasARestar;
     refillTodayPiezas += piezasSueltas;
     updateRefillTodayUI();
 
-    showToast(`🧩 ${piezasSueltas} piezas movidas (${cajasEquivalentes.toFixed(2)} cajas)`, 'success');
+    showToast(`🧩 ${piezasSueltas} piezas movidas (${cajasARestar.toFixed(2)} cajas)`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
