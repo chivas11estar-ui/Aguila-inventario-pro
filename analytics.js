@@ -29,6 +29,14 @@ function analyticsDateKey(fecha) {
     return isoToLocalDate(fecha);
 }
 
+function movementDateValue(m) {
+    return m?.fecha || m?.timestamp || m?.createdAt || m?.date || '';
+}
+
+function movementDateKey(m) {
+    return analyticsDateKey(movementDateValue(m));
+}
+
 function getRecentLocalDateKeys(days, baseDate = new Date()) {
     const keys = new Set();
     for (let i = 0; i < days; i++) {
@@ -44,6 +52,10 @@ function analyticsTime(fecha) {
     if (typeof fecha === 'number') return fecha;
     const parsed = new Date(fecha).getTime();
     return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function movementTime(m) {
+    return analyticsTime(movementDateValue(m));
 }
 
 function normalizeAnalyticsKey(value) {
@@ -123,9 +135,8 @@ window.loadStats = async function () {
 
         // Filtrar solo los Ãºltimos 30 dÃ­as en zona horaria local
         const movimientosFiltrados = movimientos.filter(m => {
-            if (!m.fecha) return false;
-            const fechaMov = analyticsDateKey(m.fecha);
-            return fechaMov >= hace30DiasStr;
+            const fechaMov = movementDateKey(m);
+            return fechaMov && fechaMov >= hace30DiasStr && fechaMov <= hoyStr;
         });
         const auditoriasFiltradas = auditorias.filter(a => {
             if (!a.fecha) return false;
@@ -166,7 +177,7 @@ function procesarMetricas(fechaHoy) {
     const refillMovements = movs.filter(isRefillMovement);
 
     // MÃ©tricas de Hoy (usando fecha local)
-    const movsHoy = refillMovements.filter(m => m.fecha && analyticsDateKey(m.fecha) === fechaHoy);
+    const movsHoy = refillMovements.filter(m => movementDateKey(m) === fechaHoy);
     res.totalRellenosHoy = movsHoy.length;
     res.cajasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0);
     res.piezasMovidasHoy = movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas) || 0), 0);
@@ -200,13 +211,14 @@ function procesarMetricas(fechaHoy) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const fechaStr = getLocalDateString(d);
-        const movimientosDia = refillMovements.filter(m => m.fecha && analyticsDateKey(m.fecha) === fechaStr);
+        const movimientosDia = refillMovements.filter(m => movementDateKey(m) === fechaStr);
         res.historico7Dias[fechaStr] = movimientosDia.length;
     }
 
-    // NUEVO: Promedio Diario Inteligente (Ciclo Viernes-Jueves) + Semanal + Mensual
-    
-    // FunciÃ³n para calcular el inicio del ciclo actual (Viernes 00:00:00 local)
+    // Promedios con ventana movil de 30 dias naturales: hoy + 29 dias anteriores.
+    // Dia = total 30d / 30, Sem = Dia * 7, Mes = total 30d.
+
+    // Funcion legacy para mantener cycleDaily disponible sin afectar la UI principal.
     const getStartOfCurrentCycle = () => {
         const ahora = new Date();
         const diaSemana = ahora.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
@@ -228,16 +240,15 @@ function procesarMetricas(fechaHoy) {
     
     const statsPerProduct = {};
 
-    // 1. Calcular sumas por periodos
-    const last7DateKeys = getRecentLocalDateKeys(7, new Date());
+    // 1. Calcular sumas por ventana movil de 30 dias
     const last30DateKeys = getRecentLocalDateKeys(30, new Date());
 
     refillMovements.forEach(m => {
         const productName = m.productoNombre || 'Desconocido';
         const productKey = movementProductKey(m);
         const pieces = parseInt(m.piezasMovidas) || 0;
-        const movFecha = analyticsTime(m.fecha);
-        const movDateKey = analyticsDateKey(m.fecha);
+        const movFecha = movementTime(m);
+        const movDateKey = movementDateKey(m);
 
         if (!statsPerProduct[productKey]) {
             statsPerProduct[productKey] = {
@@ -245,7 +256,6 @@ function procesarMetricas(fechaHoy) {
                 codigo: m.productoCodigo || m.codigoBarra || '',
                 marca: m.marca || 'Otra',
                 currentCyclePieces: 0, 
-                last7DaysPieces: 0, 
                 last30DaysPieces: 0 
             };
         }
@@ -253,11 +263,6 @@ function procesarMetricas(fechaHoy) {
         // Ciclo actual (desde el Ãºltimo Viernes 00:00)
         if (movFecha >= startOfCycleMs) {
             statsPerProduct[productKey].currentCyclePieces += pieces;
-        }
-        
-        // Ultimos 7 dias naturales: hoy + 6 dias anteriores en fecha local
-        if (last7DateKeys.has(movDateKey)) {
-            statsPerProduct[productKey].last7DaysPieces += pieces;
         }
         
         // Ultimos 30 dias naturales: hoy + 29 dias anteriores en fecha local
@@ -271,12 +276,11 @@ function procesarMetricas(fechaHoy) {
     Object.keys(statsPerProduct).forEach(key => {
         const stats = statsPerProduct[key];
         
-        // Promedio Diario: Ciclo actual / dÃ­as ciclo
-        const dailyAvg = Math.round(stats.last7DaysPieces / 7);
-        // Semanal: Total Ãºltimos 7 dÃ­as
-        const weeklyTotal = stats.last7DaysPieces;
-        // Mensual: Total Ãºltimos 30 dÃ­as
+        // Promedio Diario: total ultimos 30 dias / 30
         const monthlyTotal = stats.last30DaysPieces;
+        const dailyAvg = Math.round(monthlyTotal / 30);
+        // Semanal: estimado con base en la ventana movil de 30 dias
+        const weeklyTotal = Math.round((monthlyTotal / 30) * 7);
 
         const result = {
             nombre: stats.nombre,
@@ -374,7 +378,7 @@ async function generateAndRenderTop10() {
             // Movimientos de hoy para este producto
             const movsHoy = movs.filter(m => 
                 m.productoNombre === p.nombre && 
-                analyticsDateKey(m.fecha) === hoyStr &&
+                movementDateKey(m) === hoyStr &&
                 isRefillMovement(m)
             );
             
@@ -478,7 +482,7 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
             const ventaSemanal = toInt(stats.weekly);
             const ventaMensual = toInt(stats.monthly);
             const diasInventario = stockPiezas <= 0 ? "AGOTADO" : (ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D");
-            const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && analyticsDateKey(m.fecha) === hoyStr && isRefillMovement(m));
+            const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && movementDateKey(m) === hoyStr && isRefillMovement(m));
             const rellenoHoyCajas = toInt(movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0));
             const rellenoHoyPiezas = toInt(movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas, 10) || 0), 0));
             let estado = 'OK', prioridad = 'Baja', accion = 'Mantener';

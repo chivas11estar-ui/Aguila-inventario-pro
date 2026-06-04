@@ -80,14 +80,14 @@ function createTopByBrandSection(refillAverages) {
 
     // Agrupar por marca usando datos de movimientos y cruce con inventario
     const movimientos = window.ANALYTICS_STATE?.movimientos || [];
-    const last7DateKeys = getRecentAnalyticsDateKeys(7);
+    const last30DateKeys = getRecentAnalyticsDateKeys(30);
 
-    const movimientos7Dias = movimientos.filter((m) => {
-        return last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha));
+    const movimientos30Dias = movimientos.filter((m) => {
+        return last30DateKeys.has(getAnalyticsMovementDateKey(m));
     });
     const productosPorMarca = {};
 
-    movimientos7Dias.forEach(m => {
+    movimientos30Dias.forEach(m => {
         if (m.tipo !== 'salida' && m.tipo !== 'entrada_directa_anaquel') return;
         
         // Intentar obtener datos mas recientes del inventario cargado (que ya vienen desencriptados)
@@ -131,7 +131,7 @@ function createTopByBrandSection(refillAverages) {
                 <div class="brand-group">
                     <h3>${brandName}</h3>
                     ${productos.map((p, index) => {
-                        const pzsPorDia = Math.round((p.piezas || 0) / 7);
+                        const pzsPorDia = Math.round((p.piezas || 0) / 30);
                         return `
                             <div>
                                 ${medals[index]} ${p.nombre} - <strong>${pzsPorDia} pzs/dia</strong>
@@ -145,7 +145,7 @@ function createTopByBrandSection(refillAverages) {
 
     return `
         <div class="top-by-brand">
-            <h2>&#127942; Top 3 por Marca (Ultimos 7 dias)</h2>
+            <h2>&#127942; Top 3 por Marca (Ultimos 30 dias)</h2>
             ${brandGroupsHTML}
         </div>
     `;
@@ -221,21 +221,21 @@ window.searchProduct = function() {
     const productName = productInfo.productoNombre;
     const brandName = productInfo.marca;
 
-    // Calcular metricas con 7 dias naturales: hoy + 6 dias anteriores
-    const last7DateKeys = getRecentAnalyticsDateKeys(7);
+    // Calcular metricas con ventana movil de 30 dias naturales
+    const last30DateKeys = getRecentAnalyticsDateKeys(30);
 
     const movimientosProducto = movimientos.filter(m =>
         (m.productoCodigo || m.codigoBarra) === (productInfo.productoCodigo || productInfo.codigoBarra) &&
         (m.tipo === 'salida' || m.tipo === 'entrada_directa_anaquel') &&
-        last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha))
+        last30DateKeys.has(getAnalyticsMovementDateKey(m))
     );
 
     const totalPiezas = movimientosProducto.reduce((sum, m) => 
         sum + (parseInt(m.piezasMovidas) || 0), 0
     );
 
-    const piezasPorDia = Math.round(totalPiezas / 7);
-    const promedioMensual = Math.round(piezasPorDia * 30);
+    const piezasPorDia = Math.round(totalPiezas / 30);
+    const promedioMensual = totalPiezas;
 
     renderSearchResult({
         nombre: productName,
@@ -276,7 +276,7 @@ function renderSearchResult(data) {
                     <span class="metric-label">pzs/mes (est.)</span>
                 </div>
             </div>
-            <p class="info-text">*Calculos basados en salidas de los ultimos 7 dias</p>
+            <p class="info-text">*Calculos basados en salidas de los ultimos 30 dias</p>
         </div>
     `;
 }
@@ -342,6 +342,14 @@ function getAnalyticsLocalDateKey(fecha) {
     return d.toISOString().slice(0, 10);
 }
 
+function getAnalyticsMovementDateValue(m) {
+    return m?.fecha || m?.timestamp || m?.createdAt || m?.date || '';
+}
+
+function getAnalyticsMovementDateKey(m) {
+    return getAnalyticsLocalDateKey(getAnalyticsMovementDateValue(m));
+}
+
 function getRecentAnalyticsDateKeys(days, baseDate = new Date()) {
     const keys = new Set();
     for (let i = 0; i < days; i++) {
@@ -357,7 +365,6 @@ function getRecentAnalyticsDateKeys(days, baseDate = new Date()) {
 }
 
 function calculateProductStatsFromMovements(productCode, productName, movimientos) {
-    const last7DateKeys = getRecentAnalyticsDateKeys(7);
     const last30DateKeys = getRecentAnalyticsDateKeys(30);
     const code = String(productCode || '').trim().toLowerCase();
     const name = String(productName || '').trim().toLowerCase();
@@ -369,12 +376,11 @@ function calculateProductStatsFromMovements(productCode, productName, movimiento
         return isRefill && (movCode === code || movName === name);
     });
 
-    const weekly = productMovs
-        .filter(m => last7DateKeys.has(getAnalyticsLocalDateKey(m.fecha)))
-        .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
     const monthly = productMovs
-        .filter(m => last30DateKeys.has(getAnalyticsLocalDateKey(m.fecha)))
+        .filter(m => last30DateKeys.has(getAnalyticsMovementDateKey(m)))
         .reduce((sum, m) => sum + (parseInt(m.piezasMovidas) || 0), 0);
+    const daily = Math.round(monthly / 30);
+    const weekly = Math.round((monthly / 30) * 7);
 
-    return { daily: Math.round(weekly / 7), weekly, monthly };
+    return { daily, weekly, monthly };
 }
