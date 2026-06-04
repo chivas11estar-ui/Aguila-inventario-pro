@@ -154,10 +154,10 @@ function renderProductCard(product, targetId) {
   const firstBodegaIdArg = JSON.stringify(firstBodega?.id || '');
   const editAction = firstBodega?.id
     ? `window.editarProducto(${firstBodegaIdArg}, ${productCodeArg})`
-    : `if(typeof showToast==='function') showToast('Sin lote/bodega para editar','info')`;
+    : `if(typeof showToast==="function") showToast("Sin lote/bodega para editar","info")`;
   const moveAction = firstBodega?.id
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
-    : `if(typeof showToast==='function') showToast('Sin lote/bodega para mover','info')`;
+    : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -266,7 +266,7 @@ function renderProductCard(product, targetId) {
         <!-- Botones de Acción Estilo Indigo -->
         <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
-            onclick="${editAction}"
+            onclick='${editAction}'
             class="secondary"
             style="flex: 1; padding: 10px; font-size: 13px; margin: 0; background: var(--surface-container); color: var(--text);"
           >
@@ -285,7 +285,7 @@ function renderProductCard(product, targetId) {
             </button>
           ` : `
             <button 
-              onclick="${moveAction}"
+              onclick='${moveAction}'
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0;"
             >
