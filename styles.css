@@ -297,6 +297,37 @@ body::before {
     linear-gradient(180deg, #f6fafe 0%, #fbf8ff 50%, #f8fafc 100%);
 }
 
+:root.dark body::before {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(189, 194, 255, 0.10), transparent 28%),
+    linear-gradient(180deg, #11121a 0%, #1a1b25 48%, #151620 100%) !important;
+}
+
+:root.dark body,
+:root.dark .main-content,
+:root.dark .tab-content {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+:root.dark .app-header {
+  background: rgba(26, 27, 37, 0.90) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+:root.dark .bottom-nav {
+  background: rgba(26, 27, 37, 0.94) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+:root.dark .nav-btn {
+  color: var(--muted) !important;
+}
+
+:root.dark .nav-btn.active {
+  color: #11121a !important;
+}
+
 .card,
 .product-card,
 .metric-card,

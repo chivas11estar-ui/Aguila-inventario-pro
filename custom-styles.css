@@ -1238,6 +1238,8 @@ html {
    ============================================================ */
 :root.dark .bodega-details,
 :root.dark .bodega-list li,
+:root.dark .aguila-brand-header,
+:root.dark .aguila-product-card,
 :root.dark .top-by-brand,
 :root.dark .product-search,
 :root.dark .metric-card,
@@ -1262,6 +1264,34 @@ html {
 :root.dark .aguila-audit-lote-option:hover,
 :root.dark .aguila-kpi {
     background: var(--surface-container) !important;
+}
+
+:root.dark .aguila-brand-title strong,
+:root.dark .aguila-product-card h3,
+:root.dark .aguila-product-card h4,
+:root.dark .aguila-product-card strong,
+:root.dark .aguila-product-card [style*="color: #1e293b"],
+:root.dark .aguila-product-card [style*="color:#1e293b"],
+:root.dark .aguila-product-card [style*="color: #0f172a"],
+:root.dark .aguila-product-card [style*="color:#0f172a"] {
+    color: var(--text) !important;
+}
+
+:root.dark .aguila-brand-title span,
+:root.dark .aguila-product-card small,
+:root.dark .aguila-product-card [style*="color: #64748b"],
+:root.dark .aguila-product-card [style*="color:#64748b"],
+:root.dark .aguila-product-card [style*="color: #475569"],
+:root.dark .aguila-product-card [style*="color:#475569"] {
+    color: var(--muted) !important;
+}
+
+:root.dark .aguila-product-card [style*="background: #f8fafc"],
+:root.dark .aguila-product-card [style*="background:#f8fafc"],
+:root.dark .aguila-product-card [style*="background: #ffffff"],
+:root.dark .aguila-product-card [style*="background:#ffffff"] {
+    background: var(--surface-container) !important;
+    border-color: var(--border) !important;
 }
 
 :root.dark .metric-card .metric-value,
