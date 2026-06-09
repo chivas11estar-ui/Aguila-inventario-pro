@@ -751,3 +751,219 @@ html {
     background: #000 !important; /* OLED Priority */
     border-bottom: 1px solid #222;
 }
+
+/* ============================================================
+   Aguila Pro - componentes visuales del nuevo diseno
+   ============================================================ */
+.aguila-brand-section {
+    margin-bottom: 22px;
+}
+
+.aguila-brand-header {
+    background: rgba(255, 255, 255, 0.88) !important;
+    color: var(--text) !important;
+    padding: 14px 16px !important;
+    margin-bottom: 12px !important;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(197, 197, 217, 0.5) !important;
+    border-radius: 18px !important;
+    box-shadow: var(--shadow-glass) !important;
+    backdrop-filter: blur(14px);
+}
+
+.aguila-brand-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.aguila-brand-rail {
+    width: 7px;
+    height: 30px;
+    border-radius: 99px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.10);
+}
+
+.aguila-brand-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.aguila-brand-title strong {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.aguila-brand-title span {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.aguila-product-card {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-radius: 18px !important;
+    padding: 16px !important;
+    margin-bottom: 14px !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
+    border: 1px solid rgba(226, 225, 240, 0.9) !important;
+    overflow: hidden;
+}
+
+.aguila-product-card h4 {
+    letter-spacing: 0 !important;
+}
+
+.aguila-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.aguila-status-badge.ok {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+.aguila-status-badge.pick {
+    background: rgba(186, 26, 26, 0.10);
+    color: #ba1a1a;
+    border: 1px solid rgba(186, 26, 26, 0.16);
+}
+
+.aguila-lote-card {
+    padding: 11px 12px !important;
+    background: #f8fafc !important;
+    border-radius: 13px !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.analytics-walmart {
+    max-width: 760px;
+    gap: 20px;
+}
+
+.metrics-grid {
+    gap: 12px;
+}
+
+.metric-card {
+    border-radius: 18px;
+    background: #ffffff;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.metric-card:nth-child(3),
+.metric-card:nth-child(4) {
+    border-left-color: var(--success);
+}
+
+.metric-card .metric-value {
+    color: var(--primary);
+}
+
+.top-by-brand,
+.product-search,
+.search-result-card,
+.search-result-card-empty {
+    border-radius: 18px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.search-result-card {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.search-result-card::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 130px;
+    height: 130px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.search-result-card h3,
+.search-result-card .brand-code,
+.search-result-card .info-text {
+    color: #fff;
+}
+
+.search-result-card .brand-code,
+.search-result-card .info-text {
+    opacity: 0.76;
+}
+
+.result-metrics {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.metric-display {
+    background: rgba(255,255,255,0.12) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+#refill-mode-selector {
+    background: #eef2ff;
+    padding: 6px !important;
+    border: 0 !important;
+    border-radius: 18px;
+}
+
+#refill-mode-selector button {
+    border-radius: 14px !important;
+}
+
+#tab-add .card {
+    border-top: 4px solid var(--success) !important;
+    border-radius: 18px !important;
+}
+
+#tab-add button[type="submit"],
+#refill-form button[type="submit"],
+#audit-form button[type="submit"] {
+    min-height: 56px;
+    border-radius: 16px !important;
+}
+
+.search-wrapper {
+    background: rgba(255, 255, 255, 0.86) !important;
+    border: 1px solid rgba(197, 197, 217, 0.48) !important;
+    border-radius: 18px !important;
+    box-shadow: var(--shadow-glass) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.search-input-pro {
+    background: #f8fafc !important;
+    color: var(--text) !important;
+    border: 1px solid transparent !important;
+}
+
+.search-scan-btn {
+    background: var(--primary) !important;
+}

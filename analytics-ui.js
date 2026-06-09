@@ -46,18 +46,22 @@ function createMetricsGrid(data) {
     return `
         <div class="metrics-grid">
             <div class="metric-card">
+                <span class="material-icons-round" style="color:var(--primary);margin-bottom:8px;">autorenew</span>
                 <span class="metric-value">${data.refillsToday}</span>
                 <span class="metric-label">Rellenos Hoy</span>
             </div>
             <div class="metric-card">
+                <span class="material-icons-round" style="color:var(--primary);margin-bottom:8px;">inventory_2</span>
                 <span class="metric-value">${data.boxesMoved}</span>
                 <span class="metric-label">Cajas Movidas</span>
             </div>
             <div class="metric-card">
+                <span class="material-icons-round" style="color:var(--success);margin-bottom:8px;">fact_check</span>
                 <span class="metric-value">${data.audits}</span>
                 <span class="metric-label">Auditorias</span>
             </div>
             <div class="metric-card">
+                <span class="material-icons-round" style="color:var(--success);margin-bottom:8px;">sell</span>
                 <span class="metric-value">${data.totalProducts}</span>
                 <span class="metric-label">Productos</span>
             </div>
@@ -145,7 +149,7 @@ function createTopByBrandSection(refillAverages) {
 
     return `
         <div class="top-by-brand">
-            <h2>&#127942; Top 3 por Marca (Ultimos 30 dias)</h2>
+            <h2><span class="material-icons-round" style="vertical-align:middle;color:var(--primary);">workspace_premium</span> Top 3 por Marca</h2>
             ${brandGroupsHTML}
         </div>
     `;
@@ -157,11 +161,11 @@ function createTopByBrandSection(refillAverages) {
 function createProductSearchSection() {
     return `
         <div class="product-search">
-            <h2>&#128269; Buscar Producto Individual</h2>
+            <h2><span class="material-icons-round" style="vertical-align:middle;color:var(--primary);">manage_search</span> Buscar Producto Individual</h2>
             <div class="search-controls">
-                <button onclick="openProductScanner()">&#128247; Escanear</button>
+                <button onclick="openProductScanner()"><span class="material-icons-round">qr_code_scanner</span></button>
                 <input type="text" id="search-input" placeholder="Nombre o codigo de barras...">
-                <button onclick="searchProduct()">&#128269;</button>
+                <button onclick="searchProduct()"><span class="material-icons-round">search</span></button>
             </div>
             <div id="search-results-container"></div>
         </div>
@@ -270,6 +274,10 @@ function renderSearchResult(data) {
                 <div class="metric-display daily-metric">
                     <span class="metric-value">${data.piezasPorDia}</span>
                     <span class="metric-label">pzs/dia</span>
+                </div>
+                <div class="metric-display daily-metric">
+                    <span class="metric-value">${data.piezasSemana || Math.round((data.piezasPorDia || 0) * 7)}</span>
+                    <span class="metric-label">pzs/sem</span>
                 </div>
                 <div class="metric-display monthly-metric">
                     <span class="metric-value">${data.promedioMensual}</span>

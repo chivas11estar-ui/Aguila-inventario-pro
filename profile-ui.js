@@ -104,7 +104,7 @@ function renderWeatherCard(weather) {
 
   if (!weather || weather.error) {
     return `
-      <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center gap-2">
             <span class="material-icons-round text-primary">cloud_off</span>
@@ -115,7 +115,7 @@ function renderWeatherCard(weather) {
           </button>
         </div>
         <div class="text-center py-6 text-slate-500 dark:text-slate-400">
-          <span class="material-icons-round text-5xl mb-2">cloud_off</span>
+          <span class="material-icons-round weather-icon-animated text-5xl mb-2">cloud_off</span>
           <p>No se pudo cargar el clima.</p>
           <p class="text-xs mt-1">${weatherCity}</p>
         </div>
@@ -124,7 +124,7 @@ function renderWeatherCard(weather) {
   }
 
   return `
-    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+    <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center gap-2">
           <span class="material-icons-round text-primary">cloud</span>
@@ -135,7 +135,7 @@ function renderWeatherCard(weather) {
         </button>
       </div>
       <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
-        <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+        <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
         <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
         <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
@@ -329,7 +329,7 @@ function updateWeatherUI() {
 
   if (!weather || weather.error) {
     weatherContainer.innerHTML = `
-      <span class="material-icons-round text-6xl text-slate-400 mb-2">cloud_off</span>
+      <span class="material-icons-round weather-icon-animated text-6xl text-slate-400 mb-2">cloud_off</span>
       <p class="text-lg text-slate-500 dark:text-slate-400">Clima no disponible</p>
       <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">${weatherCity}</p>
     `;
@@ -337,7 +337,7 @@ function updateWeatherUI() {
   }
 
   weatherContainer.innerHTML = `
-    <span class="material-icons-round text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
+    <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
     <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">

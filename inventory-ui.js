@@ -89,31 +89,34 @@ function renderBrandSection(marca, productos, targetId) {
   };
 
   const style = brandStyles[marca] || brandStyles['default'];
-  const finalBg = targetId === 'inventory-list' ? style.bg : '#565e74';
-  const finalText = targetId === 'inventory-list' ? style.text : '#ffffff';
+  const finalBg = 'rgba(255, 255, 255, 0.88)';
+  const finalText = 'var(--text)';
+  const railColor = targetId === 'inventory-list' ? style.bg : '#565e74';
 
   let html = `
-    <div data-brand-section="${marca}" data-container="${targetId}" style="margin-bottom: 24px;">
+    <div class="aguila-brand-section" data-brand-section="${marca}" data-container="${targetId}">
       <!-- Header de marca -->
       <div 
         data-brand-header 
         data-brand-name="${marca}"
-        class="card"
+        class="aguila-brand-header"
         style="
           background: ${finalBg} !important;
           color: ${finalText} !important;
-          padding: 16px var(--spacing-lg);
-          margin-bottom: 16px;
+          padding: 14px 16px;
+          margin-bottom: 12px;
           cursor: pointer;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: none;
-          box-shadow: var(--shadow-xl);
+          border: 1px solid rgba(197, 197, 217, 0.5);
+          border-radius: 18px;
+          box-shadow: var(--shadow-glass);
         "
       >
         <div style="display: flex; align-items: center; gap: 16px; pointer-events: none;">
-          <span class="material-icons-round" style="font-size: 24px; opacity: 0.9;">
+          <span class="aguila-brand-rail" style="background:${railColor};"></span>
+          <span class="material-icons-round" style="font-size: 22px; color: var(--primary); opacity: 0.9;">
             ${targetId === 'inventory-list' ? 'local_offer' : 'block'}
           </span>
           <div style="display: flex; flex-direction: column;">
@@ -197,10 +200,13 @@ function renderProductCard(product, targetId) {
   } else if (analytics.daily > 0) {
     if (diasInventario <= 2) {
       statusBorder = 'var(--primary)'; // Pick urgente
-      statusIcon = '<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:800; margin-left:8px; text-transform:uppercase;">Pick</span>';
+      statusIcon = '<span class="aguila-status-badge pick" style="margin-left:8px;">Pick</span>';
     } else if (diasInventario <= 5) {
       statusBorder = 'var(--success)';
     }
+  }
+  if (!isOutOfStock && !statusIcon) {
+    statusIcon = '<span class="aguila-status-badge ok" style="margin-left:8px;">OK</span>';
   }
 
   return `
@@ -208,7 +214,7 @@ function renderProductCard(product, targetId) {
       data-product-item
       data-product-name="${productName}"
       data-product-code="${product.codigoBarras}"
-      class="product-card"
+      class="product-card aguila-product-card"
       style="border-left: 6px solid ${statusBorder};"
     >
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
@@ -344,7 +350,7 @@ function renderSingleWarehouse(product, salesAvg = 0) {
   const bodega = bodegas[0];
   if (!bodega) {
     return `
-      <div style="padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+      <div class="aguila-lote-card">
         <div style="font-size: 12px; color: #64748b; font-weight: 600;">Sin bodega/lote asociado</div>
         <div style="font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px;">Promedio de venta: ${salesAvg} pzas/dia</div>
       </div>
@@ -356,7 +362,7 @@ function renderSingleWarehouse(product, salesAvg = 0) {
     : null;
   
   return `
-    <div style="padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
+    <div class="aguila-lote-card" style="display: flex; flex-direction: column; gap: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
           <span class="material-icons-round" style="font-size:16px;">business</span>

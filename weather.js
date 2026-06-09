@@ -78,12 +78,20 @@ window.fetchWeatherData = async function () {
         return;
     }
 
+    const conditionText = current.weatherDesc?.[0]?.value || 'Despejado';
+    const conditionLower = conditionText.toLowerCase();
+    let weatherIcon = 'wb_sunny';
+    if (conditionLower.includes('rain') || conditionLower.includes('lluv')) weatherIcon = 'rainy';
+    else if (conditionLower.includes('storm') || conditionLower.includes('torment')) weatherIcon = 'thunderstorm';
+    else if (conditionLower.includes('cloud') || conditionLower.includes('nubl')) weatherIcon = 'cloud';
+    else if (conditionLower.includes('fog') || conditionLower.includes('mist') || conditionLower.includes('niebla')) weatherIcon = 'foggy';
+
     window.PROFILE_STATE.weather = {
         temperature: parseInt(current.temp_C),
         windSpeed: parseInt(current.windspeedKmph),
         humidity: parseInt(current.humidity),
-        condition: current.weatherDesc?.[0]?.value || 'Despejado',
-        icon: 'wb_sunny',
+        condition: conditionText,
+        icon: weatherIcon,
         city: cityName,
         error: false
     };
