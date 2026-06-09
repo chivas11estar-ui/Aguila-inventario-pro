@@ -56,10 +56,14 @@
 :root.dark {
   --bg: #1a1b25;
   --card-bg: #2f303a;
+  --surface-container: #242530;
+  --surface-dim: #20212b;
   --text: #fbf8ff;
   --muted: #c5c5da;
   --border: #444557;
   --primary: #bdc2ff;
+  --primary-light: #26306d;
+  --secondary-container: #303345;
 }
 
 /* ============================================

@@ -34,6 +34,7 @@ window.refreshWeather = window.fetchWeatherData;
 window.refreshActivity = loadDailyActivity;
 window.updateUserData = updateUserData;
 window.saveUserPreferences = saveUserPreferences;
+window.applyTheme = applyTheme;
 
 // ============================================================
 // GESTIÓN DE TEMA (CLARO/OSCURO)
@@ -61,10 +62,14 @@ function applyTheme(forceMode = null) {
     if (isDark) {
                 htmlElement.classList.add('dark');
                 localStorage.setItem('theme', 'dark');
+                localStorage.setItem('darkMode', 'true');
     } else {
                 htmlElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
+                localStorage.setItem('darkMode', 'false');
     }
+
+    htmlElement.style.colorScheme = isDark ? 'dark' : 'light';
 
     // Asegurar sincronía con el estado
     window.PROFILE_STATE.preferences.darkMode = isDark;

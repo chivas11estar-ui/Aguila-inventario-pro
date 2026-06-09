@@ -261,12 +261,19 @@ async function loadUserData(userId) {
     window.inventoryStore = window.inventoryStore || {};
 
     // 🌙 FIX: Aplicar preferencia de modo oscuro desde localStorage
-    const darkMode = localStorage.getItem('darkMode') === 'true';
-    if (darkMode) {
+    const savedTheme = localStorage.getItem('theme');
+    const darkMode = savedTheme ? savedTheme === 'dark' : localStorage.getItem('darkMode') === 'true';
+    if (typeof window.applyTheme === 'function') {
+      window.applyTheme(darkMode);
+    } else if (darkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('darkMode', 'true');
       console.log('🌙 Modo oscuro activado');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      localStorage.setItem('darkMode', 'false');
       console.log('☀️ Modo claro activado');
     }
 

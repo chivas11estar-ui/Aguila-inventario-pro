@@ -1233,6 +1233,93 @@ html {
     box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
+/* ============================================================
+   MODO OSCURO - Capa de compatibilidad para el nuevo diseño
+   ============================================================ */
+:root.dark .bodega-details,
+:root.dark .bodega-list li,
+:root.dark .top-by-brand,
+:root.dark .product-search,
+:root.dark .metric-card,
+:root.dark .search-result-card,
+:root.dark .search-result-card-empty,
+:root.dark .aguila-refill-product,
+:root.dark .aguila-audit-product,
+:root.dark .aguila-lote-option,
+:root.dark .aguila-audit-lote-option,
+:root.dark .aguila-kpi,
+:root.dark #quick-audit-list > div {
+    background: var(--card-bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22) !important;
+}
+
+:root.dark .bodega-details[open],
+:root.dark .bodega-details summary:hover,
+:root.dark .search-result-card,
+:root.dark .aguila-lote-option:hover,
+:root.dark .aguila-audit-lote-option:hover,
+:root.dark .aguila-kpi {
+    background: var(--surface-container) !important;
+}
+
+:root.dark .metric-card .metric-value,
+:root.dark .top-by-brand h2,
+:root.dark .product-search h2,
+:root.dark .brand-group h3,
+:root.dark .search-result-card h3,
+:root.dark .aguila-refill-title,
+:root.dark .aguila-audit-title,
+:root.dark .bodega-list li span,
+:root.dark .search-controls button {
+    color: var(--text) !important;
+}
+
+:root.dark .metric-card .metric-label,
+:root.dark .brand-group div,
+:root.dark .search-result-card .brand-code,
+:root.dark .search-result-card-empty,
+:root.dark .aguila-refill-meta,
+:root.dark .aguila-audit-meta,
+:root.dark .aguila-kpi span,
+:root.dark .bodega-list small {
+    color: var(--muted) !important;
+}
+
+:root.dark input,
+:root.dark select,
+:root.dark textarea,
+:root.dark input[readonly],
+:root.dark .search-controls input[type="text"] {
+    background: var(--surface-container) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+    color: #9ca3af !important;
+}
+
+:root.dark .search-wrapper {
+    background: rgba(31, 32, 43, 0.88) !important;
+    border-color: rgba(197, 197, 218, 0.24) !important;
+}
+
+:root.dark .aguila-refill-product.warning,
+:root.dark .aguila-audit-product.warning {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-left-color: #f59e0b !important;
+}
+
+:root.dark #audit-stock-info,
+:root.dark #total-movements {
+    background: rgba(16, 185, 129, 0.14) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    color: #8ee8c3 !important;
+}
+
 @media (max-width: 520px) {
     #refill-mode-selector {
         grid-template-columns: 1fr;
