@@ -6,8 +6,34 @@
 // ============================================================
 // DEFINICIÃ“N GLOBAL Y SEGURA DE showToast
 // ============================================================
+function normalizeToastText(value) {
+  return String(value ?? '')
+    .replace(/\u00c3\u0081/g, 'Á')
+    .replace(/\u00c3\u00a1/g, 'á')
+    .replace(/\u00c3\u0089/g, 'É')
+    .replace(/\u00c3\u00a9/g, 'é')
+    .replace(/\u00c3\u008d/g, 'Í')
+    .replace(/\u00c3\u00ad/g, 'í')
+    .replace(/\u00c3\u0093/g, 'Ó')
+    .replace(/\u00c3\u00b3/g, 'ó')
+    .replace(/\u00c3\u009a/g, 'Ú')
+    .replace(/\u00c3\u00ba/g, 'ú')
+    .replace(/\u00c3\u0091/g, 'Ñ')
+    .replace(/\u00c3\u00b1/g, 'ñ')
+    .replace(/\u00c2\u00a1/g, '¡')
+    .replace(/\u00c2\u00bf/g, '¿')
+    .replace(/\u00e2\u0086\u0092/g, '->')
+    .replace(/\u00e2\u009c\u0085/g, '')
+    .replace(/\u00e2\u009d\u008c/g, '')
+    .replace(/\u00f0\u009f\u0093\u00a6/g, '')
+    .replace(/\u00f0\u009f\u0093\u00a1/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 window.showToast = function(message, type = 'info') {
-  console.log('[TOAST]', type.toUpperCase(), 'â†’', message);
+  const cleanMessage = normalizeToastText(message);
+  console.log('[TOAST]', type.toUpperCase(), '->', cleanMessage);
   
   const containerId = 'app-toast-container';
   let container = document.getElementById(containerId);
@@ -21,7 +47,7 @@ window.showToast = function(message, type = 'info') {
   
   const toast = document.createElement('div');
   toast.className = 'toast toast-' + type;
-  toast.textContent = message;
+  toast.textContent = cleanMessage;
   toast.style.cssText = `
     background: var(--card-bg);
     color: var(--text);
@@ -198,7 +224,7 @@ function connectGlobalScanButtons() {
                     // Fallback: verificar si ya existe el producto
                     window.buscarProductoPorCodigo(code).then(prod => {
                         if (prod && prod._exists) {
-                            showToast(`ðŸ“¦ Producto existente: ${prod.nombre}`, 'info');
+                            showToast(`Producto existente: ${prod.nombre}`, 'info');
                             if (document.getElementById('add-product-name')) {
                                 document.getElementById('add-product-name').value = prod.nombre || '';
                             }
@@ -290,11 +316,11 @@ function connectGlobalScanButtons() {
 // MONITOREAR CONEXIÃ“N
 // ============================================================
 window.addEventListener('online', () => {
-  showToast('âœ… ConexiÃ³n restaurada', 'success');
+  showToast('Conexión restaurada', 'success');
 });
 
 window.addEventListener('offline', () => {
-  showToast('ðŸ“¡ Sin conexiÃ³n a internet', 'warning');
+  showToast('Sin conexión a internet', 'warning');
 });
 
 // ============================================================

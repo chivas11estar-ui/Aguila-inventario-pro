@@ -405,6 +405,35 @@ async function getDailyAIPhrase(userId, userName) {
 // ============================================================
 // MOSTRAR FRASE DEL DÃA EN LA UI (con estado "Cargando...")
 // ============================================================
+function normalizeAIPhraseText(value) {
+            return String(value ?? '')
+                            .replace(/\u00c3\u0081/g, 'Á')
+                            .replace(/\u00c3\u00a1/g, 'á')
+                            .replace(/\u00c3\u0089/g, 'É')
+                            .replace(/\u00c3\u00a9/g, 'é')
+                            .replace(/\u00c3\u008d/g, 'Í')
+                            .replace(/\u00c3\u00ad/g, 'í')
+                            .replace(/\u00c3\u0093/g, 'Ó')
+                            .replace(/\u00c3\u00b3/g, 'ó')
+                            .replace(/\u00c3\u009a/g, 'Ú')
+                            .replace(/\u00c3\u00ba/g, 'ú')
+                            .replace(/\u00c3\u0091/g, 'Ñ')
+                            .replace(/\u00c3\u00b1/g, 'ñ')
+                            .replace(/\u00c2\u00a1/g, '¡')
+                            .replace(/\u00c2\u00bf/g, '¿')
+                            .replace(/\u00e2\u009c\u00a8/g, '✨')
+                            .replace(/\u00f0\u009f\u008c\u009f/g, '⭐')
+                            .replace(/\u00f0\u009f\u0092\u00aa/g, '💪')
+                            .replace(/\u00f0\u009f\u00a6\u0085/g, '')
+                            .replace(/\u00f0\u009f\u009a\u0080/g, '🚀')
+                            .replace(/\u00f0\u009f\u008f\u0086/g, '🏆')
+                            .replace(/\u00f0\u009f\u0093\u0088/g, '')
+                            .replace(/\u00f0\u009f\u0092\u008e/g, '')
+                            .replace(/\u00f0\u009f\u008e\u00af/g, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+}
+
 async function displayDailyAIPhrase() {
             const user = firebase.auth().currentUser;
             if (!user) return;
@@ -412,27 +441,27 @@ async function displayDailyAIPhrase() {
     // Mostrar estado de carga
     const phraseContainer = document.getElementById('motivational-phrase');
             if (phraseContainer) {
-                            phraseContainer.textContent = 'âœ¨ Generando frase del dÃ­a...';
+                            phraseContainer.textContent = 'Generando frase del dia...';
                             phraseContainer.style.opacity = '0.6';
             }
 
     try {
                     const userSnapshot = await firebase.database().ref(`usuarios/${user.uid}`).once('value');
                     const userData = userSnapshot.val();
-                    const fullName = userData?.nombrePromotor || 'CampeÃ³n';
+                    const fullName = userData?.nombrePromotor || 'Campeón';
                     const firstName = fullName.split(' ')[0];
 
                 const phrase = await getDailyAIPhrase(user.uid, firstName);
 
                 if (phraseContainer) {
-                                    phraseContainer.textContent = `"${phrase}"`;
+                                    phraseContainer.textContent = `"${normalizeAIPhraseText(phrase)}"`;
                                     phraseContainer.style.opacity = '1';
                                     phraseContainer.style.transition = 'opacity 0.3s ease-in';
                 }
     } catch (error) {
                     console.error('ðŸ›¡ï¸ Error UI-IA:', error);
                     if (phraseContainer) {
-                                        phraseContainer.textContent = `"${getFallbackPhrase('CampeÃ³n')}"`;
+                                        phraseContainer.textContent = `"${getFallbackPhrase('Campeón')}"`;
                                         phraseContainer.style.opacity = '1';
                     }
     }
@@ -450,7 +479,7 @@ function getFallbackPhrase(userName) {
     if (weatherCond.includes('rain') || weatherCond.includes('lluvia')) {
                     climateHint = 'aunque llueva';
     } else if (weatherCond.includes('cloud') || weatherCond.includes('nublado') || weatherCond.includes('overcast')) {
-                    climateHint = 'aunque el cielo estÃ© nublado';
+                    climateHint = 'aunque el cielo esté nublado';
     } else if (weatherCond.includes('sun') || weatherCond.includes('clear') || weatherCond.includes('despejado')) {
                     climateHint = 'con este gran sol';
     } else if (weatherCond.includes('partly')) {
@@ -458,22 +487,22 @@ function getFallbackPhrase(userName) {
     }
 
     const santo = AIService.getSantoDia();
-            const santoHint = santo ? ` En dÃ­a de ${santo}.` : '';
+    const santoHint = santo ? ` En día de ${normalizeAIPhraseText(santo)}.` : '';
 
     const phrases = [
-                    `Â¡${userName}, brilla ${climateHint}! Tu energÃ­a contagia al equipo.${santoHint} ðŸŒŸ`,
-                    `${userName}, hoy vendes fuerte ${climateHint}. Eres un campeÃ³n.${santoHint} ðŸ’ª`,
-                    `${userName}, avanza ${climateHint}. Cada paso cuenta hoy.${santoHint} ðŸ¦…`,
-                    `Â¡Arriba ${userName}! Hoy es tu dÃ­a para destacar ${climateHint}.${santoHint} ðŸš€`,
-                    `${userName}, tu esfuerzo vale oro. A darlo todo hoy.${santoHint} ðŸ†`,
-                    `Â¡Ã‰xito total para ${userName}! El anaquel te espera.${santoHint} ðŸ“ˆ`,
-                    `${userName}, eres pieza clave del equipo. Â¡Ãnimo ${climateHint}!${santoHint} ðŸ’Ž`,
-                    `Hoy brillas ${userName}. Con actitud todo se logra.${santoHint} âœ¨`,
-                    `${userName}, cada producto que acomodas suma. Â¡Vamos!${santoHint} ðŸŽ¯`,
-                    `Â¡${userName}, el inventario perfecto se logra con ganas como las tuyas!${santoHint} ðŸ¦…`
+                    `¡${userName}, brilla ${climateHint}! Tu energía contagia al equipo.${santoHint} ⭐`,
+                    `${userName}, hoy vendes fuerte ${climateHint}. Eres un campeón.${santoHint} 💪`,
+                    `${userName}, avanza ${climateHint}. Cada paso cuenta hoy.${santoHint}`,
+                    `¡Arriba ${userName}! Hoy es tu día para destacar ${climateHint}.${santoHint} 🚀`,
+                    `${userName}, tu esfuerzo vale oro. A darlo todo hoy.${santoHint} 🏆`,
+                    `¡Éxito total para ${userName}! El anaquel te espera.${santoHint}`,
+                    `${userName}, eres pieza clave del equipo. ¡Ánimo ${climateHint}!${santoHint}`,
+                    `Hoy brillas ${userName}. Con actitud todo se logra.${santoHint} ✨`,
+                    `${userName}, cada producto que acomodas suma. ¡Vamos!${santoHint}`,
+                    `¡${userName}, el inventario perfecto se logra con ganas como las tuyas!${santoHint}`
                 ];
 
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return normalizeAIPhraseText(phrases[Math.floor(Math.random() * phrases.length)]);
 }
 
 
