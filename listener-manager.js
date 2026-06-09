@@ -33,7 +33,7 @@ window.LISTENERS_MANAGER = {
   // Desuscribir un listener específico
   unsubscribe(name) {
     if (!this._listeners[name]) {
-      console.warn(`⚠️ [LISTENERS] No existe listener: ${name}`);
+      console.debug(`[LISTENERS] Listener no activo, se omite: ${name}`);
       return false;
     }
 

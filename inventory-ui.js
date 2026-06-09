@@ -474,8 +474,8 @@ function toggleBrandUI(brandName, containerId) {
     }
 
     if (arrow) {
-      arrow.textContent = isExpanded ? '▼' : '▶';
-      console.log(`    ✅ Flecha cambiada a: ${isExpanded ? '▼' : '▶'}`);
+      arrow.textContent = isExpanded ? 'expand_more' : 'chevron_right';
+      console.log(`    Flecha cambiada a: ${isExpanded ? 'expand_more' : 'chevron_right'}`);
     }
   });
 }
@@ -487,7 +487,7 @@ function applyBrandStates() {
       const productsList = section.querySelector('[data-products-list]');
       const arrow = section.querySelector('[data-brand-arrow]');
       if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';
-      if (arrow) arrow.textContent = isExpanded ? '▼' : '▶';
+      if (arrow) arrow.textContent = isExpanded ? 'expand_more' : 'chevron_right';
     });
   });
 }
