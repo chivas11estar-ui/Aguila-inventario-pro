@@ -132,6 +132,29 @@
     window.cleanAppText = repairTextV2;
 })();
 
+// Consola limpia para uso diario: oculta ruido de arranque y deja errores reales visibles.
+(function setupQuietProductionConsole() {
+    if (window.__aguilaQuietProductionConsole) return;
+    window.__aguilaQuietProductionConsole = true;
+    window.AGUILA_DEBUG = window.AGUILA_DEBUG === true;
+
+    const originalLog = console.log;
+    const originalInfo = console.info;
+    const originalDebug = console.debug;
+
+    console.log = function quietLog(...args) {
+        if (window.AGUILA_DEBUG) originalLog.apply(console, args);
+    };
+
+    console.info = function quietInfo(...args) {
+        if (window.AGUILA_DEBUG) originalInfo.apply(console, args);
+    };
+
+    console.debug = function quietDebug(...args) {
+        if (window.AGUILA_DEBUG) originalDebug.apply(console, args);
+    };
+})();
+
 /**
  * OFUSCACIÓN DE CREDENCIALES (Ciberseguridad Pro)
  * Técnica: Reversión + Base64 para evitar detección por bots de scraping estático.
