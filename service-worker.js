@@ -3,7 +3,7 @@
 // Estrategia: stale-while-revalidate para el App Shell
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v5.1";
+const CACHE_NAME = "aguila-pro-v5.2";
 
 const APP_SHELL_ASSETS = [
   "/",
@@ -72,6 +72,20 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "CLEAR_CACHE") {
+    event.waitUntil(
+      caches.keys().then((cacheNames) => Promise.all(cacheNames.map((name) => caches.delete(name))))
+    );
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -80,7 +94,7 @@ self.addEventListener("fetch", (event) => {
   if (IGNORED_HOST_PARTS.some((part) => request.url.includes(part))) return;
 
   if (APP_SHELL_SET.has(url.pathname) || APP_SHELL_SET.has(url.pathname + url.search)) {
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(networkFirst(request));
     return;
   }
 
@@ -109,4 +123,22 @@ async function staleWhileRevalidate(request) {
     }));
 
   return cachedResponse || networkResponsePromise;
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const networkResponse = await fetch(new Request(request, { cache: "reload" }));
+    if (networkResponse && networkResponse.status === 200) {
+      await cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (_) {
+    const cachedResponse = await cache.match(request);
+    return cachedResponse || new Response("Offline / Fallo de red", {
+      status: 503,
+      statusText: "Offline"
+    });
+  }
 }
