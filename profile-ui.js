@@ -134,10 +134,10 @@ function renderWeatherCard(weather) {
           <span class="material-icons-round text-sm">refresh</span>
         </button>
       </div>
-      <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
+      <div class="weather-panel-animated bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
         <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
         <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
-        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${weather.condition || 'Desconocido'}</p>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
           <span class="material-icons-round text-[14px]">location_on</span>
           <span>${weatherCity}</span>
@@ -339,7 +339,7 @@ function updateWeatherUI() {
   weatherContainer.innerHTML = `
     <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
     <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
-    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium capitalize">${weather.condition || 'Desconocido'}</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${weather.condition || 'Desconocido'}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
       <span class="material-icons-round text-[14px]">location_on</span>
       <span>${weatherCity}</span>

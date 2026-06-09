@@ -4,6 +4,44 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
+function normalizeWeatherText(text) {
+    return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function getWeatherPresentation(conditionText) {
+    const condition = normalizeWeatherText(conditionText);
+
+    if (condition.includes('thunder') || condition.includes('storm') || condition.includes('torment')) {
+        return { label: 'Tormenta', icon: 'thunderstorm' };
+    }
+    if (condition.includes('rain') || condition.includes('drizzle') || condition.includes('shower') || condition.includes('lluv') || condition.includes('lloviz')) {
+        return { label: 'Lluvia', icon: 'rainy' };
+    }
+    if (condition.includes('snow') || condition.includes('sleet') || condition.includes('nieve')) {
+        return { label: 'Nieve', icon: 'ac_unit' };
+    }
+    if (condition.includes('fog') || condition.includes('mist') || condition.includes('haze') || condition.includes('niebla') || condition.includes('bruma')) {
+        return { label: 'Neblina', icon: 'foggy' };
+    }
+    if (condition.includes('overcast')) {
+        return { label: 'Nublado', icon: 'cloud' };
+    }
+    if (condition.includes('partly') || condition.includes('partial') || condition.includes('parcial')) {
+        return { label: 'Parcialmente nublado', icon: 'partly_cloudy_day' };
+    }
+    if (condition.includes('cloud') || condition.includes('nubl')) {
+        return { label: 'Nublado', icon: 'cloud' };
+    }
+    if (condition.includes('clear') || condition.includes('sunny') || condition.includes('despej') || condition.includes('solead')) {
+        return { label: 'Soleado', icon: 'wb_sunny' };
+    }
+
+    return { label: 'Clima estable', icon: 'wb_sunny' };
+}
+
 window.fetchWeatherData = async function () {
     let lat = 19.4326, lon = -99.1332; // CDMX Default
     let cityName = "Detectando...";
@@ -61,7 +99,7 @@ window.fetchWeatherData = async function () {
 
     let data = null;
     try {
-        const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1`);
+        const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1&lang=es`);
         if (res.ok) data = await res.json();
     } catch(e) { data = null; }
 
@@ -78,20 +116,15 @@ window.fetchWeatherData = async function () {
         return;
     }
 
-    const conditionText = current.weatherDesc?.[0]?.value || 'Despejado';
-    const conditionLower = conditionText.toLowerCase();
-    let weatherIcon = 'wb_sunny';
-    if (conditionLower.includes('rain') || conditionLower.includes('lluv')) weatherIcon = 'rainy';
-    else if (conditionLower.includes('storm') || conditionLower.includes('torment')) weatherIcon = 'thunderstorm';
-    else if (conditionLower.includes('cloud') || conditionLower.includes('nubl')) weatherIcon = 'cloud';
-    else if (conditionLower.includes('fog') || conditionLower.includes('mist') || conditionLower.includes('niebla')) weatherIcon = 'foggy';
+    const conditionText = current.lang_es?.[0]?.value || current.weatherDesc?.[0]?.value || 'Despejado';
+    const weatherInfo = getWeatherPresentation(conditionText);
 
     window.PROFILE_STATE.weather = {
         temperature: parseInt(current.temp_C),
         windSpeed: parseInt(current.windspeedKmph),
         humidity: parseInt(current.humidity),
-        condition: conditionText,
-        icon: weatherIcon,
+        condition: weatherInfo.label,
+        icon: weatherInfo.icon,
         city: cityName,
         error: false
     };
