@@ -127,9 +127,52 @@ function initUI() {
   
   setupTabs();
   connectGlobalScanButtons();
+  enhanceQuantityInputs();
   
   console.log('âœ… UI inicializado correctamente');
 }
+
+function enhanceQuantityInputs() {
+  ['refill-boxes', 'refill-pieces', 'audit-boxes'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (!input || input.dataset.aguilaStepper === 'true') return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'aguila-stepper';
+
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'aguila-stepper-btn';
+    minus.setAttribute('aria-label', 'Disminuir');
+    minus.innerHTML = '<span class="material-icons-round">remove</span>';
+
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'aguila-stepper-btn';
+    plus.setAttribute('aria-label', 'Aumentar');
+    plus.innerHTML = '<span class="material-icons-round">add</span>';
+
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(minus);
+    wrapper.appendChild(input);
+    wrapper.appendChild(plus);
+    input.dataset.aguilaStepper = 'true';
+
+    const stepBy = (delta) => {
+      const current = parseFloat(input.value) || 0;
+      const min = input.min !== '' ? parseFloat(input.min) : 0;
+      const next = Math.max(min, current + delta);
+      input.value = Number.isInteger(next) ? String(next) : next.toFixed(2);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    minus.addEventListener('click', () => stepBy(-1));
+    plus.addEventListener('click', () => stepBy(1));
+  });
+}
+
+window.enhanceQuantityInputs = enhanceQuantityInputs;
 
 /**
  * Conector Global de Eventos de CÃ¡mara (Bridge V4.2)

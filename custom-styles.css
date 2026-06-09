@@ -967,3 +967,283 @@ html {
 .search-scan-btn {
     background: var(--primary) !important;
 }
+
+/* ============================================================
+   Fase 2 - Reabastecimiento y Auditoria
+   ============================================================ */
+#tab-refill > .card,
+#tab-audit > .card {
+    border-radius: 20px !important;
+    border: 1px solid rgba(226, 225, 240, 0.9) !important;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07) !important;
+    overflow: hidden;
+}
+
+#tab-refill > .card::after,
+#tab-audit > .card::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--success));
+}
+
+#tab-refill h2,
+#tab-audit h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+#refill-mode-selector {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px !important;
+    background: #eef2ff !important;
+    padding: 6px !important;
+    border: 0 !important;
+    border-radius: 18px !important;
+    margin: 18px 0 22px !important;
+}
+
+#refill-mode-selector button {
+    min-height: 48px;
+    padding: 10px 8px !important;
+    border-radius: 14px !important;
+    font-size: 12px;
+    line-height: 1.15;
+    white-space: normal;
+    box-shadow: none !important;
+}
+
+#refill-form .form-group,
+#audit-form .form-group {
+    margin-bottom: 16px;
+}
+
+#refill-form label,
+#audit-form label {
+    color: var(--muted) !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+#refill-form input,
+#audit-form input,
+#audit-form select {
+    min-height: 48px;
+    border-radius: 14px !important;
+    border-color: #e2e8f0 !important;
+}
+
+#refill-form button[type="submit"],
+#audit-form button[type="submit"],
+#finish-audit-btn,
+#btn-save-quick-audit,
+#btn-cancel-quick-audit,
+#btn-quick-audit-mode {
+    min-height: 54px;
+    border-radius: 16px !important;
+    font-weight: 900 !important;
+}
+
+#btn-scan-refill,
+#btn-scan-audit,
+#save-warehouse-btn {
+    width: 50px !important;
+    min-width: 50px;
+    height: 48px;
+    padding: 0 !important;
+    border-radius: 14px !important;
+}
+
+#refill-product-info,
+#audit-stock-info,
+#current-warehouse-display {
+    border-radius: 16px !important;
+}
+
+#refill-product-info {
+    margin: 18px 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+}
+
+#refill-product-info > div,
+#audit-stock-info > div {
+    border-radius: 16px !important;
+    padding: 15px !important;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+    border-width: 1px 1px 1px 4px !important;
+    border-style: solid !important;
+}
+
+#lote-selector > div,
+[id^="audit-lote-"] {
+    border-radius: 14px !important;
+    padding: 12px !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+#current-warehouse-display {
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+#refill-boxes,
+#refill-pieces,
+#audit-boxes {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.aguila-stepper {
+    display: grid;
+    grid-template-columns: 46px 1fr 46px;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 5px;
+}
+
+.aguila-stepper input {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+}
+
+.aguila-stepper-btn {
+    width: 42px;
+    height: 42px;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    background: #eef2ff !important;
+    color: var(--primary) !important;
+    box-shadow: none !important;
+}
+
+.aguila-stepper-btn:active {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+.aguila-refill-product,
+.aguila-audit-product {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid var(--primary);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.aguila-refill-product.warning,
+.aguila-audit-product.warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.aguila-refill-title,
+.aguila-audit-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    color: #0f172a;
+    font-weight: 900;
+}
+
+.aguila-refill-meta,
+.aguila-audit-meta {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.aguila-lote-option,
+.aguila-audit-lote-option {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid #dbeafe;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.aguila-lote-option:hover,
+.aguila-audit-lote-option:hover {
+    transform: translateY(-1px);
+    border-color: var(--primary);
+    background: #eff6ff;
+}
+
+.aguila-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.aguila-kpi {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 12px;
+    text-align: center;
+}
+
+.aguila-kpi strong {
+    display: block;
+    color: var(--primary);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.aguila-kpi span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#total-movements {
+    display: block;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 18px;
+    padding: 16px;
+    text-align: center;
+}
+
+#quick-audit-list > div {
+    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+    margin-bottom: 10px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
+}
+
+@media (max-width: 520px) {
+    #refill-mode-selector {
+        grid-template-columns: 1fr;
+    }
+
+    #refill-form [style*="grid-template-columns: 1fr 1fr"],
+    #audit .responsive-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .aguila-kpi-row {
+        grid-template-columns: 1fr;
+    }
+}
