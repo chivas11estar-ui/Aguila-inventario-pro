@@ -361,6 +361,7 @@ function updateWeatherUI() {
 // ACTUALIZAR SOLO LA ACTIVIDAD (NO NECESARIA CON ESTE DISEÑO, PERO SE MANTIENE EL STUB)
 // ============================================================
 function updateActivityUI() {
+  return;
   console.log('ℹ️ updateActivityUI llamado, pero el diseño actual no tiene una sección de actividad dinámica.');
   // El diseño proporcionado no tiene una sección de "Actividad de Hoy" como la anterior.
   // Si se necesita en el futuro, se deberá añadir la sección y su lógica de actualización aquí.
