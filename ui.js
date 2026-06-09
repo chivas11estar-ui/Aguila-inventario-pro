@@ -7,7 +7,9 @@
 // DEFINICIÃ“N GLOBAL Y SEGURA DE showToast
 // ============================================================
 function normalizeToastText(value) {
-  return String(value ?? '')
+  const repairedValue = typeof window.cleanAppText === 'function' ? window.cleanAppText(value) : value;
+
+  return String(repairedValue ?? '')
     .replace(/\u00c3\u0081/g, 'Á')
     .replace(/\u00c3\u00a1/g, 'á')
     .replace(/\u00c3\u0089/g, 'É')
@@ -27,6 +29,8 @@ function normalizeToastText(value) {
     .replace(/\u00e2\u009d\u008c/g, '')
     .replace(/\u00f0\u009f\u0093\u00a6/g, '')
     .replace(/\u00f0\u009f\u0093\u00a1/g, '')
+    .replace(/\u00e2\u009c\u008f\u00ef\u00b8\u008f/g, '')
+    .replace(/\u00f0\u009f\u00a7\u00a9/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

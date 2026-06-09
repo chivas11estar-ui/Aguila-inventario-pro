@@ -5,6 +5,45 @@
 
 'use strict';
 
+// Limpia textos con codificacion rota antes de que lleguen a la consola.
+(function setupConsoleTextRepair() {
+    if (window.__aguilaConsoleTextRepair) return;
+    window.__aguilaConsoleTextRepair = true;
+
+    const decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null;
+    const methods = ['log', 'info', 'warn', 'error', 'debug'];
+
+    function repairText(value) {
+        if (typeof value !== 'string') return value;
+
+        let output = value;
+        for (let i = 0; i < 3; i++) {
+            if (!/[ÃÂâðÅ]/.test(output) || !decoder) break;
+
+            const bytes = Uint8Array.from(Array.from(output, char => char.charCodeAt(0) & 255));
+            const decoded = decoder.decode(bytes);
+            if (!decoded || decoded === output || decoded.includes('�')) break;
+            output = decoded;
+        }
+
+        return output
+            .replace(/\u00c2/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    methods.forEach(method => {
+        const original = console[method];
+        if (typeof original !== 'function') return;
+
+        console[method] = function repairedConsoleMethod(...args) {
+            original.apply(console, args.map(repairText));
+        };
+    });
+
+    window.cleanAppText = repairText;
+})();
+
 /**
  * OFUSCACIÓN DE CREDENCIALES (Ciberseguridad Pro)
  * Técnica: Reversión + Base64 para evitar detección por bots de scraping estático.
