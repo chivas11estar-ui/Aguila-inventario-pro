@@ -227,13 +227,18 @@ function connectGlobalScanButtons() {
                 } else if (typeof window.buscarProductoPorCodigo === 'function') {
                     // Fallback: verificar si ya existe el producto
                     window.buscarProductoPorCodigo(code).then(prod => {
-                        if (prod && prod._exists) {
-                            showToast(`Producto existente: ${prod.nombre}`, 'info');
+                        if (prod && (prod._exists || prod._catalogExists)) {
+                            showToast(prod._exists
+                                ? `Producto existente: ${prod.nombre}`
+                                : `Producto encontrado en el catálogo: ${prod.nombre}`, 'info');
                             if (document.getElementById('add-product-name')) {
                                 document.getElementById('add-product-name').value = prod.nombre || '';
                             }
                             if (document.getElementById('add-brand')) {
                                 document.getElementById('add-brand').value = prod.marca || '';
+                            }
+                            if (document.getElementById('add-pieces-per-box')) {
+                                document.getElementById('add-pieces-per-box').value = prod.piezasPorCaja || '';
                             }
                         }
                     });

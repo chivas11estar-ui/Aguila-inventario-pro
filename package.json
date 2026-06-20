@@ -7,7 +7,7 @@
     "build": "tailwindcss -i tailwind-input.css -o tailwind-built.css --minify",
     "playstore:init": "bubblewrap init --manifest=https://aguilainventario.netlify.app/manifest.json",
     "playstore:build": "bubblewrap build",
-    "test": "node --check analytics-ui.js && node --check service-worker.js"
+    "test": "node --check inventory-core.js && node --check ui.js && node --check analytics-ui.js && node --check service-worker.js"
   },
   "keywords": [
     "inventario",

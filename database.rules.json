@@ -8,11 +8,72 @@
         ".write": "auth != null && auth.uid == $uid"
       }
     },
-    "inventario": {
+    "productos": {
       "$determinante": {
         ".read": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
         ".write": "auth != null && root.child('usuarios').child(auth.uid).child('determinante').val() == $determinante",
-        ".indexOn": ["codigoBarras", "marca", "fechaCaducidad", "fechaActualizacion"]
+        ".indexOn": ["codigoBarras", "marca", "fechaActualizacion"],
+        "$codigoBarras": {
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "marca": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "codigoBarras": {
+            ".validate": "newData.isString() && newData.val().length >= 8"
+          },
+          "piezasPorCaja": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "stockTotal": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "lotes": {
+            "$loteId": {
+              "bodega": {
+                ".validate": "newData.isString() && newData.val().length > 0"
+              },
+              "fechaCaducidad": {
+                ".validate": "newData.isString()"
+              },
+              "stock": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "actualizado": {
+                ".validate": "newData.isNumber()"
+              }
+            }
+          }
+        }
+      }
+    },
+    "catalogoProductos": {
+      "$codigoBarras": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['nombre', 'marca', 'piezasPorCaja', 'creadoEn', 'creadoPor'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "marca": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "piezasPorCaja": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "categoria": {
+          ".validate": "newData.isString()"
+        },
+        "creadoEn": {
+          ".validate": "newData.isNumber()"
+        },
+        "creadoPor": {
+          ".validate": "newData.isString() && newData.val() == auth.uid"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "movimientos": {

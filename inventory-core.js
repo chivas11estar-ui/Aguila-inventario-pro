@@ -76,6 +76,12 @@ function getProductRef(determinante, codigoBarras) {
   return firebase.database().ref(`productos/${determinante}/${safeCode}`);
 }
 
+function getCatalogProductRef(codigoBarras) {
+  const safeCode = sanitizeBarcode(codigoBarras);
+  if (!safeCode) return null;
+  return firebase.database().ref(`catalogoProductos/${safeCode}`);
+}
+
 // ============================================================
 // 5. BUSCAR PRODUCTO — retorna info + lotes expandidos
 // ============================================================
@@ -90,9 +96,25 @@ async function buscarProductoPorCodigo(codigoBarras) {
     const snapshot = await ref.once('value');
 
     if (!snapshot.exists()) {
+      const catalogRef = getCatalogProductRef(codigoBarras);
+      const catalogSnapshot = catalogRef ? await catalogRef.once('value') : null;
+
+      if (catalogSnapshot?.exists()) {
+        return {
+          ...catalogSnapshot.val(),
+          codigoBarras: codigoBarras.trim(),
+          stockTotal: 0,
+          lotes: [],
+          _exists: false,
+          _catalogExists: true,
+          _ref: ref
+        };
+      }
+
       return {
         codigoBarras: codigoBarras.trim(),
         _exists: false,
+        _catalogExists: false,
         _ref: ref
       };
     }
@@ -162,6 +184,21 @@ async function guardarProducto(formData) {
   const ahora = Date.now();
 
   const updates = {};
+
+  // El catálogo compartido contiene solamente datos descriptivos. Se crea
+  // una sola vez y nunca recibe stock, bodegas ni fechas de caducidad.
+  const catalogRef = getCatalogProductRef(safeCode);
+  const catalogSnapshot = await catalogRef.once('value');
+  if (!catalogSnapshot.exists()) {
+    updates[`catalogoProductos/${safeCode}`] = {
+      nombre: formData.nombre.trim(),
+      marca: formData.marca.trim(),
+      piezasPorCaja: parseInt(formData.piezasPorCaja) || 1,
+      ...(formData.categoria?.trim() ? { categoria: formData.categoria.trim() } : {}),
+      creadoEn: ahora,
+      creadoPor: firebase.auth().currentUser?.uid || 'sistema'
+    };
+  }
 
   // Info general del producto (no sobreescribe otros lotes)
   updates[`productos/${det}/${safeCode}/nombre`] = formData.nombre.trim();
@@ -442,6 +479,7 @@ window.guardarProducto = guardarProducto;
 window.modificarStock = modificarStock;
 window.cargarInventario = cargarInventario;
 window.getProductRef = getProductRef;
+window.getCatalogProductRef = getCatalogProductRef;
 window.handleAddProductV2 = handleAddProductV2;
 
 window.consultarProductoEnCero = async (codigo) => {
