@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ?.addEventListener('submit', handleRefillSubmitSafe);
 
   document.getElementById('refill-barcode')
-    ?.addEventListener('keypress', (e) => {
+    ?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         searchProductForRefillSafe(e.target.value);
