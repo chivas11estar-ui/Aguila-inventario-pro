@@ -323,7 +323,7 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
         <span class="material-icons-round" style="font-size:18px;">place</span>
         Ubicado en ${product.bodegas.length} bodegas
       </summary>
-      <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+      <ul class="bodega-list" style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
@@ -331,14 +331,14 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
             : null;
 
           return `
-            <li style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <li class="bodega-item" style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
-                <span style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
+                <span class="bodega-name" style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
+                <span class="bodega-stock" style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
               </div>
-              <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
+              <div class="bodega-average" style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
+                <div class="bodega-expiry ${bodegaDays <= 30 ? 'is-soon' : 'is-ok'}" style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
                   📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
                 </div>
               ` : ''}
@@ -372,14 +372,14 @@ function renderSingleWarehouse(product, salesAvg = 0) {
   return `
     <div class="aguila-lote-card" style="display: flex; flex-direction: column; gap: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
+        <span class="bodega-name" style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
           <span class="material-icons-round" style="font-size:16px;">business</span>
           <strong>Bodega:</strong> ${bodega.ubicacion}
         </span>
       </div>
-      <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
+      <div class="bodega-average" style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
+        <div class="bodega-expiry ${bodegaDays <= 30 ? 'is-soon' : 'is-ok'}" style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
           📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong> (${bodegaDays || '?'} días)
         </div>
       ` : ''}
