@@ -61,9 +61,9 @@
       'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;' +
       'display:flex;align-items:center;justify-content:center;padding:20px;';
 
-    const sugeridas = ['General', 'Botana 1', 'Botana 2', 'Galleta 1', 'Galleta 2',
-                       'Cereal 1', 'Cereal 2', 'Cereal 3', 'Aceites 1', 'Aceites 2'];
-    const todas = Array.from(new Set([...sugeridas, ...bodegasUsadas])).sort();
+    const todas = Array.from(new Set(['General', ...bodegasUsadas])).sort((a, b) =>
+      a.localeCompare(b, 'es-MX')
+    );
     const optionsHtml = todas
       .filter(b => b !== loteOrigen.bodega)
       .map(b => '<option value="' + b + '">' + b + '</option>')
@@ -267,7 +267,11 @@
         return;
       }
 
-      const bodegasUsadas = producto.lotes.map(l => l.bodega).filter(Boolean);
+      const bodegasUsadas = (window.INVENTORY_STATE?.productos || [])
+        .flatMap(p => [p.ubicacion, ...(p.lotes || []).map(l => l.bodega)])
+        .concat(producto.lotes.map(l => l.bodega))
+        .map(b => String(b || '').trim())
+        .filter(Boolean);
       buildModal(producto, loteOrigen, bodegasUsadas);
     } catch (e) {
       console.error('[lote-mover] Error abriendo modal:', e);
@@ -297,3 +301,4 @@
 
   console.log('✅ lote-mover.js cargado correctamente (window.moverLote / window.moverProducto)');
 })();
+
