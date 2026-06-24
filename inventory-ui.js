@@ -39,8 +39,15 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
     const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
 
     // 3. Ordenar marcas (prioridad predefinida)
-    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra']
-      .filter(marca => productosPorMarca[marca]);
+    const prioridadMarcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra'];
+    const marcasOrdenadas = Object.keys(productosPorMarca).sort((a, b) => {
+      const ia = prioridadMarcas.indexOf(a);
+      const ib = prioridadMarcas.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b, 'es-MX');
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
 
     // 4. Renderizar HTML
     let html = '';
@@ -76,6 +83,7 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
 // ============================================================
 function renderBrandSection(marca, productos, targetId) {
   const totales = window.calculateBrandTotals(productos);
+  window.INVENTORY_STATE.marcasExpandidas = window.INVENTORY_STATE.marcasExpandidas || {};
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
   // Mapa de colores por marca (Identificación Visual Rápida)
@@ -89,7 +97,7 @@ function renderBrandSection(marca, productos, targetId) {
   };
 
   const style = brandStyles[marca] || brandStyles['default'];
-  const finalBg = 'rgba(255, 255, 255, 0.88)';
+  const finalBg = 'var(--card-bg)';
   const finalText = 'var(--text)';
   const railColor = targetId === 'inventory-list' ? style.bg : '#565e74';
 
@@ -389,6 +397,7 @@ window.editarProducto = async function(productId, codigoBarras = null) {
   const safeCode = String(codigoBarras || '').trim();
   const product = safeCode
     ? productos.find(p => String(p.codigoBarras || '').trim() === safeCode && (p.id === productId || p.loteId === productId))
+      || productos.find(p => String(p.codigoBarras || '').trim() === safeCode)
     : productos.find(p => p.id === productId || p.loteId === productId);
 
   if (!product) {
@@ -399,13 +408,19 @@ window.editarProducto = async function(productId, codigoBarras = null) {
   if (typeof window.switchTab === 'function') window.switchTab('add');
 
   setTimeout(() => {
-    document.getElementById('add-barcode').value = product.codigoBarras || '';
-    document.getElementById('add-product-name').value = product.nombre || '';
-    document.getElementById('add-brand').value = product.marca || '';
-    document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
-    document.getElementById('add-warehouse').value = product.ubicacion || '';
-    document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
-    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
+    const values = {
+      'add-barcode': product.codigoBarras || safeCode,
+      'add-product-name': product.nombre || '',
+      'add-brand': product.marca || '',
+      'add-pieces-per-box': product.piezasPorCaja || '',
+      'add-warehouse': product.ubicacion || '',
+      'add-expiry-date': product.fechaCaducidad || '',
+      'add-boxes': product.stockTotal ?? product.cajas ?? 0
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const field = document.getElementById(id);
+      if (field) field.value = value;
+    });
 
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) formTitle.textContent = '✏️ Editar Producto';
