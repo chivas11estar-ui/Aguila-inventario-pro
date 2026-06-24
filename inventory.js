@@ -344,13 +344,11 @@ let searchDebounceTimeout = null;
 function setSearchTerm(term) {
   window.INVENTORY_STATE = window.INVENTORY_STATE || {};
   window.INVENTORY_STATE.searchTerm = term;
-  
   if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
-  
-  searchDebounceTimeout = setTimeout(() => {
-      console.log('🔍 Filtrando por:', term);
-      applyFiltersAndRender();
-  }, 300); // Esperar 300ms antes de procesar
+  // SearchController ya aplica un debounce de 300 ms. Filtrar aquí de nuevo
+  // duplicaba la espera y hacía que la app pareciera lenta en piso de ventas.
+  console.log('🔍 Filtrando por:', term);
+  applyFiltersAndRender();
 }
 
 // ============================================================
