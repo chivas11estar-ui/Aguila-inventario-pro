@@ -87,9 +87,14 @@ async function fallbackLogout() {
     firebase.database().ref().off();
   }
 
-  window.INVENTORY_STATE = window.INVENTORY_STATE || {};
-  window.INVENTORY_STATE.productos = [];
-  window.PROFILE_STATE = {};
+  window.INVENTORY_STATE = {
+    productos: [], productosFiltrados: [], marcasExpandidas: {}, searchTerm: '',
+    determinante: null, isLoading: false, isRenderingInventory: false
+  };
+  window.PROFILE_STATE = {
+    determinante: null, nombrePromotor: '', userData: null,
+    darkMode: localStorage.getItem('theme') === 'dark'
+  };
   window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
   window.ANALYTICS_STATE.determinante = null;
 
@@ -374,7 +379,10 @@ firebase.auth().onAuthStateChanged((user) => {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
 
-  document.getElementById('btn-login')?.addEventListener('click', handleLogin);
+  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await handleLogin();
+  });
 
   document.getElementById('register-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
