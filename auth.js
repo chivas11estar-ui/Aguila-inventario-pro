@@ -379,9 +379,15 @@ firebase.auth().onAuthStateChanged((user) => {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
 
-  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+  const loginForm = document.getElementById('login-form');
+  loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     await handleLogin();
+  });
+  loginForm?.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!document.getElementById('btn-login')?.disabled) await handleLogin();
   });
 
   document.getElementById('register-form')?.addEventListener('submit', async (e) => {
