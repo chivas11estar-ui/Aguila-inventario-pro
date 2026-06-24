@@ -45,13 +45,11 @@ function renderProfileUI() {
   // El diseño del header/nav de la app global ya existe en index.html y app.js
   // Solo se renderiza el contenido <main> del diseño
   const html = `
-    <main class="p-5 space-y-6 max-w-md mx-auto">
+    <div class="p-5 space-y-6 max-w-md mx-auto">
       ${renderProfileHeader(userData, preferences)}
       ${preferences.mostrarClima ? renderWeatherCard(weather) : ''}
       ${renderPreferencesCard(preferences)}
-      ${renderMotivationalPhrasesCard()}
-      ${renderProfileFooter()}
-    </main>
+    </div>
   `;
 
   container.innerHTML = html;
@@ -235,7 +233,7 @@ function renderMotivationalPhrasesCard() {
 function renderProfileFooter() {
   return `
     <footer class="text-center py-4">
-      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v7.6</p>
+      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v8.0</p>
     </footer>
   `;
 }
@@ -390,3 +388,4 @@ window.updateWeatherUI = updateWeatherUI;
 window.updateActivityUI = updateActivityUI; // Mantenido por compatibilidad, pero su funcionalidad es limitada con el nuevo diseño
 
 console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente con nuevo diseño');
+
