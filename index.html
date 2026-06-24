@@ -27,18 +27,18 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       <style>
               footer, [role="contentinfo"] {
-                        background-color: #ffffff !important;
-                        color: #1a1a1a !important;
+        background-color: var(--card-bg) !important;
+        color: var(--text) !important;
                         padding: 20px !important;
                         text-align: center !important;
                         font-size: 14px !important;
                         line-height: 1.6 !important;
-                        border-top: 1px solid #e0e0e0 !important;
+        border-top: 1px solid var(--border) !important;
               }
               footer p, [role="contentinfo"] p,
               footer div, [role="contentinfo"] div {
                         margin: 0 !important;
-                        color: #1a1a1a !important;
+        color: var(--text) !important;
                         font-weight: 500 !important;
               }
       @media (max-width: 768px) {
@@ -648,7 +648,7 @@
   <!-- ============================================================
        INVENTARIO (FASE 2.1) - Renderizado y estado base
        ============================================================ -->
-  <script src="inventory.js?v=2.2" defer></script>
+  <script src="inventory.js?v=2.3" defer></script>
   <script src="inventory-ui.js?v=2.6" defer></script>
 
   <!-- ============================================================
@@ -703,7 +703,7 @@
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
   <script src="login.js?v=1.1" defer></script>
-  <script src="auth.js?v=2.3" defer></script>
+  <script src="auth.js?v=2.4" defer></script>
   <script src="app.js?v=2.1" defer></script>
 
   <!-- ============================================================
