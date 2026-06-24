@@ -117,12 +117,11 @@ async function searchProductForRefillSafe(barcode) {
       if (refillMode === 'exit') {
         showToast(
           existeEnCatalogo
-            ? 'ℹ️ Producto conocido, pero aún no está dado de alta en esta tienda. Usa modo Entrada.'
-            : '❌ Producto no existe. Usa modo Entrada para agregarlo.',
-          existeEnCatalogo ? 'info' : 'error'
+            ? '📥 Producto conocido. Cambiando a Entrada para darlo de alta.'
+            : '🆕 Producto nuevo. Cambiando a Entrada para capturarlo.',
+          'info'
         );
-        limpiarFormularioRefillSafe();
-        return;
+        setRefillModeSafe('entry');
       }
 
       habilitarCamposCreacion();
