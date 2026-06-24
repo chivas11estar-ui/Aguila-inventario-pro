@@ -103,17 +103,40 @@ async function searchProductForRefillSafe(barcode) {
     const producto = await buscarProductoPorCodigo(barcode);
 
     if (!producto || !producto._exists) {
-      refillCurrentProduct = { codigoBarras: barcode.trim(), _exists: false };
+      const existeEnCatalogo = Boolean(producto?._catalogExists);
+
+      // Conserva los datos descriptivos devueltos por catalogoProductos para
+      // que una tienda nueva no tenga que volver a capturarlos manualmente.
+      refillCurrentProduct = producto || {
+        codigoBarras: barcode.trim(),
+        _exists: false,
+        _catalogExists: false
+      };
 
       if (refillMode === 'exit') {
-        showToast('❌ Producto no existe. Usa modo Entrada para agregarlo.', 'error');
+        showToast(
+          existeEnCatalogo
+            ? 'ℹ️ Producto conocido, pero aún no está dado de alta en esta tienda. Usa modo Entrada.'
+            : '❌ Producto no existe. Usa modo Entrada para agregarlo.',
+          existeEnCatalogo ? 'info' : 'error'
+        );
         limpiarFormularioRefillSafe();
         return;
       }
 
       habilitarCamposCreacion();
-      showToast('🆕 Producto nuevo. Completa los datos.', 'info');
-      document.getElementById('refill-nombre')?.focus();
+
+      if (existeEnCatalogo) {
+        document.getElementById('refill-nombre').value = producto.nombre || '';
+        document.getElementById('refill-marca').value = producto.marca || 'Otra';
+        document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
+
+        showToast('✅ Producto encontrado en el catálogo. Completa bodega, caducidad y cantidad.', 'success');
+        document.getElementById('refill-warehouse')?.focus();
+      } else {
+        showToast('🆕 Producto nuevo. Completa los datos.', 'info');
+        document.getElementById('refill-nombre')?.focus();
+      }
       return;
     }
 
@@ -496,7 +519,11 @@ async function handleRefillEntrySafe() {
     return;
   }
 
-  const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
+  // En productos nuevos o recuperados del catálogo, respeta cualquier
+  // corrección que el promotor haga antes de registrar la entrada.
+  const piezasPorCaja = parseInt(document.getElementById('refill-piezas').value)
+                      || parseInt(refillCurrentProduct.piezasPorCaja)
+                      || 1;
 
   // ✅ FIX: En ENTRADA, permitir AMBAS opciones:
   // - Cajas enteras van a BODEGA
@@ -614,7 +641,11 @@ function habilitarCamposCreacion() {
     if (el) { el.readOnly = false; el.style.background = '#fff'; }
   });
   const marca = document.getElementById('refill-marca');
-  if (marca) marca.disabled = false;
+  if (marca) {
+    marca.disabled = false;
+    marca.readOnly = false;
+    marca.style.background = '#fff';
+  }
   const warehouse = document.getElementById('refill-warehouse');
   if (warehouse) { warehouse.readOnly = false; warehouse.style.background = '#fff'; }
   const expiryGroup = document.getElementById('refill-expiry-date-group');
@@ -639,7 +670,11 @@ function limpiarFormularioRefillSafe() {
   });
 
   const marca = document.getElementById('refill-marca');
-  if (marca) marca.disabled = true;
+  if (marca) {
+    marca.disabled = true;
+    marca.readOnly = true;
+    marca.style.background = '#f8fafc';
+  }
 
   const warehouse = document.getElementById('refill-warehouse');
   if (warehouse) { warehouse.readOnly = true; warehouse.style.background = '#f8fafc'; }
