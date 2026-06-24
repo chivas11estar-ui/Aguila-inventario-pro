@@ -42,14 +42,14 @@ function getWeatherPresentation(conditionText) {
     return { label: 'Clima estable', icon: 'wb_sunny' };
 }
 
-window.fetchWeatherData = async function () {
+window.fetchWeatherData = async function (requestPreciseLocation = false) {
     let lat = 19.4326, lon = -99.1332; // CDMX Default
     let cityName = "Detectando...";
     let geolocationError = false;
 
     // Obtener la ubicación actual si el navegador lo permite
     try {
-        if (navigator.geolocation) {
+        if (requestPreciseLocation && navigator.geolocation) {
             const pos = await new Promise((res, rej) =>
                 navigator.geolocation.getCurrentPosition(res, rej, {
                     timeout: 15000, // Aumentado a 15s para móviles
@@ -68,12 +68,13 @@ window.fetchWeatherData = async function () {
                 console.warn('⚠️ Error al obtener nombre de la ciudad (BigDataCloud):', e);
                 cityName = "Tu Tienda"; // Fallback name
             }
-        } else {
-            console.warn('⚠️ Geolocalización no soportada por el navegador.');
+        } else if (requestPreciseLocation) {
             geolocationError = true;
+        } else {
+            cityName = 'Ciudad de México';
         }
     } catch (e) {
-        console.error('❌ Error al obtener la ubicación (Geolocation API):', e);
+        console.warn('Ubicación no disponible; se usará la ciudad predeterminada.');
         // Specifically check for permission denied errors
         if (e.code === e.PERMISSION_DENIED) {
             console.warn('❌ Permiso de geolocalización denegado por el usuario.');
@@ -134,3 +135,4 @@ window.fetchWeatherData = async function () {
 };
 
 console.log('✅ weather.js (Módulo Clima) cargado correctamente');
+
