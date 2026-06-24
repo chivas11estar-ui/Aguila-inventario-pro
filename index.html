@@ -20,7 +20,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
   <link rel="stylesheet" href="styles.css?v=1.8">
-  <link rel="stylesheet" href="custom-styles.css?v=1.7">
+  <link rel="stylesheet" href="custom-styles.css?v=1.8">
   <link rel="stylesheet" href="tailwind-built.css?v=1.2">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"
     rel="stylesheet" />
@@ -263,10 +263,6 @@
           <span class="material-icons-round">block</span>
           <span>Agotados</span>
         </a>
-        <a href="#" class="nav-btn" data-tab="add">
-          <span class="material-icons-round">add_circle</span>
-          <span>Añadir</span>
-        </a>
         <a href="#" class="nav-btn" data-tab="refill">
           <span class="material-icons-round">autorenew</span>
           <span>Rellenar</span>
@@ -371,13 +367,13 @@
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
             <h2>🔄 Reabastecimiento Inteligente</h2>
-            <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
+            <p style="color: #6b7280; font-size: 13px;">Escanea cualquier código: si es nuevo podrás darlo de alta aquí mismo</p>
 
             <div id="refill-mode-selector"
               style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; flex-wrap: wrap;">
               <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">&#128230; Salida (Rellenar Exhibidor)</button>
               <button id="btn-refill-mode-pieces" class="warning" style="flex: 1; opacity: 0.6;">&#129329; Por Piezas</button>
-              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada (Añadir Stock)</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada / Alta de producto</button>
             </div>
 
             <form id="refill-form" style="margin-top: 20px;">
@@ -649,7 +645,7 @@
        INVENTARIO (FASE 2.1) - Renderizado y estado base
        ============================================================ -->
   <script src="inventory.js?v=2.3" defer></script>
-  <script src="inventory-ui.js?v=2.6" defer></script>
+  <script src="inventory-ui.js?v=2.7" defer></script>
 
   <!-- ============================================================
        INVENTORY-CORE V2 - Nueva arquitectura por código de barras
@@ -663,7 +659,7 @@
        OPERACIONES (V2 - REFACTORIZADO)
         refill-safe.js gestiona las operaciones de reabastecimiento
        ============================================================ -->
-  <script src="refill-safe.js?v=2.4" defer></script>
+  <script src="refill-safe.js?v=2.5" defer></script>
   <script src="audit.js?v=2.3" defer></script>
   <!-- audit-pro-ui desactivado temporalmente: sobreescribía la UI de auditoría por bodega -->
 
