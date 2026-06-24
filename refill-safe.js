@@ -11,6 +11,7 @@ let refillCurrentLoteId = null;
 let refillMode = 'exit';
 let refillTodayCajas = 0;
 let refillTodayPiezas = 0;
+let refillSubmitInProgress = false;
 
 console.log('🔄 [REFILL V3] Módulo multi-lote iniciando...');
 
@@ -159,7 +160,7 @@ async function searchProductForRefillSafe(barcode) {
   } catch (error) {
     console.error('❌ [REFILL V3]', error);
     showToast('❌ Error al buscar: ' + error.message, 'error');
-    limpiarFormularioRefillSafe();
+    limpiarFormularioRefillSafe(true);
   }
 }
 
@@ -293,12 +294,23 @@ function piecesToRoundedCajas(piezas, piezasPorCaja) {
 // ============================================================
 async function handleRefillSubmitSafe(event) {
   event.preventDefault();
-  if (refillMode === 'entry') {
-    await handleRefillEntrySafe();
-  } else if (refillMode === 'pieces') {
-    await handleRefillPiecesSafe();
-  } else {
-    await handleRefillExitSafe();
+  if (refillSubmitInProgress) return;
+
+  const submitBtn = document.querySelector('#refill-form button[type="submit"]');
+  refillSubmitInProgress = true;
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    if (refillMode === 'entry') {
+      await handleRefillEntrySafe();
+    } else if (refillMode === 'pieces') {
+      await handleRefillPiecesSafe();
+    } else {
+      await handleRefillExitSafe();
+    }
+  } finally {
+    refillSubmitInProgress = false;
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
@@ -383,11 +395,12 @@ async function handleRefillExitSafe() {
     return;
   }
 
-  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
-  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
+  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value, 10) || 0;
+  // En modo cajas nunca se debe leer el campo oculto de piezas.
+  const piezasSueltas = 0;
 
-  if (cajasEnteras === 0 && piezasSueltas === 0) {
-    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
+  if (cajasEnteras === 0) {
+    showToast('⚠️ Ingresa la cantidad de cajas', 'warning');
     return;
   }
 
@@ -433,35 +446,61 @@ async function handleRefillExitSafe() {
   }
 
   try {
-    // FEFO: consumir primero lotes con caducidad más próxima.
-    const lotesOrdenados = [...lotesProducto]
-      .filter(l => (parseFloat(l.stock) || 0) > 0)
-      .sort((a, b) => {
-        const ta = a?.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
-        const tb = b?.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+    // FEFO atómico: todos los lotes se actualizan dentro de una sola transacción.
+    // Si cambia el stock mientras se guarda o no alcanza, Firebase cancela todo.
+    const safeCode = sanitizeBarcode(codigo);
+    const productRef = firebase.database().ref(`productos/${det}/${safeCode}`);
+    let consumos = [];
+    const transactionResult = await productRef.transaction((productoActual) => {
+      if (!productoActual) return;
+
+      const candidatos = productoActual.lotes
+        ? Object.entries(productoActual.lotes).map(([loteId, lote]) => ({ loteId, ...lote }))
+        : [{
+            loteId: 'legacy',
+            bodega: productoActual.ubicacion || 'General',
+            fechaCaducidad: productoActual.fechaCaducidad || '',
+            stock: productoActual.stockTotal || 0
+          }];
+
+      candidatos.sort((a, b) => {
+        const ta = a.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+        const tb = b.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
         return ta - tb;
       });
 
-    let restante = cajasAMover;
-    const consumos = [];
+      const disponible = candidatos.reduce((sum, lote) => sum + (parseFloat(lote.stock) || 0), 0);
+      if (disponible + 0.000001 < cajasAMover) return;
 
-    for (const lote of lotesOrdenados) {
-      if (restante <= 0) break;
-      const stockLote = parseFloat(lote.stock) || 0;
-      if (stockLote <= 0) continue;
-      const tomar = Math.min(stockLote, restante);
-      const nuevoStockLote = await modificarStock(codigo, tomar, 'restar', lote.loteId);
-      consumos.push({
-        loteId: lote.loteId,
-        bodega: lote.bodega || 'General',
-        tomado: tomar,
-        stockAnterior: stockLote,
-        stockNuevo: nuevoStockLote
-      });
-      restante -= tomar;
-    }
+      let restante = cajasAMover;
+      const nuevosConsumos = [];
+      for (const lote of candidatos) {
+        if (restante <= 0.000001) break;
+        const anterior = parseFloat(lote.stock) || 0;
+        const tomado = Math.min(anterior, restante);
+        if (tomado <= 0) continue;
+        const nuevo = roundCajas(anterior - tomado);
 
-    if (restante > 0.000001) {
+        if (lote.loteId === 'legacy') productoActual.stockTotal = nuevo;
+        else productoActual.lotes[lote.loteId].stock = nuevo;
+
+        nuevosConsumos.push({
+          loteId: lote.loteId,
+          bodega: lote.bodega || 'General',
+          tomado: roundCajas(tomado),
+          stockAnterior: anterior,
+          stockNuevo: nuevo
+        });
+        restante = roundCajas(restante - tomado);
+      }
+
+      productoActual.fechaActualizacion = timestamp;
+      productoActual.actualizadoPor = usuario;
+      consumos = nuevosConsumos;
+      return productoActual;
+    }, undefined, false);
+
+    if (!transactionResult.committed || consumos.length === 0) {
       throw new Error('STOCK_INSUFICIENTE_MULTI_LOTE');
     }
 
@@ -489,7 +528,7 @@ async function handleRefillExitSafe() {
     showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    limpiarFormularioRefillSafe();
+    limpiarFormularioRefillSafe(true);
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
@@ -623,7 +662,7 @@ async function handleRefillEntrySafe() {
     }
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    limpiarFormularioRefillSafe();
+    limpiarFormularioRefillSafe(true);
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
@@ -655,7 +694,8 @@ function habilitarCamposCreacion() {
 // ============================================================
 // LIMPIAR FORMULARIO
 // ============================================================
-function limpiarFormularioRefillSafe() {
+function limpiarFormularioRefillSafe(preserveMode = false) {
+  const previousMode = refillMode;
   document.getElementById('refill-form')?.reset();
   
   // Reset manual de inputs de cantidad
@@ -687,7 +727,7 @@ function limpiarFormularioRefillSafe() {
 
   refillCurrentProduct = null;
   refillCurrentLoteId  = null;
-  setRefillModeSafe('exit');
+  setRefillModeSafe(preserveMode ? previousMode : 'exit');
 }
 
 // ============================================================
