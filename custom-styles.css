@@ -1364,3 +1364,20 @@ html {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Ajustes finales de contraste y tacto para modo oscuro */
+:root.dark #profile-container section,
+:root.dark #motivational-phrases-manager,
+:root.dark #audit-quick-scan-container,
+:root.dark #lote-mover-modal > div {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+:root.dark #profile-container [class*="text-slate-800"],
+:root.dark #profile-container [class*="text-slate-600"] { color: var(--text) !important; }
+:root.dark #profile-container [class*="bg-slate-50"],
+:root.dark #profile-container [class*="bg-white"] { background-color: var(--surface-container) !important; }
+button, .nav-btn, .btn-icon { min-height: 44px; }
+
