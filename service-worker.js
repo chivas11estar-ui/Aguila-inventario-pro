@@ -3,7 +3,7 @@
 // Estrategia: stale-while-revalidate para el App Shell
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v5.3";
+const CACHE_NAME = "aguila-pro-v5.4";
 
 const APP_SHELL_ASSETS = [
   "/",
@@ -39,6 +39,7 @@ const APP_SHELL_ASSETS = [
   "/ai-phrases.js",
   "/ai-phrases-enhanced.js",
   "/phrases.js",
+  "/login.js",
   "/auth.js",
   "/app.js"
 ];
