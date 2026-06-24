@@ -1381,3 +1381,22 @@ html {
 :root.dark #profile-container [class*="bg-white"] { background-color: var(--surface-container) !important; }
 button, .nav-btn, .btn-icon { min-height: 44px; }
 
+/* Conserva señales de color en bodegas sin producir bloques blancos. */
+:root.dark .bodega-details {
+  background: linear-gradient(145deg, rgba(45, 50, 73, 0.96), rgba(30, 33, 51, 0.96)) !important;
+  border-color: rgba(129, 140, 248, 0.42) !important;
+}
+:root.dark .bodega-details[open] {
+  background: linear-gradient(145deg, rgba(36, 42, 68, 0.98), rgba(27, 31, 48, 0.98)) !important;
+}
+:root.dark .bodega-list .bodega-item,
+:root.dark .aguila-lote-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(16, 185, 129, 0.08)) !important;
+  border: 1px solid rgba(96, 165, 250, 0.32) !important;
+  color: var(--text) !important;
+}
+:root.dark .bodega-name { color: #93c5fd !important; }
+:root.dark .bodega-stock { color: #a5b4fc !important; }
+:root.dark .bodega-average { color: #34d399 !important; }
+:root.dark .bodega-expiry.is-ok { color: #fbbf24 !important; }
+:root.dark .bodega-expiry.is-soon { color: #fb7185 !important; }
