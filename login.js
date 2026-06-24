@@ -208,10 +208,23 @@ async function logout() {
     clearSession();
     removeFirebaseListeners();
 
-    window.INVENTORY_STATE = {};
+    window.INVENTORY_STATE = {
+      productos: [],
+      productosFiltrados: [],
+      marcasExpandidas: {},
+      searchTerm: '',
+      determinante: null,
+      isLoading: false,
+      isRenderingInventory: false
+    };
     window.INVENTORY_CORE = window.INVENTORY_CORE || {};
     window.INVENTORY_CORE.determinante = null;
-    window.PROFILE_STATE = {};
+    window.PROFILE_STATE = {
+      determinante: null,
+      nombrePromotor: '',
+      userData: null,
+      darkMode: localStorage.getItem('theme') === 'dark'
+    };
     window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
     window.ANALYTICS_STATE.determinante = null;
 
