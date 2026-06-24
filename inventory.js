@@ -208,11 +208,9 @@ function getProductStockKey(product) {
 }
 
 function getProductStockQuantity(product) {
-  const cajas = parseFloat(product.totalCajas ?? product.cajas ?? 0) || 0;
-  const piezas = parseFloat(product.totalPiezas ?? product.piezas ?? product.piezasSueltas ?? 0) || 0;
-  const stock = parseFloat(product.stockTotal ?? 0) || 0;
-
-  return cajas + piezas + stock;
+  if (product.stockTotal !== undefined) return parseFloat(product.stockTotal) || 0;
+  if (product.totalCajas !== undefined) return parseFloat(product.totalCajas) || 0;
+  return parseFloat(product.cajas ?? 0) || 0;
 }
 
 function buildStockTotalsByProduct(productos) {
@@ -274,7 +272,12 @@ function calculateExpiryInfo(product, brandConfig) {
 // ============================================================
 function applyFiltersAndRender() {
   try {
-    const searchTerm = window.INVENTORY_STATE.searchTerm.toLowerCase();
+    window.INVENTORY_STATE = window.INVENTORY_STATE || {};
+    window.INVENTORY_STATE.productos = Array.isArray(window.INVENTORY_STATE.productos)
+      ? window.INVENTORY_STATE.productos : [];
+    window.INVENTORY_STATE.marcasExpandidas = window.INVENTORY_STATE.marcasExpandidas || {};
+    const searchTerm = String(window.INVENTORY_STATE.searchTerm || '').trim().toLowerCase();
+    window.INVENTORY_STATE.searchTerm = searchTerm;
 
     if (searchTerm.length > 0) {
       window.INVENTORY_STATE.productosFiltrados = window.INVENTORY_STATE.productos.filter(p => {
@@ -292,6 +295,14 @@ function applyFiltersAndRender() {
       });
     } else {
       window.INVENTORY_STATE.productosFiltrados = [...window.INVENTORY_STATE.productos];
+    }
+
+    // Una búsqueda debe enseñar el resultado inmediatamente, aunque la marca
+    // estuviera contraída antes de buscar.
+    if (searchTerm) {
+      window.INVENTORY_STATE.productosFiltrados.forEach(product => {
+        window.INVENTORY_STATE.marcasExpandidas[product.marca || 'Otra'] = true;
+      });
     }
   // V2.2: Separar por stock real del producto completo, no por lote.
   // Si una bodega/caducidad queda en cero pero otro lote del mismo codigo tiene stock,
@@ -331,6 +342,7 @@ function applyFiltersAndRender() {
 let searchDebounceTimeout = null;
 
 function setSearchTerm(term) {
+  window.INVENTORY_STATE = window.INVENTORY_STATE || {};
   window.INVENTORY_STATE.searchTerm = term;
   
   if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
