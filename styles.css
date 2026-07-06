@@ -26,6 +26,7 @@
 
   --bg: #fbf8ff;
   --card-bg: #ffffff;
+  --brand-header-bg: rgba(255, 255, 255, 0.88);
   --surface-container: #eeecfb;
 
   --text: #1a1b25;
@@ -56,6 +57,7 @@
 :root.dark {
   --bg: #1a1b25;
   --card-bg: #2f303a;
+  --brand-header-bg: rgba(47, 48, 58, 0.94);
   --surface-container: #242530;
   --surface-dim: #20212b;
   --text: #fbf8ff;

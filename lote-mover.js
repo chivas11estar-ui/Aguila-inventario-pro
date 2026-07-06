@@ -61,11 +61,14 @@
       'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;' +
       'display:flex;align-items:center;justify-content:center;padding:20px;';
 
-    const todas = Array.from(new Set(['General', ...bodegasUsadas])).sort((a, b) =>
-      a.localeCompare(b, 'es-MX')
-    );
-    const optionsHtml = todas
+    const destinosActivos = Array.from(new Set(
+      bodegasUsadas
+        .map(b => String(b || '').trim())
+        .filter(Boolean)
+    ))
       .filter(b => b !== loteOrigen.bodega)
+      .sort((a, b) => a.localeCompare(b, 'es-MX'));
+    const optionsHtml = destinosActivos
       .map(b => '<option value="' + b + '">' + b + '</option>')
       .join('');
 
@@ -86,7 +89,7 @@
       '<option value="__custom__">✏️ Otra bodega (escribir)…</option>' +
       '</select>' +
       '<input id="lote-mover-destino-custom" placeholder="Nombre de bodega" ' +
-      'style="display:none;width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;' +
+      'style="display:' + (destinosActivos.length ? 'none' : 'block') + ';width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;' +
       'font-size:14px;color:#111;background:#fff;margin-bottom:12px;">' +
       '<label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px;">' +
       'Cantidad a mover (cajas)</label>' +
@@ -108,6 +111,7 @@
 
     const selectEl = modal.querySelector('#lote-mover-destino');
     const customEl = modal.querySelector('#lote-mover-destino-custom');
+    if (!destinosActivos.length) selectEl.value = '__custom__';
     selectEl.addEventListener('change', () => {
       customEl.style.display = selectEl.value === '__custom__' ? 'block' : 'none';
       if (selectEl.value === '__custom__') customEl.focus();
@@ -267,12 +271,13 @@
         return;
       }
 
-      const bodegasUsadas = (window.INVENTORY_STATE?.productos || [])
-        .flatMap(p => [p.ubicacion, ...(p.lotes || []).map(l => l.bodega)])
-        .concat(producto.lotes.map(l => l.bodega))
-        .map(b => String(b || '').trim())
-        .filter(Boolean);
-      buildModal(producto, loteOrigen, bodegasUsadas);
+      const bodegasActivasInventario = (window.INVENTORY_STATE?.productos || [])
+        .filter(p => (parseFloat(p.stockTotal ?? p.cajas) || 0) > 0)
+        .map(p => p.ubicacion || p.bodega);
+      const bodegasActivasProducto = producto.lotes
+        .filter(l => (parseFloat(l.stock) || 0) > 0)
+        .map(l => l.bodega);
+      buildModal(producto, loteOrigen, [...bodegasActivasInventario, ...bodegasActivasProducto]);
     } catch (e) {
       console.error('[lote-mover] Error abriendo modal:', e);
       showMsg('❌ ' + e.message, 'error');

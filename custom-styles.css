@@ -1350,6 +1350,51 @@ html {
     color: #8ee8c3 !important;
 }
 
+/* Mejoras locales de contraste para encabezados, perfil y acciones. */
+:root.dark .aguila-brand-header {
+    background: var(--brand-header-bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+:root.dark .aguila-brand-header span,
+:root.dark .aguila-brand-header strong {
+    color: inherit !important;
+}
+
+:root.dark .primary,
+:root.dark .search-scan-btn,
+:root.dark .primary .material-icons-round,
+:root.dark .search-scan-btn .material-icons-round {
+    color: #11121a !important;
+}
+
+:root.dark #lote-mover-modal h3,
+:root.dark #lote-mover-modal label,
+:root.dark #lote-mover-modal div {
+    color: var(--text) !important;
+}
+
+:root.dark #lote-mover-modal [style*="color:#6b7280"] {
+    color: var(--muted) !important;
+}
+
+:root.dark .weather-card,
+:root.dark .preferences-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+:root.dark .weather-card h3,
+:root.dark .preferences-card h3,
+:root.dark .weather-card .text-slate-700,
+:root.dark .weather-card .text-slate-800,
+:root.dark .preferences-card .text-slate-700,
+:root.dark .preferences-card .text-slate-800 {
+    color: var(--text) !important;
+}
+
 @media (max-width: 520px) {
     #refill-mode-selector {
         grid-template-columns: 1fr;

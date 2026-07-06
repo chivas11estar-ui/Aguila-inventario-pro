@@ -244,16 +244,8 @@ function renderLoteSelector(lotes) {
       </div>
     </div>`;
 
-  // Seleccionar automáticamente el primer lote con stock
-  const primerConStock = lotes.find(l => l.stock > 0);
-  if (primerConStock) {
-    seleccionarLote(
-      primerConStock.loteId,
-      primerConStock.bodega,
-      primerConStock.fechaCaducidad,
-      primerConStock.stock
-    );
-  }
+  // No asumir una bodega cuando existen varios lotes: el usuario debe elegir.
+  refillCurrentLoteId = null;
 }
 
 // ============================================================
@@ -423,7 +415,6 @@ async function handleRefillExitSafe() {
   const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
   const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
   const stockActual = parseFloat(loteActual?.stock) || 0;
-  const stockTotalDisponible = lotesProducto.reduce((sum, l) => sum + (parseFloat(l.stock) || 0), 0);
   const productName = refillCurrentProduct.nombre;
   const timestamp   = Date.now();
   const usuario     = firebase.auth().currentUser?.email || 'sistema';
@@ -439,68 +430,54 @@ async function handleRefillExitSafe() {
     regla: 'BODEGA=CAJAS_ENTERAS_SOLO'
   });
 
-  if (cajasAMover > stockTotalDisponible) {
-    showToast(`❌ Stock total insuficiente. Disponible: ${displayValue(stockTotalDisponible)} cajas`, 'error');
+  if (!loteActual) {
+    showToast('❌ El lote seleccionado ya no está disponible. Vuelve a buscar el producto.', 'error');
+    return;
+  }
+
+  if (cajasAMover > stockActual) {
+    showToast(`❌ Stock insuficiente en ${loteActual.bodega || 'esta bodega'}. Disponible: ${displayValue(stockActual)} cajas`, 'error');
     return;
   }
 
   try {
-    // FEFO atómico: todos los lotes se actualizan dentro de una sola transacción.
-    // Si cambia el stock mientras se guarda o no alcanza, Firebase cancela todo.
+    // Actualización atómica del lote elegido. Si el stock cambia mientras se
+    // guarda o el lote desaparece, Firebase cancela toda la operación.
     const safeCode = sanitizeBarcode(codigo);
     const productRef = firebase.database().ref(`productos/${det}/${safeCode}`);
-    let consumos = [];
+    let consumo = null;
     const transactionResult = await productRef.transaction((productoActual) => {
       if (!productoActual) return;
 
-      const candidatos = productoActual.lotes
-        ? Object.entries(productoActual.lotes).map(([loteId, lote]) => ({ loteId, ...lote }))
-        : [{
-            loteId: 'legacy',
-            bodega: productoActual.ubicacion || 'General',
-            fechaCaducidad: productoActual.fechaCaducidad || '',
-            stock: productoActual.stockTotal || 0
-          }];
+      const loteSeleccionado = productoActual.lotes?.[refillCurrentLoteId];
+      const esLegacy = !productoActual.lotes && refillCurrentLoteId === 'legacy';
+      if (!loteSeleccionado && !esLegacy) return;
 
-      candidatos.sort((a, b) => {
-        const ta = a.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
-        const tb = b.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
-        return ta - tb;
-      });
+      const anterior = parseFloat(
+        esLegacy ? productoActual.stockTotal : loteSeleccionado.stock
+      ) || 0;
+      if (anterior + 0.000001 < cajasAMover) return;
 
-      const disponible = candidatos.reduce((sum, lote) => sum + (parseFloat(lote.stock) || 0), 0);
-      if (disponible + 0.000001 < cajasAMover) return;
-
-      let restante = cajasAMover;
-      const nuevosConsumos = [];
-      for (const lote of candidatos) {
-        if (restante <= 0.000001) break;
-        const anterior = parseFloat(lote.stock) || 0;
-        const tomado = Math.min(anterior, restante);
-        if (tomado <= 0) continue;
-        const nuevo = roundCajas(anterior - tomado);
-
-        if (lote.loteId === 'legacy') productoActual.stockTotal = nuevo;
-        else productoActual.lotes[lote.loteId].stock = nuevo;
-
-        nuevosConsumos.push({
-          loteId: lote.loteId,
-          bodega: lote.bodega || 'General',
-          tomado: roundCajas(tomado),
-          stockAnterior: anterior,
-          stockNuevo: nuevo
-        });
-        restante = roundCajas(restante - tomado);
-      }
+      const nuevo = roundCajas(anterior - cajasAMover);
+      if (esLegacy) productoActual.stockTotal = nuevo;
+      else productoActual.lotes[refillCurrentLoteId].stock = nuevo;
 
       productoActual.fechaActualizacion = timestamp;
       productoActual.actualizadoPor = usuario;
-      consumos = nuevosConsumos;
+      consumo = {
+        loteId: refillCurrentLoteId,
+        bodega: esLegacy
+          ? (productoActual.ubicacion || 'General')
+          : (loteSeleccionado.bodega || 'General'),
+        tomado: roundCajas(cajasAMover),
+        stockAnterior: anterior,
+        stockNuevo: nuevo
+      };
       return productoActual;
     }, undefined, false);
 
-    if (!transactionResult.committed || consumos.length === 0) {
-      throw new Error('STOCK_INSUFICIENTE_MULTI_LOTE');
+    if (!transactionResult.committed || !consumo) {
+      throw new Error('STOCK_INSUFICIENTE_LOTE');
     }
 
     await firebase.database()
@@ -511,11 +488,11 @@ async function handleRefillExitSafe() {
         marca: refillCurrentProduct.marca || 'Otra',
         cajasMovidas: cajasAMover,
         piezasMovidas: piezasMovidas,
-        bodega: consumos.map(c => c.bodega).join(' | '),
-        loteId: consumos.map(c => c.loteId).join(','),
-        stockAnterior: stockTotalDisponible,
-        stockNuevo: Math.max(0, stockTotalDisponible - cajasAMover),
-        detalleLotes: consumos,
+        bodega: consumo.bodega,
+        loteId: consumo.loteId,
+        stockAnterior: consumo.stockAnterior,
+        stockNuevo: consumo.stockNuevo,
+        detalleLotes: [consumo],
         fecha: timestamp,
         realizadoPor: usuario
       });
@@ -524,14 +501,14 @@ async function handleRefillExitSafe() {
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
-    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas`, 'success');
+    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas desde ${consumo.bodega}`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe(true);
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
-    if (error.message === 'STOCK_INSUFICIENTE') {
+    if (error.message === 'STOCK_INSUFICIENTE' || error.message === 'STOCK_INSUFICIENTE_LOTE') {
       showToast('❌ Stock insuficiente en esta bodega. Reintenta.', 'error');
     } else {
       showToast('❌ Error: ' + error.message, 'error');
