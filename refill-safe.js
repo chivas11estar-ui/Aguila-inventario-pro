@@ -330,58 +330,131 @@ async function handleRefillPiecesSafe() {
 
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
   const cajasEquivalentes = piecesToRoundedCajas(piezasSueltas, piezasPorCaja);
-
-  if (!refillCurrentLoteId) {
-    showToast('⚠️ Selecciona una bodega primero', 'warning');
+  const det = await getCachedDeterminante();
+  if (!det) {
+    showToast('❌ Error: Sin información de tienda', 'error');
     return;
   }
 
-  const det = await getCachedDeterminante();
   const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
-  const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
-  const stockActual = parseFloat(loteActual?.stock) || 0;
-  const piezasDisponibles = stockToPieces(stockActual, piezasPorCaja);
-  const cajasARestar = Math.min(stockActual, cajasEquivalentes);
+  const piezasDisponibles = lotesProducto.reduce(
+    (total, lote) => total + stockToPieces(lote.stock, piezasPorCaja),
+    0
+  );
 
   if (piezasSueltas > piezasDisponibles) {
-    showToast(`❌ Stock insuficiente (${piezasDisponibles} piezas disponibles)`, 'error');
+    showToast(`❌ Stock total insuficiente (${piezasDisponibles} piezas disponibles)`, 'error');
     return;
   }
 
   try {
-    const nuevoStock = await modificarStock(refillCurrentProduct.codigoBarras, cajasARestar, 'restar', refillCurrentLoteId);
-    
     const timestamp = Date.now();
     const usuario = firebase.auth().currentUser?.email || 'sistema';
+    const codigo = refillCurrentProduct.codigoBarras;
+    const safeCode = sanitizeBarcode(codigo);
+    const productRef = firebase.database().ref(`productos/${det}/${safeCode}`);
+    let consumos = [];
+
+    const transactionResult = await productRef.transaction((productoActual) => {
+      if (!productoActual) return;
+
+      const candidatos = productoActual.lotes
+        ? Object.entries(productoActual.lotes).map(([loteId, lote]) => ({ loteId, ...lote }))
+        : [{
+            loteId: 'legacy',
+            bodega: productoActual.ubicacion || 'General',
+            fechaCaducidad: productoActual.fechaCaducidad || '',
+            stock: productoActual.stockTotal || 0
+          }];
+
+      candidatos.sort((a, b) => {
+        if (a.loteId === refillCurrentLoteId) return -1;
+        if (b.loteId === refillCurrentLoteId) return 1;
+        const ta = a.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+        const tb = b.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      });
+
+      const disponible = candidatos.reduce(
+        (total, lote) => total + stockToPieces(lote.stock, piezasPorCaja),
+        0
+      );
+      if (disponible < piezasSueltas) return;
+
+      let restantes = piezasSueltas;
+      const nuevosConsumos = [];
+
+      for (const lote of candidatos) {
+        if (restantes <= 0) break;
+        const piezasAntes = stockToPieces(lote.stock, piezasPorCaja);
+        const piezasTomadas = Math.min(piezasAntes, restantes);
+        if (piezasTomadas <= 0) continue;
+
+        const piezasDespues = piezasAntes - piezasTomadas;
+        const stockNuevo = parseFloat((piezasDespues / piezasPorCaja).toFixed(4));
+
+        if (lote.loteId === 'legacy') productoActual.stockTotal = stockNuevo;
+        else productoActual.lotes[lote.loteId].stock = stockNuevo;
+
+        nuevosConsumos.push({
+          loteId: lote.loteId,
+          bodega: lote.bodega || 'General',
+          piezasTomadas,
+          cajasTomadas: parseFloat((piezasTomadas / piezasPorCaja).toFixed(4)),
+          stockAnterior: parseFloat(lote.stock) || 0,
+          stockNuevo
+        });
+        restantes -= piezasTomadas;
+      }
+
+      if (restantes > 0) return;
+      productoActual.fechaActualizacion = timestamp;
+      productoActual.actualizadoPor = usuario;
+      consumos = nuevosConsumos;
+      return productoActual;
+    }, undefined, false);
+
+    if (!transactionResult.committed || consumos.length === 0) {
+      throw new Error('STOCK_INSUFICIENTE_MULTI_LOTE');
+    }
+
+    const stockAnteriorTotal = consumos.reduce((total, consumo) => total + consumo.stockAnterior, 0);
+    const stockNuevoTotal = consumos.reduce((total, consumo) => total + consumo.stockNuevo, 0);
 
     await firebase.database().ref(`movimientos/${det}`).push({
       tipo: 'salida',
       motivo: 'Relleno por piezas sueltas',
       productoNombre: refillCurrentProduct.nombre,
-      productoCodigo: refillCurrentProduct.codigoBarras,
+      productoCodigo: codigo,
       marca: refillCurrentProduct.marca || 'Otra',
-      cajasMovidas: cajasARestar,
+      cajasMovidas: cajasEquivalentes,
       piezasMovidas: piezasSueltas,
-      bodega: loteActual?.bodega || 'General',
-      loteId: refillCurrentLoteId,
-      stockAnterior: stockActual,
-      stockNuevo: nuevoStock,
+      bodega: consumos.map(consumo => consumo.bodega).join(' | '),
+      loteId: consumos.map(consumo => consumo.loteId).join(','),
+      stockAnterior: stockAnteriorTotal,
+      stockNuevo: stockNuevoTotal,
+      detalleLotes: consumos,
       fecha: timestamp,
       realizadoPor: usuario
     });
 
-    refillTodayCajas += cajasARestar;
+    refillTodayCajas += cajasEquivalentes;
     refillTodayPiezas += piezasSueltas;
     updateRefillTodayUI();
 
-    showToast(`🧩 ${piezasSueltas} piezas movidas (${cajasARestar.toFixed(2)} cajas)`, 'success');
+    const bodegasUsadas = [...new Set(consumos.map(consumo => consumo.bodega))].join(', ');
+    showToast(`🧩 ${piezasSueltas} piezas movidas desde ${bodegasUsadas}`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
-    showToast('❌ Error: ' + error.message, 'error');
+    if (error.message === 'STOCK_INSUFICIENTE_MULTI_LOTE') {
+      showToast('❌ El stock cambió mientras se guardaba. Vuelve a intentarlo.', 'error');
+    } else {
+      showToast('❌ Error: ' + error.message, 'error');
+    }
   }
 }
 
