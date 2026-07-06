@@ -15,6 +15,14 @@ let refillSubmitInProgress = false;
 
 console.log('🔄 [REFILL V3] Módulo multi-lote iniciando...');
 
+function setRefillMarcaValue(marca) {
+  const select = document.getElementById('refill-marca');
+  if (!select) return;
+  const value = String(marca || 'Otra').trim() || 'Otra';
+  const disponible = Array.from(select.options).some(option => option.value === value);
+  select.value = disponible ? value : 'Otra';
+}
+
 // ============================================================
 // MODO ENTRADA / SALIDA
 // ============================================================
@@ -128,7 +136,7 @@ async function searchProductForRefillSafe(barcode) {
 
       if (existeEnCatalogo) {
         document.getElementById('refill-nombre').value = producto.nombre || '';
-        document.getElementById('refill-marca').value = producto.marca || 'Otra';
+        setRefillMarcaValue(producto.marca);
         document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
 
         showToast('✅ Producto encontrado en el catálogo. Completa bodega, caducidad y cantidad.', 'success');
@@ -144,7 +152,7 @@ async function searchProductForRefillSafe(barcode) {
 
     // Llenar campos base
     document.getElementById('refill-nombre').value  = producto.nombre || '';
-    document.getElementById('refill-marca').value   = producto.marca  || '';
+    setRefillMarcaValue(producto.marca);
     document.getElementById('refill-piezas').value  = producto.piezasPorCaja || '';
 
     // ✅ FIX: Limpiar warehouse (especialmente si viene de Agotados)
@@ -658,7 +666,6 @@ function habilitarCamposCreacion() {
   const marca = document.getElementById('refill-marca');
   if (marca) {
     marca.disabled = false;
-    marca.readOnly = false;
     marca.style.background = '#fff';
   }
   const warehouse = document.getElementById('refill-warehouse');
@@ -688,7 +695,6 @@ function limpiarFormularioRefillSafe(preserveMode = false) {
   const marca = document.getElementById('refill-marca');
   if (marca) {
     marca.disabled = true;
-    marca.readOnly = true;
     marca.style.background = '#f8fafc';
   }
 
