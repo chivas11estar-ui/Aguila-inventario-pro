@@ -45,11 +45,13 @@ function renderProfileUI() {
   // El diseño del header/nav de la app global ya existe en index.html y app.js
   // Solo se renderiza el contenido <main> del diseño
   const html = `
-    <div class="p-5 space-y-6 max-w-md mx-auto">
+    <main class="p-5 space-y-6 max-w-md mx-auto">
       ${renderProfileHeader(userData, preferences)}
       ${preferences.mostrarClima ? renderWeatherCard(weather) : ''}
       ${renderPreferencesCard(preferences)}
-    </div>
+      ${renderMotivationalPhrasesCard()}
+      ${renderProfileFooter()}
+    </main>
   `;
 
   container.innerHTML = html;
@@ -170,7 +172,7 @@ function renderWeatherCard(weather) {
 // ============================================================
 function renderPreferencesCard(preferences) {
   return `
-    <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+    <section class="preferences-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
       <div class="flex items-center gap-2 mb-6">
         <span class="material-icons-round text-primary">settings</span>
         <h3 class="font-bold text-slate-800 dark:text-white">Preferencias</h3>

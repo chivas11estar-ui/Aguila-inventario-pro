@@ -97,7 +97,7 @@ function renderBrandSection(marca, productos, targetId) {
   };
 
   const style = brandStyles[marca] || brandStyles['default'];
-  const finalBg = 'var(--card-bg)';
+  const finalBg = 'var(--brand-header-bg)';
   const finalText = 'var(--text)';
   const railColor = targetId === 'inventory-list' ? style.bg : '#565e74';
 
@@ -163,10 +163,10 @@ function renderProductCard(product, targetId) {
   const firstBodega = bodegas[0] || null;
   const productCodeArg = JSON.stringify(product.codigoBarras || '');
   const firstBodegaIdArg = JSON.stringify(firstBodega?.id || '');
-  const editAction = firstBodega?.id
+  const editAction = bodegas.length === 1 && firstBodega?.id
     ? `window.editarProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para editar","info")`;
-  const moveAction = firstBodega?.id
+  const moveAction = bodegas.length === 1 && firstBodega?.id
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
   const tieneMuchasBodegas = bodegas.length > 1;
@@ -277,7 +277,8 @@ function renderProductCard(product, targetId) {
           : renderSingleWarehouse(product, analytics.daily)
         }
 
-        <!-- Botones de Acción Estilo Indigo -->
+        <!-- Con varios lotes, cada fila muestra sus propias acciones. -->
+        ${!tieneMuchasBodegas ? `
         <div style="margin-top: 16px; display: flex; gap: 10px;">
           <button 
             onclick='${editAction}'
@@ -308,6 +309,11 @@ function renderProductCard(product, targetId) {
             </button>
           `}
         </div>
+        ` : `
+          <div style="margin-top: 10px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: center;">
+            Elige Editar o Mover en el lote correspondiente
+          </div>
+        `}
       </div>
     </div>
   `;
@@ -317,6 +323,7 @@ function renderProductCard(product, targetId) {
 // RENDERIZAR MÚLTIPLES BODEGAS
 // ============================================================
 function renderMultipleWarehouses(product, salesAvg = 0) {
+  const productCodeArg = JSON.stringify(product.codigoBarras || '');
   return `
     <details class="bodega-details" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
       <summary style="cursor: pointer; font-weight: 700; color: #2563eb; padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
@@ -325,6 +332,7 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
       </summary>
       <ul class="bodega-list" style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
+          const loteIdArg = JSON.stringify(bodega.id || '');
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
             ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -342,6 +350,26 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
                   📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
                 </div>
               ` : ''}
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button
+                  type="button"
+                  onclick='event.stopPropagation(); window.editarProducto(${loteIdArg}, ${productCodeArg})'
+                  class="secondary"
+                  style="flex:1; min-height:38px; margin:0; padding:8px; font-size:12px; background:var(--surface-container); color:var(--text);"
+                >
+                  <span class="material-icons-round" style="font-size:16px;">edit</span>
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onclick='event.stopPropagation(); window.moverProducto && window.moverProducto(${loteIdArg}, ${productCodeArg})'
+                  class="primary"
+                  style="flex:1; min-height:38px; margin:0; padding:8px; font-size:12px;"
+                >
+                  <span class="material-icons-round" style="font-size:16px;">sync_alt</span>
+                  Mover
+                </button>
+              </div>
             </li>
           `;
         }).join('')}
