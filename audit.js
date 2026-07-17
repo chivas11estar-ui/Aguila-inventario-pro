@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('save-warehouse-btn').onclick = saveBodega;
 
-  document.getElementById('audit-barcode').onkeydown = (e) => {
+  document.getElementById('audit-barcode').onkeypress = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); buscarProductoAudit(); }
   };
 
@@ -405,61 +405,10 @@ function startQuickAudit() {
   document.getElementById('btn-quick-audit-mode').classList.replace('secondary', 'warning');
 
   renderQuickAuditList();
-  ensureQuickAuditManualInput();
 
-  try {
-    const scannerResult = window.openScanner?.({
-      onScan: handleQuickAuditScan,
-      continuous: true
-    });
-    if (scannerResult?.catch) {
-      scannerResult.catch(() => {
-        showToast('📷 Cámara no disponible. Usa el código manual.', 'info');
-        document.getElementById('quick-audit-barcode')?.focus();
-      });
-    }
-  } catch (_) {
-    showToast('📷 Cámara no disponible. Usa el código manual.', 'info');
-    document.getElementById('quick-audit-barcode')?.focus();
-  }
-}
-
-function ensureQuickAuditManualInput() {
-  const container = document.getElementById('audit-quick-scan-container');
-  const list = document.getElementById('quick-audit-list');
-  if (!container || !list || document.getElementById('quick-audit-barcode')) return;
-
-  const manual = document.createElement('div');
-  manual.id = 'quick-audit-manual';
-  manual.className = 'form-group';
-  manual.innerHTML = `
-    <label for="quick-audit-barcode">Código manual (si no hay cámara)</label>
-    <div style="display:flex;gap:8px;">
-      <input id="quick-audit-barcode" type="text" inputmode="numeric"
-        placeholder="Escanea o escribe el código" autocomplete="off" />
-      <button id="btn-quick-audit-add" type="button" class="primary"
-        aria-label="Agregar código a auditoría rápida">Agregar</button>
-    </div>`;
-  container.insertBefore(manual, list);
-
-  const input = manual.querySelector('#quick-audit-barcode');
-  const addCode = async () => {
-    const barcode = String(input.value || '').trim();
-    if (barcode.length < 8) {
-      showToast('⚠️ Escribe un código válido', 'warning');
-      input.focus();
-      return;
-    }
-    input.value = '';
-    await handleQuickAuditScan(barcode);
-    input.focus();
-  };
-  manual.querySelector('#btn-quick-audit-add').addEventListener('click', addCode);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addCode();
-    }
+  window.openScanner({
+    onScan: handleQuickAuditScan,
+    continuous: true
   });
 }
 

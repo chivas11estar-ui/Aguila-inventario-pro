@@ -293,6 +293,72 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
 }
 
 // ============================================================
+// 7.1 MODIFICAR STOCK MULTI-LOTE (Auto-Relleno)
+// ============================================================
+async function modificarStockMultiLote(codigoBarras, cantidadTotal, motivo = 'Relleno Automático') {
+  const det = await getCachedDeterminante();
+  if (!det) throw new Error('Sin determinante');
+
+  const safeCode = sanitizeBarcode(codigoBarras);
+  const producto = await buscarProductoPorCodigo(codigoBarras);
+
+  if (!producto || !producto.lotes || producto.lotes.length === 0) {
+    throw new Error('Producto sin existencias en ninguna bodega');
+  }
+
+  if (producto.stockTotal < cantidadTotal) {
+    throw new Error(`Stock total insuficiente. Disponible: ${producto.stockTotal}, Requerido: ${cantidadTotal}`);
+  }
+
+  let pendiente = parseFloat(cantidadTotal);
+  const ahora = Date.now();
+  const usuario = firebase.auth().currentUser?.email || 'sistema';
+  const updates = {};
+  const detalleConsumo = [];
+
+  // Recorrer lotes (ya vienen ordenados por fecha de caducidad en buscarProductoPorCodigo)
+  for (const lote of producto.lotes) {
+    if (pendiente <= 0) break;
+
+    const stockEnLote = parseFloat(lote.stock) || 0;
+    if (stockEnLote <= 0) continue;
+
+    const aTomar = Math.min(stockEnLote, pendiente);
+    const nuevoStock = parseFloat((stockEnLote - aTomar).toFixed(2));
+
+    updates[`productos/${det}/${safeCode}/lotes/${lote.loteId}/stock`] = nuevoStock;
+    updates[`productos/${det}/${safeCode}/lotes/${lote.loteId}/actualizado`] = ahora;
+
+    detalleConsumo.push({
+      loteId: lote.loteId,
+      bodega: lote.bodega,
+      tomado: aTomar,
+      stockAnterior: stockEnLote,
+      stockNuevo: nuevoStock
+    });
+
+    pendiente = parseFloat((pendiente - aTomar).toFixed(2));
+  }
+
+  if (pendiente > 0.01) {
+    throw new Error('No se pudo completar el resurtido. Conflicto de stock.');
+  }
+
+  // Actualizar timestamp general
+  updates[`productos/${det}/${safeCode}/fechaActualizacion`] = ahora;
+  updates[`productos/${det}/${safeCode}/actualizadoPor`] = usuario;
+
+  // Ejecutar actualización atómica en Firebase
+  await firebase.database().ref().update(updates);
+
+  return {
+    success: true,
+    detalle: detalleConsumo,
+    totalMovido: cantidadTotal
+  };
+}
+
+// ============================================================
 // 8. CARGAR INVENTARIO — expande lotes como filas individuales
 // ============================================================
 async function cargarInventario() {
@@ -477,6 +543,7 @@ window.generarLoteId = generarLoteId;
 window.buscarProductoPorCodigo = buscarProductoPorCodigo;
 window.guardarProducto = guardarProducto;
 window.modificarStock = modificarStock;
+window.modificarStockMultiLote = modificarStockMultiLote;
 window.cargarInventario = cargarInventario;
 window.getProductRef = getProductRef;
 window.getCatalogProductRef = getCatalogProductRef;

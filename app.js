@@ -31,7 +31,7 @@ function updateOfflineStatus() {
   btn.title = isOnline ? 'En linea' : 'Sin conexion (Modo Offline)';
 }
 
-function switchTab(tabName) {
+function switchTab(tabName, updateHash = true) {
   if (!tabName) return;
 
   const selectedTab = document.getElementById(`tab-${tabName}`);
@@ -39,6 +39,11 @@ function switchTab(tabName) {
 
   const currentTab = document.querySelector('.tab-content.active');
   if (currentTab?.id === selectedTab.id && !selectedTab.classList.contains('hidden')) return;
+
+  // Si updateHash es true, actualizamos la URL para que el botón "Atrás" de Android funcione
+  if (updateHash) {
+    window.location.hash = tabName;
+  }
 
   document.querySelectorAll('.tab-content').forEach((tab) => {
     tab.classList.remove('active');
@@ -59,6 +64,12 @@ function switchTab(tabName) {
   const sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.classList.remove('active');
 }
+
+// Escuchar cambios en el hash (Botón atrás de Android)
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) switchTab(hash, false);
+});
 
 function runTabLoader(tabName) {
   if (tabName === 'analytics') {
@@ -130,6 +141,12 @@ document.getElementById('btn-change-password')?.addEventListener('click', () => 
 
 document.addEventListener('DOMContentLoaded', () => {
   updateOfflineStatus();
+
+  // Cargar pestaña inicial basada en el hash
+  const initialHash = window.location.hash.replace('#', '');
+  if (initialHash) {
+    switchTab(initialHash, false);
+  }
 });
 
 document.addEventListener('keydown', (e) => {

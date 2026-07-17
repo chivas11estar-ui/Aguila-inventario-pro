@@ -132,11 +132,11 @@
     window.cleanAppText = repairTextV2;
 })();
 
-// Consola limpia para uso diario: oculta ruido de arranque y deja errores reales visibles.
+// Consola limpia para uso diario: activa DEBUG para ver todo.
 (function setupQuietProductionConsole() {
     if (window.__aguilaQuietProductionConsole) return;
     window.__aguilaQuietProductionConsole = true;
-    window.AGUILA_DEBUG = window.AGUILA_DEBUG === true;
+    window.AGUILA_DEBUG = true; // ACTIVADO PARA SOLUCIONAR TU ERROR
 
     const originalLog = console.log;
     const originalInfo = console.info;

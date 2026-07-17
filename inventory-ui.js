@@ -39,15 +39,8 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
     const productosPorMarca = window.groupProductsByBrand(productosAgrupados);
 
     // 3. Ordenar marcas (prioridad predefinida)
-    const prioridadMarcas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra'];
-    const marcasOrdenadas = Object.keys(productosPorMarca).sort((a, b) => {
-      const ia = prioridadMarcas.indexOf(a);
-      const ib = prioridadMarcas.indexOf(b);
-      if (ia === -1 && ib === -1) return a.localeCompare(b, 'es-MX');
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
+    const marcasOrdenadas = ['Sabritas', 'Gamesa', 'Quaker', "Sonric's", 'Cacahuates', 'Otra']
+      .filter(marca => productosPorMarca[marca]);
 
     // 4. Renderizar HTML
     let html = '';
@@ -83,7 +76,6 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
 // ============================================================
 function renderBrandSection(marca, productos, targetId) {
   const totales = window.calculateBrandTotals(productos);
-  window.INVENTORY_STATE.marcasExpandidas = window.INVENTORY_STATE.marcasExpandidas || {};
   const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca] !== false;
 
   // Mapa de colores por marca (Identificación Visual Rápida)
@@ -330,7 +322,7 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
         <span class="material-icons-round" style="font-size:18px;">place</span>
         Ubicado en ${product.bodegas.length} bodegas
       </summary>
-      <ul class="bodega-list" style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+      <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
           const loteIdArg = JSON.stringify(bodega.id || '');
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
@@ -339,14 +331,14 @@ function renderMultipleWarehouses(product, salesAvg = 0) {
             : null;
 
           return `
-            <li class="bodega-item" style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <li style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="bodega-name" style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
-                <span class="bodega-stock" style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
+                <span style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
+                <span style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
               </div>
-              <div class="bodega-average" style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
+              <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <div class="bodega-expiry ${bodegaDays <= 30 ? 'is-soon' : 'is-ok'}" style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
+                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
                   📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
                 </div>
               ` : ''}
@@ -400,14 +392,14 @@ function renderSingleWarehouse(product, salesAvg = 0) {
   return `
     <div class="aguila-lote-card" style="display: flex; flex-direction: column; gap: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span class="bodega-name" style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
           <span class="material-icons-round" style="font-size:16px;">business</span>
           <strong>Bodega:</strong> ${bodega.ubicacion}
         </span>
       </div>
-      <div class="bodega-average" style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
+      <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <div class="bodega-expiry ${bodegaDays <= 30 ? 'is-soon' : 'is-ok'}" style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
+        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
           📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong> (${bodegaDays || '?'} días)
         </div>
       ` : ''}
@@ -425,7 +417,6 @@ window.editarProducto = async function(productId, codigoBarras = null) {
   const safeCode = String(codigoBarras || '').trim();
   const product = safeCode
     ? productos.find(p => String(p.codigoBarras || '').trim() === safeCode && (p.id === productId || p.loteId === productId))
-      || productos.find(p => String(p.codigoBarras || '').trim() === safeCode)
     : productos.find(p => p.id === productId || p.loteId === productId);
 
   if (!product) {
@@ -436,19 +427,13 @@ window.editarProducto = async function(productId, codigoBarras = null) {
   if (typeof window.switchTab === 'function') window.switchTab('add');
 
   setTimeout(() => {
-    const values = {
-      'add-barcode': product.codigoBarras || safeCode,
-      'add-product-name': product.nombre || '',
-      'add-brand': product.marca || '',
-      'add-pieces-per-box': product.piezasPorCaja || '',
-      'add-warehouse': product.ubicacion || '',
-      'add-expiry-date': product.fechaCaducidad || '',
-      'add-boxes': product.stockTotal ?? product.cajas ?? 0
-    };
-    Object.entries(values).forEach(([id, value]) => {
-      const field = document.getElementById(id);
-      if (field) field.value = value;
-    });
+    document.getElementById('add-barcode').value = product.codigoBarras || '';
+    document.getElementById('add-product-name').value = product.nombre || '';
+    document.getElementById('add-brand').value = product.marca || '';
+    document.getElementById('add-pieces-per-box').value = product.piezasPorCaja || '';
+    document.getElementById('add-warehouse').value = product.ubicacion || '';
+    document.getElementById('add-expiry-date').value = product.fechaCaducidad || '';
+    document.getElementById('add-boxes').value = product.stockTotal || product.cajas || '';
 
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) formTitle.textContent = '✏️ Editar Producto';

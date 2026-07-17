@@ -87,14 +87,9 @@ async function fallbackLogout() {
     firebase.database().ref().off();
   }
 
-  window.INVENTORY_STATE = {
-    productos: [], productosFiltrados: [], marcasExpandidas: {}, searchTerm: '',
-    determinante: null, isLoading: false, isRenderingInventory: false
-  };
-  window.PROFILE_STATE = {
-    determinante: null, nombrePromotor: '', userData: null,
-    darkMode: localStorage.getItem('theme') === 'dark'
-  };
+  window.INVENTORY_STATE = window.INVENTORY_STATE || {};
+  window.INVENTORY_STATE.productos = [];
+  window.PROFILE_STATE = {};
   window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
   window.ANALYTICS_STATE.determinante = null;
 
@@ -193,12 +188,14 @@ async function handleRegister() {
     console.log('📝 Registrando usuario:', email);
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
 
-    // Guardamos el determinante LIMPIO (sin espacios)
+    // Guardamos el determinante LIMPIO y como STRING (Fuerza consistencia)
+    const safeDeterminante = String(determinante).trim().toUpperCase();
+
     await firebase.database().ref('usuarios/' + userCredential.user.uid).set({
       email: email,
       nombrePromotor: promoterName,
       nombreTienda: storeName,
-      determinante: determinante, // Ya va sin espacios
+      determinante: safeDeterminante,
       fechaRegistro: getLocalISOString()
     });
 
@@ -287,14 +284,18 @@ async function loadUserData(userId) {
     const userData = snapshot.val();
 
     if (userData && userData.determinante) {
-      // Inyectar en el estado global ANTES de cualquier desencriptación
+      // Forzar que el determinante sea STRING para evitar errores de permisos en Firebase
+      const currentDet = String(userData.determinante).trim().toUpperCase();
+
       window.PROFILE_STATE = window.PROFILE_STATE || {};
-      window.PROFILE_STATE.determinante = userData.determinante;
+      window.PROFILE_STATE.determinante = currentDet;
       window.PROFILE_STATE.nombrePromotor = userData.nombrePromotor;
-      // ✅ FIX: Guardar determinante también en inventoryStore
-      window.inventoryStore.determinante = userData.determinante;
+
+      // ✅ FIX: Asegurar inicialización de inventoryStore
+      window.inventoryStore = window.inventoryStore || {};
+      window.inventoryStore.determinante = currentDet;
       
-      console.log('✅ [ARCHITECT] Determinante listo:', userData.determinante);
+      console.log('✅ [ARCHITECT] Determinante estandarizado:', currentDet);
       
       // Actualizar UI básica
       const userInfo = document.getElementById('user-info');
@@ -379,16 +380,7 @@ firebase.auth().onAuthStateChanged((user) => {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
 
-  const loginForm = document.getElementById('login-form');
-  loginForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleLogin();
-  });
-  loginForm?.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    if (!document.getElementById('btn-login')?.disabled) await handleLogin();
-  });
+  document.getElementById('btn-login')?.addEventListener('click', handleLogin);
 
   document.getElementById('register-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();

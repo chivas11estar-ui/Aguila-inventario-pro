@@ -11,17 +11,8 @@ let refillCurrentLoteId = null;
 let refillMode = 'exit';
 let refillTodayCajas = 0;
 let refillTodayPiezas = 0;
-let refillSubmitInProgress = false;
 
 console.log('🔄 [REFILL V3] Módulo multi-lote iniciando...');
-
-function setRefillMarcaValue(marca) {
-  const select = document.getElementById('refill-marca');
-  if (!select) return;
-  const value = String(marca || 'Otra').trim() || 'Otra';
-  const disponible = Array.from(select.options).some(option => option.value === value);
-  select.value = disponible ? value : 'Otra';
-}
 
 // ============================================================
 // MODO ENTRADA / SALIDA
@@ -112,39 +103,17 @@ async function searchProductForRefillSafe(barcode) {
     const producto = await buscarProductoPorCodigo(barcode);
 
     if (!producto || !producto._exists) {
-      const existeEnCatalogo = Boolean(producto?._catalogExists);
-
-      // Conserva los datos descriptivos devueltos por catalogoProductos para
-      // que una tienda nueva no tenga que volver a capturarlos manualmente.
-      refillCurrentProduct = producto || {
-        codigoBarras: barcode.trim(),
-        _exists: false,
-        _catalogExists: false
-      };
+      refillCurrentProduct = { codigoBarras: barcode.trim(), _exists: false };
 
       if (refillMode === 'exit') {
-        showToast(
-          existeEnCatalogo
-            ? '📥 Producto conocido. Cambiando a Entrada para darlo de alta.'
-            : '🆕 Producto nuevo. Cambiando a Entrada para capturarlo.',
-          'info'
-        );
-        setRefillModeSafe('entry');
+        showToast('❌ Producto no existe. Usa modo Entrada para agregarlo.', 'error');
+        limpiarFormularioRefillSafe();
+        return;
       }
 
       habilitarCamposCreacion();
-
-      if (existeEnCatalogo) {
-        document.getElementById('refill-nombre').value = producto.nombre || '';
-        setRefillMarcaValue(producto.marca);
-        document.getElementById('refill-piezas').value = producto.piezasPorCaja || '';
-
-        showToast('✅ Producto encontrado en el catálogo. Completa bodega, caducidad y cantidad.', 'success');
-        document.getElementById('refill-warehouse')?.focus();
-      } else {
-        showToast('🆕 Producto nuevo. Completa los datos.', 'info');
-        document.getElementById('refill-nombre')?.focus();
-      }
+      showToast('🆕 Producto nuevo. Completa los datos.', 'info');
+      document.getElementById('refill-nombre')?.focus();
       return;
     }
 
@@ -152,7 +121,7 @@ async function searchProductForRefillSafe(barcode) {
 
     // Llenar campos base
     document.getElementById('refill-nombre').value  = producto.nombre || '';
-    setRefillMarcaValue(producto.marca);
+    document.getElementById('refill-marca').value   = producto.marca  || '';
     document.getElementById('refill-piezas').value  = producto.piezasPorCaja || '';
 
     // ✅ FIX: Limpiar warehouse (especialmente si viene de Agotados)
@@ -167,7 +136,7 @@ async function searchProductForRefillSafe(barcode) {
   } catch (error) {
     console.error('❌ [REFILL V3]', error);
     showToast('❌ Error al buscar: ' + error.message, 'error');
-    limpiarFormularioRefillSafe(true);
+    limpiarFormularioRefillSafe();
   }
 }
 
@@ -223,7 +192,7 @@ function renderLoteSelector(lotes) {
         📦 Stock total: ${totalStock} cajas en ${lotes.length} ubicaciones
       </div>
       <div style="font-size:13px;color:#075985;margin-bottom:10px;">
-        ${refillMode === 'exit' ? 'Selecciona de cuál bodega mover:' : 'Selecciona bodega destino:'}
+        ${refillMode === 'exit' ? '<strong>Tip:</strong> Pon la cantidad y pulsa registrar para auto-descontar, o selecciona una bodega específica:' : 'Selecciona bodega destino:'}
       </div>
       <div id="lote-selector" style="display:flex;flex-direction:column;gap:8px;">
         ${lotes.map(l => `
@@ -252,7 +221,7 @@ function renderLoteSelector(lotes) {
       </div>
     </div>`;
 
-  // No asumir una bodega cuando existen varios lotes: el usuario debe elegir.
+  // Con varios lotes no asumir ninguno: el usuario debe elegir explícitamente.
   refillCurrentLoteId = null;
 }
 
@@ -268,9 +237,12 @@ window.seleccionarLote = function(loteId, bodega, fecha, stock) {
     el.style.background = el.id === 'lote-btn-' + loteId ? '#eff6ff' : '';
   });
 
-  if (refillMode === 'exit') {
-    const warehouseInput = document.getElementById('refill-warehouse');
-    if (warehouseInput) warehouseInput.value = bodega;
+  const warehouseInput = document.getElementById('refill-warehouse');
+  if (warehouseInput) warehouseInput.value = bodega;
+
+  if (refillMode === 'entry') {
+    const expiryInput = document.getElementById('refill-expiry-date');
+    if (expiryInput) expiryInput.value = fecha || '';
   }
 
   showToast(`📍 Lote seleccionado: ${bodega} (${stock} cajas)`, 'info');
@@ -293,23 +265,12 @@ function piecesToRoundedCajas(piezas, piezasPorCaja) {
 // ============================================================
 async function handleRefillSubmitSafe(event) {
   event.preventDefault();
-  if (refillSubmitInProgress) return;
-
-  const submitBtn = document.querySelector('#refill-form button[type="submit"]');
-  refillSubmitInProgress = true;
-  if (submitBtn) submitBtn.disabled = true;
-
-  try {
-    if (refillMode === 'entry') {
-      await handleRefillEntrySafe();
-    } else if (refillMode === 'pieces') {
-      await handleRefillPiecesSafe();
-    } else {
-      await handleRefillExitSafe();
-    }
-  } finally {
-    refillSubmitInProgress = false;
-    if (submitBtn) submitBtn.disabled = false;
+  if (refillMode === 'entry') {
+    await handleRefillEntrySafe();
+  } else if (refillMode === 'pieces') {
+    await handleRefillPiecesSafe();
+  } else {
+    await handleRefillExitSafe();
   }
 }
 
@@ -331,109 +292,60 @@ async function handleRefillPiecesSafe() {
   const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
   const cajasEquivalentes = piecesToRoundedCajas(piezasSueltas, piezasPorCaja);
   const det = await getCachedDeterminante();
-  if (!det) {
-    showToast('❌ Error: Sin información de tienda', 'error');
-    return;
-  }
-
-  const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
-  const piezasDisponibles = lotesProducto.reduce(
-    (total, lote) => total + stockToPieces(lote.stock, piezasPorCaja),
-    0
-  );
-
-  if (piezasSueltas > piezasDisponibles) {
-    showToast(`❌ Stock total insuficiente (${piezasDisponibles} piezas disponibles)`, 'error');
-    return;
-  }
 
   try {
-    const timestamp = Date.now();
-    const usuario = firebase.auth().currentUser?.email || 'sistema';
-    const codigo = refillCurrentProduct.codigoBarras;
-    const safeCode = sanitizeBarcode(codigo);
-    const productRef = firebase.database().ref(`productos/${det}/${safeCode}`);
-    let consumos = [];
+    let result;
+    let msg = "";
 
-    const transactionResult = await productRef.transaction((productoActual) => {
-      if (!productoActual) return;
+    if (refillCurrentLoteId) {
+      // Caso 1: Usuario seleccionó una bodega específica
+      const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
+      const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
+      const stockActual = parseFloat(loteActual?.stock) || 0;
+      const piezasDisponibles = stockToPieces(stockActual, piezasPorCaja);
 
-      const candidatos = productoActual.lotes
-        ? Object.entries(productoActual.lotes).map(([loteId, lote]) => ({ loteId, ...lote }))
-        : [{
-            loteId: 'legacy',
-            bodega: productoActual.ubicacion || 'General',
-            fechaCaducidad: productoActual.fechaCaducidad || '',
-            stock: productoActual.stockTotal || 0
-          }];
-
-      candidatos.sort((a, b) => {
-        if (a.loteId === refillCurrentLoteId) return -1;
-        if (b.loteId === refillCurrentLoteId) return 1;
-        const ta = a.fechaCaducidad ? new Date(a.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
-        const tb = b.fechaCaducidad ? new Date(b.fechaCaducidad).getTime() : Number.MAX_SAFE_INTEGER;
-        return ta - tb;
-      });
-
-      const disponible = candidatos.reduce(
-        (total, lote) => total + stockToPieces(lote.stock, piezasPorCaja),
-        0
-      );
-      if (disponible < piezasSueltas) return;
-
-      let restantes = piezasSueltas;
-      const nuevosConsumos = [];
-
-      for (const lote of candidatos) {
-        if (restantes <= 0) break;
-        const piezasAntes = stockToPieces(lote.stock, piezasPorCaja);
-        const piezasTomadas = Math.min(piezasAntes, restantes);
-        if (piezasTomadas <= 0) continue;
-
-        const piezasDespues = piezasAntes - piezasTomadas;
-        const stockNuevo = parseFloat((piezasDespues / piezasPorCaja).toFixed(4));
-
-        if (lote.loteId === 'legacy') productoActual.stockTotal = stockNuevo;
-        else productoActual.lotes[lote.loteId].stock = stockNuevo;
-
-        nuevosConsumos.push({
-          loteId: lote.loteId,
-          bodega: lote.bodega || 'General',
-          piezasTomadas,
-          cajasTomadas: parseFloat((piezasTomadas / piezasPorCaja).toFixed(4)),
-          stockAnterior: parseFloat(lote.stock) || 0,
-          stockNuevo
-        });
-        restantes -= piezasTomadas;
+      if (piezasSueltas > piezasDisponibles) {
+        showToast(`❌ Stock insuficiente en ${loteActual?.bodega} (${piezasDisponibles} piezas)`, 'error');
+        return;
       }
 
-      if (restantes > 0) return;
-      productoActual.fechaActualizacion = timestamp;
-      productoActual.actualizadoPor = usuario;
-      consumos = nuevosConsumos;
-      return productoActual;
-    }, undefined, false);
+      const nuevoStock = await modificarStock(refillCurrentProduct.codigoBarras, cajasEquivalentes, 'restar', refillCurrentLoteId);
 
-    if (!transactionResult.committed || consumos.length === 0) {
-      throw new Error('STOCK_INSUFICIENTE_MULTI_LOTE');
+      result = {
+        totalMovido: cajasEquivalentes,
+        detalle: [{
+          loteId: refillCurrentLoteId,
+          bodega: loteActual?.bodega || 'General',
+          tomado: cajasEquivalentes,
+          stockAnterior: stockActual,
+          stockNuevo: nuevoStock
+        }]
+      };
+      msg = `🧩 ${piezasSueltas} piezas movidas desde ${loteActual?.bodega}`;
+    } else {
+      // Caso 2: AUTO-RELLENO MULTI-LOTE
+      if (cajasEquivalentes > refillCurrentProduct.stockTotal) {
+        showToast(`❌ Stock total insuficiente (${stockToPieces(refillCurrentProduct.stockTotal, piezasPorCaja)} piezas disponibles)`, 'error');
+        return;
+      }
+
+      const res = await modificarStockMultiLote(refillCurrentProduct.codigoBarras, cajasEquivalentes, 'Relleno Multibodega (Piezas)');
+      result = res;
+      msg = `🧩 ${piezasSueltas} piezas movidas de ${res.detalle.length} bodegas`;
     }
 
-    const stockAnteriorTotal = consumos.reduce((total, consumo) => total + consumo.stockAnterior, 0);
-    const stockNuevoTotal = consumos.reduce((total, consumo) => total + consumo.stockNuevo, 0);
+    const timestamp = Date.now();
+    const usuario = firebase.auth().currentUser?.email || 'sistema';
 
     await firebase.database().ref(`movimientos/${det}`).push({
       tipo: 'salida',
       motivo: 'Relleno por piezas sueltas',
       productoNombre: refillCurrentProduct.nombre,
-      productoCodigo: codigo,
+      productoCodigo: refillCurrentProduct.codigoBarras,
       marca: refillCurrentProduct.marca || 'Otra',
       cajasMovidas: cajasEquivalentes,
       piezasMovidas: piezasSueltas,
-      bodega: consumos.map(consumo => consumo.bodega).join(' | '),
-      loteId: consumos.map(consumo => consumo.loteId).join(','),
-      stockAnterior: stockAnteriorTotal,
-      stockNuevo: stockNuevoTotal,
-      detalleLotes: consumos,
+      detalleLotes: result.detalle,
       fecha: timestamp,
       realizadoPor: usuario
     });
@@ -442,19 +354,14 @@ async function handleRefillPiecesSafe() {
     refillTodayPiezas += piezasSueltas;
     updateRefillTodayUI();
 
-    const bodegasUsadas = [...new Set(consumos.map(consumo => consumo.bodega))].join(', ');
-    showToast(`🧩 ${piezasSueltas} piezas movidas desde ${bodegasUsadas}`, 'success');
+    showToast(`✅ ${msg}`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
-    if (error.message === 'STOCK_INSUFICIENTE_MULTI_LOTE') {
-      showToast('❌ El stock cambió mientras se guardaba. Vuelve a intentarlo.', 'error');
-    } else {
-      showToast('❌ Error: ' + error.message, 'error');
-    }
+    showToast('❌ Error: ' + error.message, 'error');
   }
 }
 
@@ -467,12 +374,11 @@ async function handleRefillExitSafe() {
     return;
   }
 
-  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value, 10) || 0;
-  // En modo cajas nunca se debe leer el campo oculto de piezas.
-  const piezasSueltas = 0;
+  const cajasEnteras = parseInt(document.getElementById('refill-boxes').value) || 0;
+  const piezasSueltas = parseInt(document.getElementById('refill-pieces').value) || 0;
 
-  if (cajasEnteras === 0) {
-    showToast('⚠️ Ingresa la cantidad de cajas', 'warning');
+  if (cajasEnteras === 0 && piezasSueltas === 0) {
+    showToast('⚠️ Ingresa una cantidad (cajas o piezas)', 'warning');
     return;
   }
 
@@ -485,112 +391,76 @@ async function handleRefillExitSafe() {
     return;
   }
 
-  if (!refillCurrentLoteId) {
-    showToast('⚠️ Selecciona una bodega primero', 'warning');
-    return;
-  }
-
   const det = await getCachedDeterminante();
   if (!det) { showToast('❌ Error: Sin información de tienda', 'error'); return; }
 
-  const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
-  const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
-  const stockActual = parseFloat(loteActual?.stock) || 0;
-  const productName = refillCurrentProduct.nombre;
   const timestamp   = Date.now();
   const usuario     = firebase.auth().currentUser?.email || 'sistema';
   const codigo      = refillCurrentProduct.codigoBarras;
 
-  console.log('🚀 [REFILL v9.2] Iniciando salida BODEGA→PISO:', {
-    codigo,
-    det,
-    loteId: refillCurrentLoteId,
-    stockActualEnBodega: stockActual,
-    cajasAExtraer: cajasAMover,
-    piezasEquivalentes: piezasMovidas,
-    regla: 'BODEGA=CAJAS_ENTERAS_SOLO'
-  });
-
-  if (!loteActual) {
-    showToast('❌ El lote seleccionado ya no está disponible. Vuelve a buscar el producto.', 'error');
-    return;
-  }
-
-  if (cajasAMover > stockActual) {
-    showToast(`❌ Stock insuficiente en ${loteActual.bodega || 'esta bodega'}. Disponible: ${displayValue(stockActual)} cajas`, 'error');
-    return;
-  }
-
   try {
-    // Actualización atómica del lote elegido. Si el stock cambia mientras se
-    // guarda o el lote desaparece, Firebase cancela toda la operación.
-    const safeCode = sanitizeBarcode(codigo);
-    const productRef = firebase.database().ref(`productos/${det}/${safeCode}`);
-    let consumo = null;
-    const transactionResult = await productRef.transaction((productoActual) => {
-      if (!productoActual) return;
+    let result;
+    let msg = "";
 
-      const loteSeleccionado = productoActual.lotes?.[refillCurrentLoteId];
-      const esLegacy = !productoActual.lotes && refillCurrentLoteId === 'legacy';
-      if (!loteSeleccionado && !esLegacy) return;
+    if (refillCurrentLoteId) {
+      // Caso 1: Usuario seleccionó una bodega específica (Comportamiento actual)
+      const lotesProducto = Array.isArray(refillCurrentProduct.lotes) ? refillCurrentProduct.lotes : [];
+      const loteActual = lotesProducto.find(l => l.loteId === refillCurrentLoteId);
+      const stockActual = parseFloat(loteActual?.stock) || 0;
 
-      const anterior = parseFloat(
-        esLegacy ? productoActual.stockTotal : loteSeleccionado.stock
-      ) || 0;
-      if (anterior + 0.000001 < cajasAMover) return;
+      if (cajasAMover > stockActual) {
+        showToast(`❌ Stock insuficiente en ${loteActual.bodega}. Disp: ${displayValue(stockActual)}`, 'error');
+        return;
+      }
 
-      const nuevo = roundCajas(anterior - cajasAMover);
-      if (esLegacy) productoActual.stockTotal = nuevo;
-      else productoActual.lotes[refillCurrentLoteId].stock = nuevo;
-
-      productoActual.fechaActualizacion = timestamp;
-      productoActual.actualizadoPor = usuario;
-      consumo = {
-        loteId: refillCurrentLoteId,
-        bodega: esLegacy
-          ? (productoActual.ubicacion || 'General')
-          : (loteSeleccionado.bodega || 'General'),
-        tomado: roundCajas(cajasAMover),
-        stockAnterior: anterior,
-        stockNuevo: nuevo
+      const nuevoStockLote = await modificarStock(codigo, cajasAMover, 'restar', refillCurrentLoteId);
+      result = {
+        detalle: [{
+          loteId: refillCurrentLoteId,
+          bodega: loteActual.bodega || 'General',
+          tomado: cajasAMover,
+          stockAnterior: stockActual,
+          stockNuevo: nuevoStockLote
+        }]
       };
-      return productoActual;
-    }, undefined, false);
+      msg = `desde ${loteActual.bodega}`;
+    } else {
+      // Caso 2: AUTO-RELLENO INTELIGENTE (Multi-bodega automático)
+      if (cajasAMover > refillCurrentProduct.stockTotal) {
+        showToast(`❌ Stock total insuficiente. Disp: ${displayValue(refillCurrentProduct.stockTotal)}`, 'error');
+        return;
+      }
 
-    if (!transactionResult.committed || !consumo) {
-      throw new Error('STOCK_INSUFICIENTE_LOTE');
+      const res = await modificarStockMultiLote(codigo, cajasAMover, 'Relleno Multibodega');
+      result = res;
+      msg = `de ${res.detalle.length} bodegas (Auto)`;
     }
 
-    await firebase.database()
-      .ref(`movimientos/${det}`).push({
-        tipo: 'salida',
-        productoNombre: refillCurrentProduct.nombre,
-        productoCodigo: codigo,
-        marca: refillCurrentProduct.marca || 'Otra',
-        cajasMovidas: cajasAMover,
-        piezasMovidas: piezasMovidas,
-        bodega: consumo.bodega,
-        loteId: consumo.loteId,
-        stockAnterior: consumo.stockAnterior,
-        stockNuevo: consumo.stockNuevo,
-        detalleLotes: [consumo],
-        fecha: timestamp,
-        realizadoPor: usuario
-      });
+    await firebase.database().ref(`movimientos/${det}`).push({
+      tipo: 'salida',
+      productoNombre: refillCurrentProduct.nombre,
+      productoCodigo: codigo,
+      marca: refillCurrentProduct.marca || 'Otra',
+      cajasMovidas: cajasAMover,
+      piezasMovidas: piezasMovidas,
+      detalleLotes: result.detalle,
+      fecha: timestamp,
+      realizadoPor: usuario
+    });
 
     refillTodayCajas  += cajasAMover;
     refillTodayPiezas += piezasMovidas;
     updateRefillTodayUI();
 
-    showToast(`📤 ${displayValue(cajasAMover)} cajas de ${productName} movidas desde ${consumo.bodega}`, 'success');
+    showToast(`📤 ${displayValue(cajasAMover)} cajas movidas ${msg}`, 'success');
     refreshAnalyticsNow();
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    limpiarFormularioRefillSafe(true);
+    limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
-    if (error.message === 'STOCK_INSUFICIENTE' || error.message === 'STOCK_INSUFICIENTE_LOTE') {
-      showToast('❌ Stock insuficiente en esta bodega. Reintenta.', 'error');
+    if (error.message === 'STOCK_INSUFICIENTE') {
+      showToast('❌ Stock insuficiente. Reintenta.', 'error');
     } else {
       showToast('❌ Error: ' + error.message, 'error');
     }
@@ -615,11 +485,7 @@ async function handleRefillEntrySafe() {
     return;
   }
 
-  // En productos nuevos o recuperados del catálogo, respeta cualquier
-  // corrección que el promotor haga antes de registrar la entrada.
-  const piezasPorCaja = parseInt(document.getElementById('refill-piezas').value)
-                      || parseInt(refillCurrentProduct.piezasPorCaja)
-                      || 1;
+  const piezasPorCaja = parseInt(refillCurrentProduct.piezasPorCaja) || 1;
 
   // ✅ FIX: En ENTRADA, permitir AMBAS opciones:
   // - Cajas enteras van a BODEGA
@@ -719,7 +585,7 @@ async function handleRefillEntrySafe() {
     }
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    limpiarFormularioRefillSafe(true);
+    limpiarFormularioRefillSafe();
     document.getElementById('refill-barcode')?.focus();
 
   } catch (error) {
@@ -737,10 +603,7 @@ function habilitarCamposCreacion() {
     if (el) { el.readOnly = false; el.style.background = '#fff'; }
   });
   const marca = document.getElementById('refill-marca');
-  if (marca) {
-    marca.disabled = false;
-    marca.style.background = '#fff';
-  }
+  if (marca) marca.disabled = false;
   const warehouse = document.getElementById('refill-warehouse');
   if (warehouse) { warehouse.readOnly = false; warehouse.style.background = '#fff'; }
   const expiryGroup = document.getElementById('refill-expiry-date-group');
@@ -750,8 +613,7 @@ function habilitarCamposCreacion() {
 // ============================================================
 // LIMPIAR FORMULARIO
 // ============================================================
-function limpiarFormularioRefillSafe(preserveMode = false) {
-  const previousMode = refillMode;
+function limpiarFormularioRefillSafe() {
   document.getElementById('refill-form')?.reset();
   
   // Reset manual de inputs de cantidad
@@ -766,10 +628,7 @@ function limpiarFormularioRefillSafe(preserveMode = false) {
   });
 
   const marca = document.getElementById('refill-marca');
-  if (marca) {
-    marca.disabled = true;
-    marca.style.background = '#f8fafc';
-  }
+  if (marca) marca.disabled = true;
 
   const warehouse = document.getElementById('refill-warehouse');
   if (warehouse) { warehouse.readOnly = true; warehouse.style.background = '#f8fafc'; }
@@ -782,7 +641,7 @@ function limpiarFormularioRefillSafe(preserveMode = false) {
 
   refillCurrentProduct = null;
   refillCurrentLoteId  = null;
-  setRefillModeSafe(preserveMode ? previousMode : 'exit');
+  setRefillModeSafe('exit');
 }
 
 // ============================================================
@@ -875,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ?.addEventListener('submit', handleRefillSubmitSafe);
 
   document.getElementById('refill-barcode')
-    ?.addEventListener('keydown', (e) => {
+    ?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         searchProductForRefillSafe(e.target.value);

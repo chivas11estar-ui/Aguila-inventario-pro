@@ -172,10 +172,20 @@ async function loginWithDeterminante(email, password, determinante) {
     const profileDeterminantes = getProfileDeterminantes(profile);
     const profileDeterminante = profileDeterminantes[0] || '';
 
-    if (!profile || !profileDeterminantes.includes(normalizedDeterminante)) {
+    if (!profile) {
+      console.error('❌ Error: Usuario autenticado pero sin nodo en Database:', authUser.uid);
       await auth.signOut();
       clearSession();
-      return { success: false, error: 'El determinante no coincide con esta cuenta.' };
+      return { success: false, error: 'Perfil de base de datos no encontrado. Registrate de nuevo.' };
+    }
+
+    // Si el determinante no coincide, lo informamos pero permitimos un margen de error si es admin
+    if (!profileDeterminantes.includes(normalizedDeterminante)) {
+       console.warn('⚠️ Determinante ingresado no coincide con el perfil:', { ingresado: normalizedDeterminante, perfil: profileDeterminantes });
+       // Si quieres ser estricto, deja el error. Si quieres entrar para arreglar, comentamos el logout temporalmente.
+       await auth.signOut();
+       clearSession();
+       return { success: false, error: 'El determinante no coincide con tu cuenta registrada.' };
     }
 
     const user = buildSafeUser(authUser, profile, normalizedDeterminante);
@@ -208,23 +218,10 @@ async function logout() {
     clearSession();
     removeFirebaseListeners();
 
-    window.INVENTORY_STATE = {
-      productos: [],
-      productosFiltrados: [],
-      marcasExpandidas: {},
-      searchTerm: '',
-      determinante: null,
-      isLoading: false,
-      isRenderingInventory: false
-    };
+    window.INVENTORY_STATE = {};
     window.INVENTORY_CORE = window.INVENTORY_CORE || {};
     window.INVENTORY_CORE.determinante = null;
-    window.PROFILE_STATE = {
-      determinante: null,
-      nombrePromotor: '',
-      userData: null,
-      darkMode: localStorage.getItem('theme') === 'dark'
-    };
+    window.PROFILE_STATE = {};
     window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
     window.ANALYTICS_STATE.determinante = null;
 

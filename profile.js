@@ -30,7 +30,7 @@ window.PROFILE_STATE = {
 // EXPORTAR FUNCIONES (EARLY EXPOSURE)
 // ============================================================
 window.loadUserProfile = loadUserProfile;
-window.refreshWeather = () => window.fetchWeatherData?.(true);
+window.refreshWeather = window.fetchWeatherData;
 window.refreshActivity = loadDailyActivity;
 window.updateUserData = updateUserData;
 window.saveUserPreferences = saveUserPreferences;
@@ -42,11 +42,6 @@ window.applyTheme = applyTheme;
 // darkMode era false. Ahora se usa prioridad explícita con null check.
 // ============================================================
 function applyTheme(forceMode = null) {
-    window.PROFILE_STATE = window.PROFILE_STATE || {};
-    window.PROFILE_STATE.preferences = window.PROFILE_STATE.preferences || {
-        fraseMotivacional: '¡Hoy será un gran día! 🦅',
-        avatar: '👤', mostrarClima: true, mostrarEstadisticas: true, darkMode: null
-    };
         const htmlElement = document.documentElement;
         let isDark;
 
@@ -146,6 +141,7 @@ async function loadUserProfile() {
 
             // Cargar datos secundarios
             loadDailyActivity();
+                window.fetchWeatherData();
 
     } catch (error) {
                 console.error('❌ Error cargando perfil:', error);
@@ -248,4 +244,3 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ profile.js (Logic) cargado - Integrado con profile-ui.js');
-
