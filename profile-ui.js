@@ -235,7 +235,7 @@ function renderMotivationalPhrasesCard() {
 function renderProfileFooter() {
   return `
     <footer class="text-center py-4">
-      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v7.6</p>
+      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v8.0</p>
     </footer>
   `;
 }
@@ -390,3 +390,4 @@ window.updateWeatherUI = updateWeatherUI;
 window.updateActivityUI = updateActivityUI; // Mantenido por compatibilidad, pero su funcionalidad es limitada con el nuevo diseño
 
 console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente con nuevo diseño');
+

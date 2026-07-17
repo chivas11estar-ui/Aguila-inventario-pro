@@ -3,45 +3,6 @@
    Estilos para agrupación de bodegas y autofill
    ============================================================ */
 
-/* OPTIMIZACIONES ANDROID / TWA */
-body {
-  overscroll-behavior-y: contain; /* Desactivar pull-to-refresh */
-  -webkit-tap-highlight-color: transparent;
-}
-
-.scanner-torch-btn {
-  position: absolute;
-  bottom: 120px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-}
-
-.scanner-torch-btn:active {
-  transform: scale(0.9);
-  background: var(--warning);
-}
-
-.scanner-torch-btn span {
-  font-size: 28px;
-}
-
-/* Áreas de clic optimizadas */
-.bottom-nav .nav-btn {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
 /* DETALLES DE BODEGAS */
 .bodega-details {
   margin-top: 12px;
@@ -1389,7 +1350,7 @@ html {
     color: #8ee8c3 !important;
 }
 
-/* Contraste equivalente al modo claro en inventario y acciones. */
+/* Mejoras locales de contraste para encabezados, perfil y acciones. */
 :root.dark .aguila-brand-header {
     background: var(--brand-header-bg) !important;
     border-color: var(--border) !important;
@@ -1401,44 +1362,11 @@ html {
     color: inherit !important;
 }
 
-:root.dark .bodega-details li,
-:root.dark .aguila-lote-card {
-    background: var(--surface-container) !important;
-    border-color: var(--border) !important;
-    color: var(--text) !important;
-}
-
-:root.dark .bodega-details li [style*="color: #1e293b"],
-:root.dark .bodega-details li [style*="color:#1e293b"],
-:root.dark .aguila-lote-card [style*="color: #475569"],
-:root.dark .aguila-lote-card [style*="color:#475569"] {
-    color: var(--text) !important;
-}
-
-:root.dark .bodega-details li [style*="color: #64748b"],
-:root.dark .bodega-details li [style*="color:#64748b"],
-:root.dark .aguila-lote-card [style*="color: #64748b"],
-:root.dark .aguila-lote-card [style*="color:#64748b"] {
-    color: var(--muted) !important;
-}
-
 :root.dark .primary,
 :root.dark .search-scan-btn,
 :root.dark .primary .material-icons-round,
 :root.dark .search-scan-btn .material-icons-round {
     color: #11121a !important;
-}
-
-:root.dark .aguila-status-badge.ok {
-    background: rgba(16, 185, 129, 0.18) !important;
-    color: #8ee8c3 !important;
-    border-color: rgba(110, 231, 183, 0.32) !important;
-}
-
-:root.dark #lote-mover-modal > div {
-    background: var(--card-bg) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
 }
 
 :root.dark #lote-mover-modal h3,
@@ -1451,7 +1379,6 @@ html {
     color: var(--muted) !important;
 }
 
-/* Perfil: Tailwind usa el tema del sistema; la app usa la clase html.dark. */
 :root.dark .weather-card,
 :root.dark .preferences-card {
     background: var(--card-bg) !important;
@@ -1460,50 +1387,12 @@ html {
 }
 
 :root.dark .weather-card h3,
-:root.dark .preferences-card h3 {
-    color: var(--text) !important;
-}
-
-:root.dark .weather-card .weather-panel-animated,
-:root.dark .weather-card .grid > div {
-    background: var(--surface-container) !important;
-    border-color: var(--border) !important;
-}
-
-:root.dark .weather-card .text-5xl {
-    color: var(--primary) !important;
-}
-
+:root.dark .preferences-card h3,
 :root.dark .weather-card .text-slate-700,
 :root.dark .weather-card .text-slate-800,
 :root.dark .preferences-card .text-slate-700,
 :root.dark .preferences-card .text-slate-800 {
     color: var(--text) !important;
-}
-
-:root.dark .weather-card .text-slate-400,
-:root.dark .weather-card .text-slate-500,
-:root.dark .weather-card .text-slate-600,
-:root.dark .preferences-card .text-slate-400,
-:root.dark .preferences-card .text-slate-500,
-:root.dark .preferences-card .text-slate-600 {
-    color: var(--muted) !important;
-}
-
-:root.dark .weather-card .bg-blue-100 {
-    background: rgba(59, 130, 246, 0.18) !important;
-}
-
-:root.dark .weather-card .bg-cyan-100 {
-    background: rgba(6, 182, 212, 0.18) !important;
-}
-
-:root.dark .weather-card::after {
-    background: rgba(189, 194, 255, 0.08) !important;
-}
-
-:root.dark .weather-card::before {
-    border-color: rgba(189, 194, 255, 0.14) !important;
 }
 
 @media (max-width: 520px) {
@@ -1520,3 +1409,39 @@ html {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Ajustes finales de contraste y tacto para modo oscuro */
+:root.dark #profile-container section,
+:root.dark #motivational-phrases-manager,
+:root.dark #audit-quick-scan-container,
+:root.dark #lote-mover-modal > div {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+:root.dark #profile-container [class*="text-slate-800"],
+:root.dark #profile-container [class*="text-slate-600"] { color: var(--text) !important; }
+:root.dark #profile-container [class*="bg-slate-50"],
+:root.dark #profile-container [class*="bg-white"] { background-color: var(--surface-container) !important; }
+button, .nav-btn, .btn-icon { min-height: 44px; }
+
+/* Conserva señales de color en bodegas sin producir bloques blancos. */
+:root.dark .bodega-details {
+  background: linear-gradient(145deg, rgba(45, 50, 73, 0.96), rgba(30, 33, 51, 0.96)) !important;
+  border-color: rgba(129, 140, 248, 0.42) !important;
+}
+:root.dark .bodega-details[open] {
+  background: linear-gradient(145deg, rgba(36, 42, 68, 0.98), rgba(27, 31, 48, 0.98)) !important;
+}
+:root.dark .bodega-list .bodega-item,
+:root.dark .aguila-lote-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(16, 185, 129, 0.08)) !important;
+  border: 1px solid rgba(96, 165, 250, 0.32) !important;
+  color: var(--text) !important;
+}
+:root.dark .aguila-product-card .bodega-name { color: #93c5fd !important; }
+:root.dark .aguila-product-card .bodega-stock { color: #a5b4fc !important; }
+:root.dark .aguila-product-card .bodega-average { color: #34d399 !important; }
+:root.dark .aguila-product-card .bodega-expiry.is-ok { color: #fbbf24 !important; }
+:root.dark .aguila-product-card .bodega-expiry.is-soon { color: #fb7185 !important; }

@@ -271,7 +271,6 @@
         return;
       }
 
-      // Mostrar sólo ubicaciones que actualmente conservan stock.
       const bodegasActivasInventario = (window.INVENTORY_STATE?.productos || [])
         .filter(p => (parseFloat(p.stockTotal ?? p.cajas) || 0) > 0)
         .map(p => p.ubicacion || p.bodega);
@@ -307,3 +306,4 @@
 
   console.log('✅ lote-mover.js cargado correctamente (window.moverLote / window.moverProducto)');
 })();
+

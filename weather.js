@@ -42,95 +42,106 @@ function getWeatherPresentation(conditionText) {
     return { label: 'Clima estable', icon: 'wb_sunny' };
 }
 
-window.fetchWeatherData = async function () {
-    let lat = 19.4326, lon = -99.1332; // CDMX Default
-    let cityName = "Detectando...";
-    let geolocationError = false;
+function getOpenMeteoPresentation(weatherCode) {
+    const code = Number(weatherCode);
 
-    // Obtener la ubicación actual si el navegador lo permite
+    if ([95, 96, 99].includes(code)) return { label: 'Tormenta', icon: 'thunderstorm' };
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { label: 'Lluvia', icon: 'rainy' };
+    if ([51, 53, 55, 56, 57].includes(code)) return { label: 'Llovizna', icon: 'rainy' };
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: 'Nieve', icon: 'ac_unit' };
+    if ([45, 48].includes(code)) return { label: 'Neblina', icon: 'foggy' };
+    if (code === 3) return { label: 'Nublado', icon: 'cloud' };
+    if ([1, 2].includes(code)) return { label: 'Parcialmente nublado', icon: 'partly_cloudy_day' };
+    if (code === 0) return { label: 'Soleado', icon: 'wb_sunny' };
+
+    return { label: 'Clima estable', icon: 'wb_sunny' };
+}
+
+async function getCityName(lat, lon, fallbackName) {
     try {
-        if (navigator.geolocation) {
-            const pos = await new Promise((res, rej) =>
-                navigator.geolocation.getCurrentPosition(res, rej, {
-                    timeout: 15000, // Aumentado a 15s para móviles
-                    maximumAge: 600000, // Cache de 10 minutos
-                    enableHighAccuracy: false // Mayor velocidad, menos batería
-                }));
+        const url = 'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lon) + '&localityLanguage=es';
+        const geoRes = await fetch(url);
+        if (!geoRes.ok) throw new Error('Reverse geocode HTTP ' + geoRes.status);
+        const geoData = await geoRes.json();
+        return geoData.city || geoData.locality || geoData.principalSubdivision || fallbackName;
+    } catch (e) {
+        console.warn('⚠️ Error al obtener nombre de la ciudad (BigDataCloud):', e);
+        return fallbackName;
+    }
+}
+
+async function getPrecisePosition() {
+    if (!navigator.geolocation) {
+        throw new Error('Geolocalización no soportada por este navegador.');
+    }
+
+    return new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 15000,
+            maximumAge: 600000,
+            enableHighAccuracy: false
+        })
+    );
+}
+
+window.fetchWeatherData = async function (requestPreciseLocation = false) {
+    let lat = 19.4326;
+    let lon = -99.1332;
+    let cityName = 'Ciudad de México';
+    let locationMessage = '';
+
+    try {
+        if (requestPreciseLocation) {
+            const pos = await getPrecisePosition();
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
-
-            try {
-                // Usamos bigdatacloud.net para reverse geocoding
-                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
-                const geoData = await geoRes.json();
-                cityName = geoData.city || geoData.locality || geoData.principalSubdivision || "Ubicación Actual";
-            } catch (e) {
-                console.warn('⚠️ Error al obtener nombre de la ciudad (BigDataCloud):', e);
-                cityName = "Tu Tienda"; // Fallback name
-            }
-        } else {
-            console.warn('⚠️ Geolocalización no soportada por el navegador.');
-            geolocationError = true;
+            cityName = await getCityName(lat, lon, 'Ubicación Actual');
         }
     } catch (e) {
-        console.error('❌ Error al obtener la ubicación (Geolocation API):', e);
-        // Specifically check for permission denied errors
-        if (e.code === e.PERMISSION_DENIED) {
-            console.warn('❌ Permiso de geolocalización denegado por el usuario.');
-            cityName = "Permiso Denegado";
-        } else {
-            cityName = "Ubicación Desconocida";
-        }
-        geolocationError = true;
+        const denied = e && (e.code === e.PERMISSION_DENIED || e.code === 1);
+        cityName = denied ? 'Permiso de ubicación denegado' : 'Ubicación no disponible';
+        locationMessage = denied
+            ? 'Permiso de ubicación denegado. Se muestra clima de referencia.'
+            : 'No se pudo obtener la ubicación. Se muestra clima de referencia.';
+        console.warn('⚠️ Ubicación no disponible; se usará clima de referencia:', e);
     }
 
-    // Si la geolocalización falló y no se desea usar la ubicación por defecto para el clima,
-    // o si el usuario denegó explícitamente el permiso, se puede mostrar un error directamente.
-    // Sin embargo, por ahora seguimos con la ubicación por defecto si no se obtuvo una precisa,
-    // a menos que el error sea de denegación de permiso.
-    if (geolocationError && cityName === "Permiso Denegado") {
-        window.PROFILE_STATE.weather = { error: true, city: cityName, message: "Permiso de ubicación denegado." };
-        if (typeof window.renderProfileUI === 'function') { // Changed from updateWeatherUI
-            window.renderProfileUI(); // Changed from updateWeatherUI
-        }
-        return; // Exit early if permission denied
-    }
-
-
-    let data = null;
     try {
-        const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1&lang=es`);
-        if (res.ok) data = await res.json();
-    } catch(e) { data = null; }
+        const weatherUrl = new URL('https://api.open-meteo.com/v1/forecast');
+        weatherUrl.searchParams.set('latitude', lat);
+        weatherUrl.searchParams.set('longitude', lon);
+        weatherUrl.searchParams.set('current', 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m');
+        weatherUrl.searchParams.set('timezone', 'auto');
 
-    if (!data) {
-        window.PROFILE_STATE.weather = { error: true, city: cityName };
-        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
-        return;
+        const res = await fetch(weatherUrl.toString(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('Open-Meteo HTTP ' + res.status);
+
+        const data = await res.json();
+        const current = data.current;
+        if (!current) throw new Error('Open-Meteo no devolvió datos actuales.');
+
+        const weatherInfo = getOpenMeteoPresentation(current.weather_code);
+
+        window.PROFILE_STATE.weather = {
+            temperature: Math.round(Number(current.temperature_2m)),
+            windSpeed: Math.round(Number(current.wind_speed_10m)),
+            humidity: Math.round(Number(current.relative_humidity_2m)),
+            condition: weatherInfo.label,
+            icon: weatherInfo.icon,
+            city: cityName,
+            message: locationMessage,
+            error: false
+        };
+    } catch (e) {
+        console.error('❌ Error al cargar clima (Open-Meteo):', e);
+        window.PROFILE_STATE.weather = {
+            error: true,
+            city: cityName,
+            message: 'No se pudo cargar el clima. Revisa tu conexión e intenta refrescar.'
+        };
     }
-
-    const current = data.current_condition?.[0];
-    if (!current) {
-        window.PROFILE_STATE.weather = { error: true, city: cityName };
-        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
-        return;
-    }
-
-    const conditionText = current.lang_es?.[0]?.value || current.weatherDesc?.[0]?.value || 'Despejado';
-    const weatherInfo = getWeatherPresentation(conditionText);
-
-    window.PROFILE_STATE.weather = {
-        temperature: parseInt(current.temp_C),
-        windSpeed: parseInt(current.windspeedKmph),
-        humidity: parseInt(current.humidity),
-        condition: weatherInfo.label,
-        icon: weatherInfo.icon,
-        city: cityName,
-        error: false
-    };
 
     if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
-    return;
 };
 
 console.log('✅ weather.js (Módulo Clima) cargado correctamente');

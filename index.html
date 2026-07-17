@@ -15,37 +15,62 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Águila Pro">
-  <link rel="apple-touch-icon" href="./icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <link rel="stylesheet" href="./styles.css?v=1.8">
-  <link rel="stylesheet" href="./custom-styles.css?v=1.8">
-  <link rel="stylesheet" href="./tailwind-built.css?v=1.2">
+  <link rel="stylesheet" href="styles.css?v=1.8">
+  <link rel="stylesheet" href="custom-styles.css?v=1.9">
+  <link rel="stylesheet" href="tailwind-built.css?v=1.2">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       <style>
               footer, [role="contentinfo"] {
-                        background-color: #ffffff !important;
-                        color: #1a1a1a !important;
+        background-color: var(--card-bg) !important;
+        color: var(--text) !important;
                         padding: 20px !important;
                         text-align: center !important;
                         font-size: 14px !important;
                         line-height: 1.6 !important;
-                        border-top: 1px solid #e0e0e0 !important;
+        border-top: 1px solid var(--border) !important;
               }
               footer p, [role="contentinfo"] p,
               footer div, [role="contentinfo"] div {
                         margin: 0 !important;
-                        color: #1a1a1a !important;
+        color: var(--text) !important;
                         font-weight: 500 !important;
               }
-              @media (max-width: 768px) {
+      @media (max-width: 768px) {
                         footer, [role="contentinfo"] {
                                     font-size: 12px !important;
                                     padding: 15px !important;
-                        }
+      }
+
+      /* Contraste consistente para componentes con estilos heredados en línea. */
+      :root.dark footer, :root.dark [role="contentinfo"] {
+        background-color: var(--card-bg) !important;
+        color: var(--text) !important;
+        border-color: var(--border) !important;
+      }
+      :root.dark footer p, :root.dark footer div,
+      :root.dark [role="contentinfo"] p, :root.dark [role="contentinfo"] div,
+      :root.dark .form-group label, :root.dark #tab-add h2 {
+        color: var(--text) !important;
+      }
+      :root.dark .card [style*="color: #1e293b"],
+      :root.dark .card [style*="color:#1e293b"],
+      :root.dark .card [style*="color: #0f172a"],
+      :root.dark .card [style*="color:#0f172a"] { color: var(--text) !important; }
+      :root.dark .card [style*="color: #64748b"],
+      :root.dark .card [style*="color:#64748b"],
+      :root.dark .card [style*="color: #6b7280"],
+      :root.dark .card [style*="color:#6b7280"] { color: var(--muted) !important; }
+      :root.dark #lote-mover-modal > div {
+        background: var(--card-bg) !important;
+        color: var(--text) !important;
+      }
+      .btn-icon { min-width: 44px; min-height: 44px; }
               }
             </style>
 </head>
@@ -66,9 +91,6 @@
         <div class="scanner-overlay">
           <div class="scanner-frame"></div>
           <div class="scanner-instruction">Apunta la cámara al código de barras</div>
-          <button id="btn-toggle-torch" class="scanner-torch-btn hidden">
-            <span class="material-icons-round">flashlight_on</span>
-          </button>
         </div>
       </div>
       <button id="close-scanner" class="scanner-close-btn">Cerrar Escáner</button>
@@ -152,7 +174,7 @@
           <label for="login-determinante">Determinante (Tienda)</label>
           <input id="login-determinante" type="text" placeholder="Ej: 12345" minlength="4" maxlength="8" required autocomplete="organization" />
         </div>
-        <button type="button" id="btn-login" class="primary" style="width:100%; margin-top: 10px;">Acceder al Sistema</button>
+        <button type="submit" id="btn-login" class="primary" style="width:100%; margin-top: 10px;">Acceder al Sistema</button>
         
         <div style="margin-top: 24px; text-align: center; border-top: 1px solid var(--border); padding-top: 24px;">
           <a href="#" id="show-forgot-password" style="color: var(--secondary); font-size: 0.875rem; text-decoration: none; font-weight: 600;">¿Olvidaste tu contraseña?</a>
@@ -220,10 +242,10 @@
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
-          <button class="btn-icon" id="btn-offline-status" title="Estado de conexión">
+          <button class="btn-icon" id="btn-offline-status" title="Estado de conexión" aria-label="Estado de conexión">
             <span class="material-icons-round">sensors</span>
           </button>
-          <button class="btn-icon" id="btn-logout" title="Cerrar sesión">
+          <button class="btn-icon" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
             <span class="material-icons-round">logout</span>
           </button>
         </div>
@@ -240,10 +262,6 @@
         <a href="#" class="nav-btn" data-tab="out-of-stock">
           <span class="material-icons-round">block</span>
           <span>Agotados</span>
-        </a>
-        <a href="#" class="nav-btn" data-tab="add">
-          <span class="material-icons-round">add_circle</span>
-          <span>Añadir</span>
         </a>
         <a href="#" class="nav-btn" data-tab="refill">
           <span class="material-icons-round">autorenew</span>
@@ -297,7 +315,7 @@
                 <label for="add-barcode" style="color: #1e293b; font-weight: 700;">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
                   <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" style="color: #000; font-weight: 600;" />
-                  <button type="button" id="btn-scan-add" class="success"
+                  <button type="button" id="btn-scan-add" class="success" aria-label="Escanear código para añadir producto"
                     style="width:auto;padding:12px 16px;">📷</button>
                 </div>
               </div>
@@ -349,13 +367,13 @@
         <div id="tab-refill" class="tab-content hidden">
           <div class="card">
             <h2>🔄 Reabastecimiento Inteligente</h2>
-            <p style="color: #6b7280; font-size: 13px;">Escanea productos existentes o crea nuevos sobre la marcha</p>
+            <p style="color: #6b7280; font-size: 13px;">Escanea cualquier código: si es nuevo podrás darlo de alta aquí mismo</p>
 
             <div id="refill-mode-selector"
               style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; flex-wrap: wrap;">
               <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">&#128230; Salida (Rellenar Exhibidor)</button>
               <button id="btn-refill-mode-pieces" class="warning" style="flex: 1; opacity: 0.6;">&#129329; Por Piezas</button>
-              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada (Añadir Stock)</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada / Alta de producto</button>
             </div>
 
             <form id="refill-form" style="margin-top: 20px;">
@@ -363,7 +381,7 @@
                 <label for="refill-barcode">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
                   <input id="refill-barcode" type="text" placeholder="Escanea o escribe el código" />
-                  <button type="button" id="btn-scan-refill" class="success"
+                  <button type="button" id="btn-scan-refill" class="success" aria-label="Escanear código para reabastecimiento"
                     style="width:auto;padding:12px 16px;">📷</button>
                 </div>
               </div>
@@ -376,8 +394,15 @@
 
               <div class="form-group">
                 <label for="refill-marca">Marca</label>
-                <input id="refill-marca" type="text" placeholder="Se llenará automáticamente" readonly
-                  style="background: #f8fafc;" />
+                <select id="refill-marca" disabled style="background: #f8fafc;">
+                  <option value="">-- Selecciona una marca --</option>
+                  <option value="Sabritas">Sabritas</option>
+                  <option value="Gamesa">Gamesa</option>
+                  <option value="Quaker">Quaker</option>
+                  <option value="Sonric's">Sonric's</option>
+                  <option value="Cacahuates">Cacahuates</option>
+                  <option value="Otra">Otra</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -462,7 +487,7 @@
                   <label for="audit-barcode">Código de Barras</label>
                   <div style="display:flex;gap:8px;">
                     <input id="audit-barcode" type="text" placeholder="Escanea el producto" />
-                    <button type="button" id="btn-scan-audit" class="success"
+                    <button type="button" id="btn-scan-audit" class="success" aria-label="Escanear código para auditoría"
                       style="width:auto;padding:12px 16px;">📷</button>
                   </div>
                 </div>
@@ -626,8 +651,8 @@
   <!-- ============================================================
        INVENTARIO (FASE 2.1) - Renderizado y estado base
        ============================================================ -->
-  <script src="inventory.js?v=2.1" defer></script>
-<script src="inventory-ui.js?v=2.7" defer></script>
+  <script src="inventory.js?v=2.3" defer></script>
+  <script src="inventory-ui.js?v=2.7" defer></script>
 
   <!-- ============================================================
        INVENTORY-CORE V2 - Nueva arquitectura por código de barras
@@ -641,8 +666,8 @@
        OPERACIONES (V2 - REFACTORIZADO)
         refill-safe.js gestiona las operaciones de reabastecimiento
        ============================================================ -->
-<script src="refill-safe.js?v=2.4" defer></script>
-  <script src="audit.js?v=2.2" defer></script>
+  <script src="refill-safe.js?v=2.5" defer></script>
+  <script src="audit.js?v=2.3" defer></script>
   <!-- audit-pro-ui desactivado temporalmente: sobreescribía la UI de auditoría por bodega -->
 
   <!-- ============================================================
@@ -650,8 +675,8 @@
        ============================================================ -->
   <script src="system.js?v=1.2" defer></script>
   <script src="system-events.js?v=1.2" defer></script>
-  <script src="weather.js?v=1.4" defer></script>
-  <script src="profile.js?v=1.4" defer></script>
+  <script src="weather.js?v=1.5" defer></script>
+  <script src="profile.js?v=1.5" defer></script>
   <script src="profile-ui.js?v=1.8" defer></script>
 
   <!-- ============================================================
@@ -680,8 +705,8 @@
   <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
-  <script src="login.js?v=1.0" defer></script>
-  <script src="auth.js?v=2.2" defer></script>
+  <script src="login.js?v=1.1" defer></script>
+  <script src="auth.js?v=2.4" defer></script>
   <script src="app.js?v=2.1" defer></script>
 
   <!-- ============================================================

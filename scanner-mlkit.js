@@ -1,6 +1,6 @@
 /**
  * Águila Pro - ScannerService (Singleton Persistent Bridge)
- * V6.3 - Unified API & Crash Fix
+ * V7.0 - High Precision & Torch Support
  * Copyright © 2026 José A. G. Betancourt
  */
 
@@ -157,130 +157,71 @@ window.ScannerService = {
                     const code = barcodes[0].rawValue;
                     const now = Date.now();
 
-                    // Debounce: No escanear lo mismo en menos de 2 segundos si es el mismo código
                     if (code !== this.lastScannedCode || (now - this.lastScanTime > 2000)) {
                         this.lastScannedCode = code;
                         this.lastScanTime = now;
-                        
-                        console.log("🎯 Código detectado:", code);
-                        if (navigator.vibrate) navigator.vibrate([70]); // Vibración Android-style
-                        
+                        if (navigator.vibrate) navigator.vibrate([70]);
                         callback(code);
-                        
                         if (!window.ScannerService.continuousMode) {
                             this.isScanning = false;
                             return; 
                         }
                     }
                 }
-            } catch (e) {
-                console.warn("⚠️ Error en ciclo:", e);
-            }
+            } catch (e) { console.warn("⚠️ Error en ciclo:", e); }
 
             if (this.isScanning) {
-                // Pequeña pausa para no quemar CPU (15fps es suficiente para barcodes)
                 setTimeout(() => requestAnimationFrame(loop), 60);
             }
         };
         loop();
     },
 
-    // ALIAS DE COMPATIBILIDAD
     stop() {
         this.isScanning = false;
-        if (this.activeVideoElement) {
-            this.activeVideoElement.pause();
-        }
-        console.log("⏸️ [ScannerService] Flujo detenido.");
+        if (this.activeVideoElement) this.activeVideoElement.pause();
     },
 
-    stopDataFlow() { this.stop(); },
-
-    /**
-     * MÉTODO HARD-STOP (Mobile Optimization)
-     * Apaga físicamente el hardware de la cámara y libera el buffer de la GPU.
-     */
     hardStop() {
-        console.log("🛑 [ScannerService] Apagando hardware de cámara...");
-        
-        // 1. Detener el ciclo de detección
         this.isScanning = false;
-        
-        // 2. Limpiar el elemento de video (Libera buffer GPU)
         if (this.activeVideoElement) {
             this.activeVideoElement.pause();
             this.activeVideoElement.srcObject = null;
-            this.activeVideoElement.load(); // Fuerza limpieza del buffer
+            this.activeVideoElement.load();
             this.activeVideoElement = null;
         }
-        
-        // 3. Matar físicamente los tracks del MediaStream
         if (this.persistentStream) {
-            const tracks = this.persistentStream.getTracks();
-            tracks.forEach(track => {
-                track.stop();
-                console.log(`✅ Track detenido: ${track.kind}`);
-            });
+            this.persistentStream.getTracks().forEach(t => t.stop());
             this.persistentStream = null;
         }
-
-        console.log("🔋 Hardware liberado correctamente.");
     }
 };
 
-/**
- * BRIDGE GLOBAL BLINDADO
- * Soporta: 
- * 1. openScanner(callback)
- * 2. openScanner({ onScan: callback, continuous: bool })
- */
 Object.defineProperty(window, 'openScanner', {
     value: async function(args) {
         const modal = document.getElementById('scanner-modal');
         const video = document.getElementById('scanner-video');
-        if (!modal || !video) {
-            console.error("❌ No se encontró el modal o video del escáner");
-            return;
-        }
+        if (!modal || !video) return;
 
-        // Determinar callback y modo
         let callback = typeof args === 'function' ? args : (args?.onScan || null);
         window.ScannerService.continuousMode = args?.continuous || false;
 
-        if (!callback) {
-            console.error("❌ openScanner requiere un callback");
-            return;
-        }
+        if (!callback) return;
 
         modal.classList.remove('hidden');
-        modal.classList.add('active'); // Por si se usa CSS para mostrarlo
-
         const ready = await window.ScannerService.requestCamera(video);
         if (ready) {
             window.ScannerService.scan((code) => {
                 callback(code);
-                
-                // Si hay un puente global para búsqueda (analytics/etc)
-                if (window.bridgeScanToSearch) window.bridgeScanToSearch(code);
-
-                // Auto-cerrar si no es modo continuo (HARD STOP para liberar hardware)
                 if (!window.ScannerService.continuousMode) {
                     modal.classList.add('hidden');
-                    modal.classList.remove('active');
-                    if (window.ScannerService.hardStop) {
-                        window.ScannerService.hardStop();
-                    } else {
-                        window.ScannerService.stop();
-                    }
+                    window.ScannerService.hardStop();
                 }
             });
         } else {
-            if (typeof showToast === 'function') showToast("❌ No se pudo acceder a la cámara", "error");
             modal.classList.add('hidden');
         }
     },
     writable: false,
     configurable: true
 });
-
-console.log('✅ [SCANNER] Motor V6.3 (API Unified) desplegado.');
