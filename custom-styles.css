@@ -4,31 +4,60 @@
    ============================================================ */
 
 :root {
-  /* MODO CLARO - Sofisticado */
+  /* MODO CLARO */
   --primary: #004aad;
-  --primary-dark: #003087;
-  --secondary: #2563eb;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
   --bg: #f8fafc;
   --card: #ffffff;
   --text: #1e293b;
   --muted: #64748b;
   --border: #e2e8f0;
+  --input-bg: #ffffff;
   --radius: 18px;
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
-/* MODO OSCURO - Estilo "Midnight Pro" */
+/* MODO OSCURO - Midnight Pro Hardened */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0b1120;         /* Azul noche profundo */
-    --card: #161e31;       /* Slate blue elegante para tarjetas */
+    --card: #161e31;       /* Slate blue elegante */
     --text: #f8fafc;       /* Blanco seda */
-    --muted: #94a3b8;      /* Gris azulado para textos secundarios */
-    --border: #1e293b;     /* Bordes sutiles que no brillan */
+    --muted: #94a3b8;      /* Gris azulado */
+    --border: #1e293b;     /* Bordes sutiles */
+    --input-bg: #1e293b;   /* Fondo de inputs oscuro */
     --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  body { background-color: var(--bg) !important; color: var(--text) !important; }
+
+  /* Forzar que todas las tarjetas sean oscuras */
+  .card, section, div.card, #app-container, .main-content {
+    background-color: var(--card) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Arreglar etiquetas (Labels) invisibles */
+  label, .form-group label {
+    color: var(--text) !important;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  /* Forzar Inputs y Selects */
+  input, select, textarea {
+    background-color: var(--input-bg) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  input::placeholder {
+    color: var(--muted) !important;
+  }
+
+  /* Header y footer */
+  .app-header, footer {
+    background-color: var(--bg) !important;
+    border-color: var(--border) !important;
   }
 }
 
@@ -46,10 +75,9 @@ body {
   overscroll-behavior-y: contain;
   line-height: 1.6;
   margin: 0;
-  transition: background-color 0.4s ease;
+  transition: background-color 0.3s ease;
 }
 
-/* Tarjetas Estilo "Gama Alta" */
 .card {
   background: var(--card);
   border-radius: var(--radius);
@@ -57,22 +85,9 @@ body {
   margin-bottom: 20px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .card {
-    /* En modo oscuro, un gradiente casi invisible le da un toque premium */
-    background: linear-gradient(145deg, #1e293b, #161e31);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-}
-
-.card:active {
-  transform: scale(0.97);
-}
-
-/* Botones con Feedback Háptico Visual */
+/* Botones */
 button, .btn {
   border-radius: 14px;
   padding: 14px 24px;
@@ -83,54 +98,34 @@ button, .btn {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 52px; /* Super Fat Finger Friendly */
-  font-size: 15px;
+  transition: all 0.2s ease;
+  min-height: 52px;
 }
 
-button.primary {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 14px 0 rgba(0, 74, 173, 0.39);
-}
+button.primary { background: var(--primary); color: white; }
+button.success { background: #10b981; color: white; }
+button:active { transform: scale(0.96); }
 
-button.success {
-  background: var(--success);
-  color: white;
-  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
-}
-
-button.secondary {
-  background: var(--border);
-  color: var(--text);
-}
-
-button:active {
-  transform: scale(0.94);
-  opacity: 0.9;
-}
-
-/* Bottom Nav Estilo Premium (Aero Blur) */
+/* Bottom Nav Estilo iOS Premium */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: 75px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   justify-content: space-around;
   align-items: center;
   border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
   z-index: 1000;
 }
 
 @media (prefers-color-scheme: dark) {
   .bottom-nav {
-    background: rgba(11, 17, 32, 0.85);
+    background: rgba(11, 17, 32, 0.85) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
 }
@@ -145,54 +140,14 @@ button:active {
   font-size: 11px;
   font-weight: 600;
   flex: 1;
-  transition: all 0.3s ease;
 }
 
 .nav-btn.active {
-  color: var(--primary);
-  transform: translateY(-2px);
+  color: #60a5fa; /* Azul brillante en el centro */
 }
 
-@media (prefers-color-scheme: dark) {
-  .nav-btn.active {
-    color: #60a5fa; /* Un azul más brillante para que destaque en la oscuridad */
-  }
-}
-
-/* Escáner Pro con Luces Neon */
-.scanner-video-wrapper {
-  position: relative;
-  border-radius: 28px;
-  overflow: hidden;
-  box-shadow: 0 0 0 4px var(--primary), 0 0 30px rgba(0, 74, 173, 0.3);
-}
-
-.scanner-torch-btn {
-  position: absolute;
-  bottom: 30px;
-  right: 30px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.6);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  border: 2px solid rgba(255,255,255,0.2);
-  backdrop-filter: blur(10px);
-}
-
-/* Skeletons de Carga (Animación Suave) */
-.skeleton {
-  background: linear-gradient(90deg, var(--border) 25%, var(--card) 50%, var(--border) 75%);
-  background-size: 200% 100%;
-  animation: loading 1.8s infinite;
-  border-radius: 8px;
-}
-
-@keyframes loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+/* Contenedor de la aplicación para evitar que se vea gris */
+#main-app {
+  background-color: var(--bg);
+  min-height: 100vh;
 }
