@@ -1,153 +1,142 @@
 /* ============================================================
-   Águila Pro Ultra - Diseño de Alta Gama (Optimizado)
-   Copyright © 2026 - José A. G. Betancourt
+   Águila Pro Ultra - DISEÑO DE ÉLITE (Gama Alta)
+   Optimizado para pantallas AMOLED y LCD de gama media
    ============================================================ */
 
 :root {
-  /* MODO CLARO */
+  /* Paleta Light - Minimalista */
+  --bg: #f1f5f9;
+  --surface: #ffffff;
   --primary: #004aad;
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --text: #1e293b;
+  --text: #0f172a;
   --muted: #64748b;
   --border: #e2e8f0;
-  --input-bg: #ffffff;
-  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
 }
 
-/* MODO OSCURO - Midnight Pro Hardened */
+/* MODO OSCURO - Estilo "Deep Ocean" (Gama Alta Real) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b1120;         /* Azul noche profundo */
-    --card: #161e31;       /* Slate blue elegante */
-    --text: #f8fafc;       /* Blanco seda */
-    --muted: #94a3b8;      /* Gris azulado */
-    --border: #1e293b;     /* Bordes sutiles */
-    --input-bg: #1e293b;   /* Fondo de inputs oscuro */
-    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    --bg: #020617;        /* Negro azulado ultra profundo */
+    --surface: #0f172a;   /* Slate oscuro para tarjetas */
+    --primary: #3b82f6;   /* Azul eléctrico vibrante */
+    --text: #f8fafc;      /* Blanco seda */
+    --muted: #94a3b8;     /* Gris azulado */
+    --border: #1e293b;    /* Bordes sutiles */
+    --input-bg: #1e293b;
   }
 
   body { background-color: var(--bg) !important; color: var(--text) !important; }
 
-  /* Forzar que todas las tarjetas sean oscuras */
-  .card, section, div.card, #app-container, .main-content {
-    background-color: var(--card) !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-  }
-
-  /* Arreglar etiquetas (Labels) invisibles */
-  label, .form-group label {
-    color: var(--text) !important;
-    font-weight: 600;
-    opacity: 0.9;
-  }
-
-  /* Forzar Inputs y Selects */
-  input, select, textarea {
-    background-color: var(--input-bg) !important;
+  /* Forzar que TODO lo que parezca tarjeta sea oscuro */
+  .card, section, [class*="card"], .main-content, #stats-container > div, #profile-container > div {
+    background-color: var(--surface) !important;
     color: var(--text) !important;
     border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
   }
 
-  input::placeholder {
-    color: var(--muted) !important;
+  /* Corregir el "Grisáceo" de los inputs */
+  input, select, textarea {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
   }
 
-  /* Header y footer */
-  .app-header, footer {
-    background-color: var(--bg) !important;
-    border-color: var(--border) !important;
+  /* Etiquetas que se pierden */
+  label, h1, h2, h3, h4, p, span:not(.material-icons-round) {
+    color: var(--text) !important;
   }
 }
 
-/* Efecto de Fluidez Nativa */
+/* --- INTERFAZ DE GAMA ALTA --- */
+
 * {
   -webkit-tap-highlight-color: transparent;
-  outline: none !important;
-  box-sizing: border-box;
+  transition: background-color 0.3s ease, transform 0.1s ease;
 }
 
 body {
-  background-color: var(--bg);
-  color: var(--text);
   font-family: 'Manrope', sans-serif;
-  overscroll-behavior-y: contain;
-  line-height: 1.6;
   margin: 0;
-  transition: background-color 0.3s ease;
+  padding-bottom: 90px; /* Espacio para la nav */
 }
 
+/* Tarjetas con efecto de elevación */
 .card {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 22px;
-  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin: 16px;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
 }
 
-/* Botones */
+/* Botones Estilo "App Nativa" */
 button, .btn {
-  border-radius: 14px;
-  padding: 14px 24px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border-radius: 16px;
+  text-transform: none;
+  min-height: 56px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.2s ease;
-  min-height: 52px;
+  gap: 12px;
 }
 
-button.primary { background: var(--primary); color: white; }
-button.success { background: #10b981; color: white; }
-button:active { transform: scale(0.96); }
+button.primary {
+  background: linear-gradient(135deg, var(--primary), #1d4ed8);
+  color: white;
+  box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.4);
+}
 
-/* Bottom Nav Estilo iOS Premium */
+/* Bottom Nav - El toque Maestro */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 75px;
-  background: rgba(255, 255, 255, 0.8);
+  bottom: 12px; /* Flotante */
+  left: 12px;
+  right: 12px;
+  height: 72px;
+  background: rgba(15, 23, 42, 0.8) !important; /* Cristal oscuro */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  border-top: 1px solid var(--border);
-  z-index: 1000;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bottom-nav {
-    background: rgba(11, 17, 32, 0.85) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-  }
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  z-index: 2000;
 }
 
 .nav-btn {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  color: var(--muted);
+  color: #94a3b8;
   text-decoration: none;
-  font-size: 11px;
-  font-weight: 600;
-  flex: 1;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .nav-btn.active {
-  color: #60a5fa; /* Azul brillante en el centro */
+  color: #3b82f6;
 }
 
-/* Contenedor de la aplicación para evitar que se vea gris */
-#main-app {
-  background-color: var(--bg);
-  min-height: 100vh;
+.nav-btn.active .material-icons-round {
+  background: rgba(59, 130, 246, 0.15);
+  padding: 8px 16px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+
+/* Escáner Neon */
+.scanner-video-wrapper {
+  border: 3px solid #3b82f6;
+  border-radius: 32px;
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
 }
