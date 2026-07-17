@@ -26,53 +26,62 @@
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       <style>
-              footer, [role="contentinfo"] {
-        background-color: var(--card-bg) !important;
-        color: var(--text) !important;
-                        padding: 20px !important;
-                        text-align: center !important;
-                        font-size: 14px !important;
-                        line-height: 1.6 !important;
-        border-top: 1px solid var(--border) !important;
-              }
-              footer p, [role="contentinfo"] p,
-              footer div, [role="contentinfo"] div {
-                        margin: 0 !important;
-        color: var(--text) !important;
-                        font-weight: 500 !important;
-              }
-      @media (max-width: 768px) {
-                        footer, [role="contentinfo"] {
-                                    font-size: 12px !important;
-                                    padding: 15px !important;
-      }
+        /* Estilos base para componentes que necesitan consistencia */
+        footer, [role="contentinfo"] {
+          background-color: var(--card) !important;
+          color: var(--text) !important;
+          padding: 20px !important;
+          text-align: center !important;
+          font-size: 14px !important;
+          line-height: 1.6 !important;
+          border-top: 1px solid var(--border) !important;
+        }
 
-      /* Contraste consistente para componentes con estilos heredados en línea. */
-      :root.dark footer, :root.dark [role="contentinfo"] {
-        background-color: var(--card-bg) !important;
-        color: var(--text) !important;
-        border-color: var(--border) !important;
-      }
-      :root.dark footer p, :root.dark footer div,
-      :root.dark [role="contentinfo"] p, :root.dark [role="contentinfo"] div,
-      :root.dark .form-group label, :root.dark #tab-add h2 {
-        color: var(--text) !important;
-      }
-      :root.dark .card [style*="color: #1e293b"],
-      :root.dark .card [style*="color:#1e293b"],
-      :root.dark .card [style*="color: #0f172a"],
-      :root.dark .card [style*="color:#0f172a"] { color: var(--text) !important; }
-      :root.dark .card [style*="color: #64748b"],
-      :root.dark .card [style*="color:#64748b"],
-      :root.dark .card [style*="color: #6b7280"],
-      :root.dark .card [style*="color:#6b7280"] { color: var(--muted) !important; }
-      :root.dark #lote-mover-modal > div {
-        background: var(--card-bg) !important;
-        color: var(--text) !important;
-      }
-      .btn-icon { min-width: 44px; min-height: 44px; }
-              }
-            </style>
+        footer p, [role="contentinfo"] p,
+        footer div, [role="contentinfo"] div {
+          margin: 0 !important;
+          color: var(--text) !important;
+          font-weight: 500 !important;
+        }
+
+        @media (max-width: 768px) {
+          footer, [role="contentinfo"] {
+            font-size: 12px !important;
+            padding: 15px !important;
+          }
+        }
+
+        /* Fuerza el modo oscuro en elementos con estilos en línea */
+        @media (prefers-color-scheme: dark) {
+          .card, .form-group input, .form-group select, .form-group textarea {
+            background-color: var(--card) !important;
+            color: var(--text) !important;
+          }
+
+          /* Limpieza de colores hardcodeados en HTML */
+          [style*="background: #f8fafc"],
+          [style*="background:#f8fafc"],
+          [style*="background: #f0f9ff"],
+          [style*="background:#f0f9ff"],
+          [style*="background: #fff"],
+          [style*="background:#fff"] {
+            background-color: var(--input-bg) !important;
+          }
+
+          [style*="color: #000"],
+          [style*="color:#000"],
+          [style*="color: #1e293b"],
+          [style*="color:#1e293b"] {
+            color: var(--text) !important;
+          }
+
+          label, h2, h3 {
+            color: var(--text) !important;
+          }
+        }
+
+        .btn-icon { min-width: 44px; min-height: 44px; }
+      </style>
 </head>
 
 <body>
@@ -322,12 +331,12 @@
 
               <div class="form-group">
                 <label for="add-product-name" style="color: #1e293b; font-weight: 700;">Nombre del Producto</label>
-                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required style="color: #000; font-weight: 600;" />
+                <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
               </div>
 
               <div class="form-group">
                 <label for="add-brand" style="color: #1e293b; font-weight: 700;">Marca</label>
-                <select id="add-brand" required style="color: #000; font-weight: 600; background: #fff;">
+                <select id="add-brand" required>
                   <option value="">-- Selecciona una marca --</option>
                   <option value="Sabritas">Sabritas</option>
                   <option value="Gamesa">Gamesa</option>
@@ -340,22 +349,22 @@
 
               <div class="form-group">
                 <label for="add-pieces-per-box" style="color: #1e293b; font-weight: 700;">Piezas por Caja</label>
-                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required style="color: #000; font-weight: 600;" />
+                <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
               </div>
 
               <div class="form-group">
                 <label for="add-warehouse" style="color: #1e293b; font-weight: 700;">Ubicación/Almacén</label>
-                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required style="color: #000; font-weight: 600;" />
+                <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
               </div>
 
               <div class="form-group">
                 <label for="add-expiry-date" style="color: #1e293b; font-weight: 700;">Fecha de Caducidad</label>
-                <input id="add-expiry-date" type="date" required style="color: #000; font-weight: 600;" />
+                <input id="add-expiry-date" type="date" required />
               </div>
 
               <div class="form-group">
                 <label for="add-boxes" style="color: #1e293b; font-weight: 700;">Cantidad de Cajas</label>
-                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required style="color: #000; font-weight: 600;" />
+                <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
               </div>
 
               <button type="submit" class="primary" style="width:100%; padding: 15px; font-weight: 800; font-size: 16px;">✅ Guardar Producto</button>
