@@ -1,81 +1,82 @@
 /* ============================================================
-   Águila Pro Ultra - DISEÑO DE ÉLITE V3 (Play Store Ready)
-   Optimizado para máxima elegancia y fluidez
+   Águila Pro Ultra - DISEÑO DE ÉLITE V4 (Anti-Fondo Blanco)
+   Optimizado para máxima consistencia visual
    ============================================================ */
 
 :root {
   --bg: #f8fafc;
   --surface: #ffffff;
+  --card: #ffffff;      /* Unificado */
   --primary: #004aad;
   --primary-glow: rgba(0, 74, 173, 0.15);
   --text: #0f172a;
   --muted: #64748b;
   --border: #e2e8f0;
   --radius-xl: 28px;
-  --radius-lg: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #020617;        /* Espacio profundo */
+    --bg: #020617;        /* Negro azulado ultra profundo */
     --surface: #0f172a;   /* Slate premium */
-    --primary: #60a5fa;   /* Azul cielo vibrante */
-    --primary-glow: rgba(96, 165, 250, 0.2);
+    --card: #0f172a;      /* Unificado */
+    --primary: #60a5fa;
     --text: #f8fafc;
     --muted: #94a3b8;
     --border: #1e293b;
     --input-bg: #1e293b;
-    --brand-header-bg: #1e293b; /* Fondo para marcas en modo oscuro */
+    --brand-header-bg: #161e31;
   }
 
-  body { background-color: var(--bg) !important; color: var(--text) !important; }
-
-  /* CORRECCIÓN DE LAS CAJAS BLANCAS (DETAILS) */
-  details, .bodega-details, summary {
+  /* FUERZA BRUTA: Eliminar fondos blancos en cualquier contenedor */
+  body, #main-app, #app-container, .main-content, .tab-content {
     background-color: var(--bg) !important;
     color: var(--text) !important;
-    border-color: var(--border) !important;
   }
 
-  .bodega-item, .lote-card {
+  /* Corregir detalles de bodegas y tarjetas */
+  .card, details, .bodega-details, .bodega-item, .lote-card {
     background-color: var(--surface) !important;
     border-color: var(--border) !important;
+    color: var(--text) !important;
   }
 
-  /* ANALÍTICAS - Convertir lista plana en tarjetas elegantes */
-  #stats-container div, .analytics-item {
+  summary { background-color: rgba(96, 165, 250, 0.05) !important; }
+
+  /* Texto de analíticas */
+  #stats-container div, .analytics-item, .aguila-brand-header span {
     color: var(--text) !important;
   }
 }
 
-/* --- INTERFAZ DE ALTO NIVEL --- */
+/* --- ESTILOS GLOBALES --- */
 
 body {
   font-family: 'Manrope', sans-serif;
   margin: 0;
-  padding-bottom: 100px;
+  padding-bottom: 110px;
+  background-color: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tarjetas con profundidad real */
+/* Tarjetas Pro */
 .card {
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: 24px;
   margin: 16px;
   border: 1px solid var(--border);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   .card {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     background: linear-gradient(180deg, #161e31 0%, #0f172a 100%) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4) !important;
   }
 }
 
-/* Botones Estilo Premium */
+/* Botones Premium */
 button, .btn {
   font-weight: 700;
   border-radius: 18px;
@@ -86,33 +87,30 @@ button, .btn {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 15px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button.primary {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 10px 15px -3px var(--primary-glow);
 }
 
-/* Barra de Navegación "Floating Glass" */
+/* Bottom Nav Flotante - Ultra Glass */
 .bottom-nav {
   position: fixed;
-  bottom: 20px;
+  bottom: 25px;
   left: 20px;
   right: 20px;
   height: 76px;
-  background: rgba(15, 23, 42, 0.8) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 28px;
+  border-radius: 30px;
   display: flex;
   justify-content: space-around;
-  align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   z-index: 2000;
-  padding: 0 10px;
 }
 
 .nav-btn {
@@ -124,69 +122,23 @@ button.primary {
   text-decoration: none;
   font-size: 10px;
   font-weight: 700;
-  transition: all 0.2s ease;
 }
 
-.nav-btn.active {
-  color: var(--primary);
-}
+.nav-btn.active { color: var(--primary); }
 
-.nav-btn .material-icons-round {
-  font-size: 26px;
-  margin-bottom: 2px;
-  transition: transform 0.2s ease;
-}
-
-.nav-btn.active .material-icons-round {
-  transform: translateY(-4px);
-  filter: drop-shadow(0 0 8px var(--primary-glow));
-}
-
-/* Inputs de Campo */
+/* Inputs sin bordes feos */
 input, select {
+  background-color: var(--input-bg, #fff);
+  color: var(--text);
+  border: 1px solid var(--border);
   padding: 16px;
-  border-radius: 14px !important;
-  font-size: 16px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 14px;
 }
 
-input:focus {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 4px var(--primary-glow) !important;
-}
-
-/* Badges de Estado */
-.aguila-status-badge {
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.aguila-status-badge.ok { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.aguila-status-badge.pick { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-
-/* Rail de Color para Marcas (Efecto Gama Alta) */
+/* Identidad de Marca */
 .aguila-brand-rail {
   width: 5px;
   height: 24px;
   border-radius: 10px;
-  display: block;
-}
-
-.aguila-brand-header {
-  position: relative;
-  overflow: hidden;
-}
-
-.aguila-brand-header::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, transparent 50%);
-  pointer-events: none;
+  margin-right: 12px;
 }
