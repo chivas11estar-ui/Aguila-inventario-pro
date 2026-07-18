@@ -1,6 +1,6 @@
 // ============================================================
-// Águila Inventario Pro - inventory-core.js (V4 - PERFECCIONADO)
-// Soporta Multi-Lote con transacciones seguras
+// Águila Inventario Pro - inventory-core.js (V4.1 - RESTAURADO)
+// Soporta Multi-Lote con transacciones seguras y carga de datos
 // Copyright © 2026 José A. G. Betancourt
 // ============================================================
 
@@ -21,6 +21,7 @@ if (!window.INVENTORY_STATE) {
     };
 }
 
+// 1. DETERMINANTE
 async function getCachedDeterminante() {
   if (window.INVENTORY_CORE.determinante) return window.INVENTORY_CORE.determinante;
   const user = firebase.auth().currentUser;
@@ -33,17 +34,25 @@ async function getCachedDeterminante() {
   } catch (error) { return null; }
 }
 
+// 2. SANITIZAR CÓDIGO
 function sanitizeBarcode(barcode) {
   if (!barcode || typeof barcode !== 'string') return null;
   return barcode.trim().replace(/[.#$\[\]/]/g, '_');
 }
 
+// 3. GENERAR LOTE ID
 function generarLoteId(bodega, fechaCaducidad) {
   const b = (bodega || 'General').trim();
   const f = (fechaCaducidad || 'sin-fecha').trim();
-  return btoa(unescape(encodeURIComponent(`${b}_${f}`))).replace(/=/g, '').substring(0, 30);
+  const raw = `${b}_${f}`;
+  return btoa(unescape(encodeURIComponent(raw)))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .substring(0, 30);
 }
 
+// 4. BUSCAR PRODUCTO
 async function buscarProductoPorCodigo(codigoBarras) {
   const det = await getCachedDeterminante();
   if (!det) return null;
@@ -78,6 +87,7 @@ async function buscarProductoPorCodigo(codigoBarras) {
   } catch (e) { return null; }
 }
 
+// 5. MODIFICAR STOCK (UN LOTE)
 async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) {
   const det = await getCachedDeterminante();
   const safeCode = sanitizeBarcode(codigoBarras);
@@ -104,6 +114,7 @@ async function modificarStock(codigoBarras, cantidad, operacion, loteId = null) 
   });
 }
 
+// 6. MODIFICAR MULTI-LOTE (AUTO-RELLENO)
 async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
   const det = await getCachedDeterminante();
   const safeCode = sanitizeBarcode(codigoBarras);
@@ -128,6 +139,7 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
     updates[`productos/${det}/${safeCode}/lotes/${lote.loteId}/actualizado`] = ahora;
 
     detalleConsumo.push({
+      loteId: lote.loteId,
       bodega: lote.bodega,
       tomado: aTomar
     });
@@ -138,6 +150,47 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
   return { detalle: detalleConsumo };
 }
 
+// 7. CARGAR INVENTARIO (ESTA ES LA QUE FALTABA)
+async function cargarInventario() {
+  const det = await getCachedDeterminante();
+  if (!det) return;
+
+  const inventoryRef = firebase.database().ref('productos/' + det);
+
+  inventoryRef.on('value', (snapshot) => {
+    const productsObject = snapshot.val();
+    if (!productsObject) {
+      window.INVENTORY_STATE.productos = [];
+      if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+      return;
+    }
+
+    const productosExpandidos = [];
+    Object.keys(productsObject).forEach(codigoBarras => {
+      const prod = productsObject[codigoBarras];
+      if (prod.lotes) {
+        Object.entries(prod.lotes).forEach(([loteId, lote]) => {
+          productosExpandidos.push({
+            id: loteId,
+            codigoBarras,
+            nombre: prod.nombre || 'Sin nombre',
+            marca: prod.marca || 'Otra',
+            piezasPorCaja: prod.piezasPorCaja || 0,
+            ubicacion: lote.bodega || 'General',
+            fechaCaducidad: lote.fechaCaducidad || '',
+            stockTotal: parseFloat(lote.stock) || 0,
+            loteId
+          });
+        });
+      }
+    });
+
+    window.INVENTORY_STATE.productos = productosExpandidos;
+    if (typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+  });
+}
+
+// EXPORTAR TODO A GLOBAL
 window.buscarProductoPorCodigo = buscarProductoPorCodigo;
 window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
@@ -146,3 +199,5 @@ window.getCachedDeterminante = getCachedDeterminante;
 window.cargarInventario = cargarInventario;
 window.sanitizeBarcode = sanitizeBarcode;
 window.getProductRef = (det, code) => firebase.database().ref(`productos/${det}/${sanitizeBarcode(code)}`);
+
+console.log('✅ inventory-core.js V4.1 (RESTAURADO Y COMPLETO)');
