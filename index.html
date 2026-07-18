@@ -19,9 +19,9 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <link rel="stylesheet" href="styles.css?v=1.8">
-  <link rel="stylesheet" href="custom-styles.css?v=1.9">
-  <link rel="stylesheet" href="tailwind-built.css?v=1.2">
+  <link rel="stylesheet" href="./styles.css?v=2.0">
+  <link rel="stylesheet" href="./custom-styles.css?v=2.0">
+  <link rel="stylesheet" href="./tailwind-built.css?v=2.0">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
@@ -637,39 +637,14 @@
   <script src="ui.js?v=1.7" defer></script>
 
   <!-- ============================================================
-       GESTIÓN DE LISTENERS (FASE 2.1 - MEMORY LEAK FIX)
+       INVENTORY-CORE V5 - MOTOR CENTRAL
        ============================================================ -->
-  <script src="listener-manager.js?v=2.1" defer></script>
-
-  <!-- ============================================================
-       ESCÁNER
-       ============================================================ -->
-  <script src="scanner-mlkit.js?v=1.2" defer></script>
-
-  <!-- ============================================================
-       CONTROLLERS (NUEVO)
-       ============================================================ -->
-  <script src="search-controller.js?v=2.0" defer></script>
-
-  <!-- ============================================================
-       INVENTARIO (FASE 2.1) - Renderizado y estado base
-       ============================================================ -->
-  <script src="inventory.js?v=2.3" defer></script>
-  <script src="inventory-ui.js?v=2.7" defer></script>
-
-  <!-- ============================================================
-       INVENTORY-CORE V2 - Nueva arquitectura por código de barras
-       Reemplaza la lógica de escritura de inventory.js
-       Ruta: productos/{det}/{codigoBarras} en vez de push()
-       ============================================================ -->
-  <script src="inventory-core.js?v=3.1" defer></script>
-  <script src="lote-mover.js?v=1.2" defer></script>
-
-  <!-- ============================================================
-       OPERACIONES (V2 - REFACTORIZADO)
-        refill-safe.js gestiona las operaciones de reabastecimiento
-       ============================================================ -->
-  <script src="refill-safe.js?v=2.5" defer></script>
+  <script src="inventory-core.js?v=5.0" defer></script>
+  <script src="scanner-mlkit.js?v=7.0" defer></script>
+  <script src="refill-safe.js?v=6.0" defer></script>
+  <script src="inventory.js?v=3.0" defer></script>
+  <script src="inventory-ui.js?v=3.0" defer></script>
+  <script src="app.js?v=2.0" defer></script>
   <script src="audit.js?v=2.3" defer></script>
   <!-- audit-pro-ui desactivado temporalmente: sobreescribía la UI de auditoría por bodega -->
 

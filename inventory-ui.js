@@ -423,45 +423,50 @@ window.editarProducto = async function(productId, codigoBarras = null) {
 
   const productos = (window.INVENTORY_STATE && window.INVENTORY_STATE.productos) || [];
   const safeCode = String(codigoBarras || '').trim();
-  const product = safeCode
-    ? productos.find(p => String(p.codigoBarras || '').trim() === safeCode && (p.id === productId || p.loteId === productId))
-      || productos.find(p => String(p.codigoBarras || '').trim() === safeCode)
-    : productos.find(p => p.id === productId || p.loteId === productId);
+
+  // Buscar el producto en el estado local
+  const product = productos.find(p => p.loteId === productId || p.id === productId);
 
   if (!product) {
     if (typeof showToast === 'function') showToast('❌ Producto no encontrado', 'error');
     return;
   }
 
+  // Cambiar a la pestaña de agregar/editar
   if (typeof window.switchTab === 'function') window.switchTab('add');
 
   setTimeout(() => {
-    const values = {
-      'add-barcode': product.codigoBarras || safeCode,
-      'add-product-name': product.nombre || '',
-      'add-brand': product.marca || '',
-      'add-pieces-per-box': product.piezasPorCaja || '',
-      'add-warehouse': product.ubicacion || '',
-      'add-expiry-date': product.fechaCaducidad || '',
-      'add-boxes': product.stockTotal ?? product.cajas ?? 0
+    // Llenar el formulario con los datos actuales
+    const fields = {
+      'add-barcode': product.codigoBarras,
+      'add-product-name': product.nombre,
+      'add-brand': product.marca,
+      'add-pieces-per-box': product.piezasPorCaja,
+      'add-warehouse': product.ubicacion,
+      'add-expiry-date': product.fechaCaducidad,
+      'add-boxes': product.stockTotal
     };
-    Object.entries(values).forEach(([id, value]) => {
-      const field = document.getElementById(id);
-      if (field) field.value = value;
+
+    Object.entries(fields).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value || '';
     });
 
+    // Cambiar visualmente el formulario a modo edición
     const formTitle = document.querySelector('#tab-add h2');
     if (formTitle) formTitle.textContent = '✏️ Editar Producto';
 
     const submitBtn = document.querySelector('#add-product-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = '💾 Actualizar Producto';
-      submitBtn.style.background = '#f59e0b';
+      submitBtn.style.background = '#f59e0b'; // Color ámbar de advertencia/edición
     }
 
-    window.EDITING_PRODUCT_ID = product.loteId || product.id || productId;
+    // VITAL: Guardar el ID del lote que estamos editando
+    window.EDITING_PRODUCT_ID = product.loteId || productId;
+
     if (typeof showToast === 'function') showToast('✏️ Editando: ' + product.nombre, 'info');
-  }, 100);
+  }, 150);
 };
 
 // ============================================================
