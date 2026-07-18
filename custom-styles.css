@@ -29,9 +29,16 @@
   }
 
   /* FUERZA BRUTA: Eliminar fondos blancos en cualquier contenedor */
-  body, #main-app, #app-container, .main-content, .tab-content {
+  body, #main-app, #app-container, .main-content, .tab-content,
+  #inventory-list, #out-of-stock-list, #stats-container, .main-content > div {
     background-color: var(--bg) !important;
+    background: var(--bg) !important;
     color: var(--text) !important;
+  }
+
+  /* Eliminar sombras blancas o bordes claros que den sensación de gris */
+  * {
+    border-color: var(--border) !important;
   }
 
   /* Corregir detalles de bodegas y tarjetas */

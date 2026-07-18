@@ -326,52 +326,25 @@ function renderProductCard(product, targetId) {
 // RENDERIZAR MÚLTIPLES BODEGAS
 // ============================================================
 function renderMultipleWarehouses(product, salesAvg = 0) {
-  const productCodeArg = JSON.stringify(product.codigoBarras || '');
   return `
-    <details class="bodega-details" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
-      <summary style="cursor: pointer; font-weight: 700; color: #2563eb; padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+    <details class="bodega-details" style="border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+      <summary style="cursor: pointer; font-weight: 700; color: var(--primary); padding: 14px; font-size: 13px; display: flex; align-items: center; gap: 8px; background: rgba(59, 130, 246, 0.05);">
         <span class="material-icons-round" style="font-size:18px;">place</span>
         Ubicado en ${product.bodegas.length} bodegas
       </summary>
-      <ul class="bodega-list" style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+      <ul class="bodega-list" style="list-style: none; padding: 10px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
+          const productCodeArg = JSON.stringify(product.codigoBarras || '');
           const loteIdArg = JSON.stringify(bodega.id || '');
-          const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
-          const bodegaDays = bodegaExpiry 
-            ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-            : null;
-
           return `
-            <li class="bodega-item" style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <li class="bodega-item" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="bodega-name" style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
-                <span class="bodega-stock" style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
+                <span style="font-weight: 700; color: var(--text);">${bodega.ubicacion}</span>
+                <span style="font-weight: 800; color: var(--primary); font-size: 15px;">${bodega.cajas} <small style="opacity:0.6;">caj</small></span>
               </div>
-              <div class="bodega-average" style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
-              ${bodegaDays !== null ? `
-                <div class="bodega-expiry ${bodegaDays <= 30 ? 'is-soon' : 'is-ok'}" style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
-                  📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
-                </div>
-              ` : ''}
-              <div style="display:flex; gap:8px; margin-top:8px;">
-                <button
-                  type="button"
-                  onclick='event.stopPropagation(); window.editarProducto(${loteIdArg}, ${productCodeArg})'
-                  class="secondary"
-                  style="flex:1; min-height:38px; margin:0; padding:8px; font-size:12px; background:var(--surface-container); color:var(--text);"
-                >
-                  <span class="material-icons-round" style="font-size:16px;">edit</span>
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  onclick='event.stopPropagation(); window.moverProducto && window.moverProducto(${loteIdArg}, ${productCodeArg})'
-                  class="primary"
-                  style="flex:1; min-height:38px; margin:0; padding:8px; font-size:12px;"
-                >
-                  <span class="material-icons-round" style="font-size:16px;">sync_alt</span>
-                  Mover
-                </button>
+              <div style="display:flex; gap:8px; margin-top:5px;">
+                <button onclick='event.stopPropagation(); window.editarProducto(${loteIdArg}, ${productCodeArg})' class="secondary" style="flex:1; min-height:36px; font-size:12px;">Editar</button>
+                <button onclick='event.stopPropagation(); window.moverProducto && window.moverProducto(${loteIdArg}, ${productCodeArg})' class="primary" style="flex:1; min-height:36px; font-size:12px;">Mover</button>
               </div>
             </li>
           `;
