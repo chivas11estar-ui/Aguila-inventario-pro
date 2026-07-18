@@ -475,14 +475,18 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
             if (p.ubicacion && !productosConsolidados[p.nombre].ubicaciones.includes(p.ubicacion)) productosConsolidados[p.nombre].ubicaciones.push(p.ubicacion);
         });
         const rows = Object.values(productosConsolidados).map((p) => {
+            // Plan B para nombres de campos (Soporte para versiones viejas y nuevas)
             const stats = analytics[p.codigo] || analytics[p.nombre] || { daily: 0, weekly: 0, monthly: 0 };
             const stockCajas = toInt(p.cajas);
             const stockPiezas = toInt(p.piezas);
             const ventaDiaria = toInt(stats.daily);
-            const ventaSemanal = toInt(stats.weekly);
-            const ventaMensual = toInt(stats.monthly);
-            const diasInventario = stockPiezas <= 0 ? "AGOTADO" : (ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D");
-            const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && movementDateKey(m) === hoyStr && isRefillMovement(m));
+
+            // Buscar rellenos de hoy con nombres de campos flexibles
+            const movsHoy = movs.filter((m) =>
+                (m.productoNombre === p.nombre || m.productoCodigo === p.codigo || m.codigo === p.codigo) &&
+                movementDateKey(m) === hoyStr &&
+                isRefillMovement(m)
+            );
             const rellenoHoyCajas = toInt(movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0));
             const rellenoHoyPiezas = toInt(movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas, 10) || 0), 0));
             let estado = 'OK', prioridad = 'Baja', accion = 'Mantener';

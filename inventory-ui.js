@@ -162,13 +162,16 @@ function renderProductCard(product, targetId) {
   const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
   const firstBodega = bodegas[0] || null;
   const productCodeArg = JSON.stringify(product.codigoBarras || '');
-  const firstBodegaIdArg = JSON.stringify(firstBodega?.id || '');
-  const editAction = bodegas.length === 1 && firstBodega?.id
+  const firstBodegaIdArg = JSON.stringify(product.loteId || firstBodega?.id || '');
+
+  // CORRECCIÓN DE PRECISIÓN: Pasar código de barras siempre
+  const editAction = product.codigoBarras
     ? `window.editarProducto(${firstBodegaIdArg}, ${productCodeArg})`
-    : `if(typeof showToast==="function") showToast("Sin lote/bodega para editar","info")`;
-  const moveAction = bodegas.length === 1 && firstBodega?.id
+    : `showToast("Error: Sin código para editar","error")`;
+
+  const moveAction = product.codigoBarras
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
-    : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
+    : `showToast("Error: Sin lote para mover","error")`;
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -419,13 +422,16 @@ function renderSingleWarehouse(product, salesAvg = 0) {
 // EDITAR PRODUCTO (GLOBAL WINDOW)
 // ============================================================
 window.editarProducto = async function(productId, codigoBarras = null) {
-  console.log('✏️ Editando producto:', productId);
+  console.log('✏️ Editando producto:', productId, 'Código:', codigoBarras);
 
   const productos = (window.INVENTORY_STATE && window.INVENTORY_STATE.productos) || [];
   const safeCode = String(codigoBarras || '').trim();
 
-  // Buscar el producto en el estado local
-  const product = productos.find(p => p.loteId === productId || p.id === productId);
+  // BÚSQUEDA DE PRECISIÓN: Código de barras + ID de lote (Evita confusiones entre productos en la misma bodega)
+  const product = productos.find(p =>
+    String(p.codigoBarras).trim() === safeCode &&
+    (p.loteId === productId || p.id === productId)
+  );
 
   if (!product) {
     if (typeof showToast === 'function') showToast('❌ Producto no encontrado', 'error');
