@@ -143,3 +143,6 @@ window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
 window.generarLoteId = generarLoteId;
 window.getCachedDeterminante = getCachedDeterminante;
+window.cargarInventario = cargarInventario;
+window.sanitizeBarcode = sanitizeBarcode;
+window.getProductRef = (det, code) => firebase.database().ref(`productos/${det}/${sanitizeBarcode(code)}`);
