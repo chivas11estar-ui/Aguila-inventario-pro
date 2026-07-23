@@ -63,9 +63,12 @@ window.SearchController = {
         const updateSummary = (term) => {
             const cleanTerm = String(term || '').trim();
             const products = (window.INVENTORY_STATE && window.INVENTORY_STATE.productosFiltrados) || [];
+            const uniqueProductCount = new Set(products.map(product => {
+                return String(product.codigoBarras || product.id || product.nombre || '').trim().toLowerCase();
+            }).filter(Boolean)).size;
             clearBtn.hidden = !cleanTerm;
             summary.textContent = cleanTerm
-                ? `${products.length} resultado${products.length === 1 ? '' : 's'} para “${cleanTerm}”.`
+                ? `${uniqueProductCount} producto${uniqueProductCount === 1 ? '' : 's'} para “${cleanTerm}”.`
                 : 'Busca por nombre, marca o código de barras.';
         };
 
