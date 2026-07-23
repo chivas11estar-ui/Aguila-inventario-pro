@@ -22,7 +22,7 @@ window.SearchController = {
             <div class="search-panel">
               <div class="search-wrapper">
                 <span class="material-icons-round search-icon" aria-hidden="true">search</span>
-                <input type="search" id="global-search-input"
+                <input type="text" id="global-search-input"
                        placeholder="Buscar nombre, marca o código"
                        inputmode="search" autocomplete="off" class="search-input-pro"
                        aria-label="Buscar producto por nombre, marca o código">
