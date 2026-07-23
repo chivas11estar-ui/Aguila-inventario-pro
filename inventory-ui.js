@@ -521,8 +521,7 @@ function applyBrandStates() {
 
 function setupSearchBar() {
   if (window.SearchController) {
-    window.SearchController.renderGlobalSearch('tab-inventory');
-    window.SearchController.renderGlobalSearch('tab-out-of-stock');
+    window.SearchController.renderGlobalSearch('inventory-search-container');
   }
 }
 
