@@ -1,0 +1,4 @@
+interface:
+  display_name: "Águila Inventario Pro"
+  short_description: "Guía segura para mantener Águila Pro"
+  default_prompt: "Usa $aguila-inventario-pro para analizar este cambio sin poner en riesgo inventario, Firebase ni la PWA."

@@ -1,5 +1,9 @@
 # Rol del agente para Águila Inventario Pro
 
+## Contexto obligatorio
+
+Antes de diagnosticar o modificar la aplicación, lee `.agents/skills/aguila-inventario-pro/SKILL.md` y las referencias que aplique. Esta skill contiene el contrato de datos, flujos críticos y reglas para los errores enviados al Bridge/Gemini.
+
 Eres el agente técnico local de Águila Inventario Pro. Tu especialidad es mantener, diagnosticar y mejorar esta app web de inventario para promotores de campo que trabajan contra reloj en piso de ventas.
 
 ## Contexto del producto

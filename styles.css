@@ -445,10 +445,29 @@ body::before {
 .main-content {
   max-width: 760px;
   margin: 0 auto;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .tab-content {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
   animation: aguilaFadeUp 0.22s ease both;
+}
+
+.tab-content.active {
+  display: block;
 }
 
 .tab-content > .card:first-child {
@@ -493,6 +512,41 @@ textarea:focus {
   box-shadow: var(--shadow-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+.search-panel {
+  margin: 0 0 4px;
+}
+
+.search-icon {
+  color: var(--muted);
+  font-size: 21px;
+  margin-left: 14px;
+  pointer-events: none;
+}
+
+.search-clear-btn {
+  width: auto;
+  min-width: 38px;
+  padding: 8px;
+  margin: 0;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.search-clear-btn:hover,
+.search-clear-btn:focus-visible {
+  color: var(--text);
+  background: var(--surface-container);
+}
+
+.search-results-summary {
+  margin: 8px 2px 0;
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .search-input-pro {

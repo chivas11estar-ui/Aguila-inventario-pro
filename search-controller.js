@@ -7,10 +7,10 @@
 'use strict';
 
 window.SearchController = {
-    isInitialized: false,
+    initializedContainers: new Set(),
 
     renderGlobalSearch(containerId) {
-        if (this.isInitialized) {
+        if (this.initializedContainers.has(containerId)) {
             console.log("ℹ️ [SearchController] Buscador ya inyectado.");
             return;
         }
@@ -19,13 +19,21 @@ window.SearchController = {
         if (!container) return;
 
         const searchHTML = `
-            <div class="search-wrapper">
-                <input type="text" id="global-search-input" 
-                       placeholder="🔍 Buscar por nombre o código..." 
-                       inputmode="text" class="search-input-pro">
-                <button id="btn-trigger-scan" class="search-scan-btn">
-                    <span class="material-icons-round">qr_code_scanner</span>
+            <div class="search-panel">
+              <div class="search-wrapper">
+                <span class="material-icons-round search-icon" aria-hidden="true">search</span>
+                <input type="search" id="global-search-input"
+                       placeholder="Buscar nombre, marca o código"
+                       inputmode="search" autocomplete="off" class="search-input-pro"
+                       aria-label="Buscar producto por nombre, marca o código">
+                <button type="button" id="btn-clear-search" class="search-clear-btn" aria-label="Limpiar búsqueda" hidden>
+                  <span class="material-icons-round">close</span>
                 </button>
+                <button type="button" id="btn-trigger-scan" class="search-scan-btn" aria-label="Escanear código">
+                  <span class="material-icons-round">qr_code_scanner</span>
+                </button>
+              </div>
+              <p id="search-results-summary" class="search-results-summary" aria-live="polite">Busca por nombre, marca o código de barras.</p>
             </div>
             <div id="quick-scanner-overlay" class="hidden-scanner">
                 <video id="search-video-feed" playsinline muted></video>
@@ -36,19 +44,30 @@ window.SearchController = {
             </div>
         `;
 
-        container.insertAdjacentHTML('afterbegin', searchHTML);
-        this.isInitialized = true;
+        container.insertAdjacentHTML('beforeend', searchHTML);
+        this.initializedContainers.add(containerId);
         this.setupListeners();
     },
 
     setupListeners() {
         const input = document.getElementById('global-search-input');
         const btn = document.getElementById('btn-trigger-scan');
+        const clearBtn = document.getElementById('btn-clear-search');
+        const summary = document.getElementById('search-results-summary');
         const video = document.getElementById('search-video-feed');
         const overlay = document.getElementById('quick-scanner-overlay');
         const closeBtn = document.getElementById('btn-close-quick-scan');
 
-        if (!input || !btn || !video || !overlay) return;
+        if (!input || !btn || !clearBtn || !summary || !video || !overlay) return;
+
+        const updateSummary = (term) => {
+            const cleanTerm = String(term || '').trim();
+            const products = (window.INVENTORY_STATE && window.INVENTORY_STATE.productosFiltrados) || [];
+            clearBtn.hidden = !cleanTerm;
+            summary.textContent = cleanTerm
+                ? `${products.length} resultado${products.length === 1 ? '' : 's'} para “${cleanTerm}”.`
+                : 'Busca por nombre, marca o código de barras.';
+        };
 
         // Búsqueda por texto con debounce (300ms) para evitar re-renders excesivos
         let searchTimeout;
@@ -58,7 +77,14 @@ window.SearchController = {
                 if (typeof window.setSearchTerm === 'function') {
                     window.setSearchTerm(e.target.value);
                 }
+                updateSummary(e.target.value);
             }, 300);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
         });
 
         // Disparar Escáner (V4.2 - Bridge Integrado)
@@ -98,7 +124,9 @@ window.SearchController = {
     closeScanner(overlay) {
         overlay.classList.remove('visible-scanner');
         overlay.classList.add('hidden-scanner');
-        window.ScannerService.stop();
+        if (window.ScannerService && typeof window.ScannerService.stop === 'function') {
+            window.ScannerService.stop();
+        }
     }
 };
 

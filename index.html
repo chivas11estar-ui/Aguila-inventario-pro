@@ -4,10 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://*.gstatic.com https://*.firebaseio.com https://*.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' https://fonts.googleapis.com https://*.gstatic.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src * 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; manifest-src 'self';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sistema de inventario profesional para promotores de PepsiCo">
   <meta name="author" content="José A. G. Betancourt">
   <meta name="theme-color" content="#0021e4">
+  <link rel="canonical" href="https://aguilainventario.netlify.app/">
   <title>🦅 Águila Inventario Pro</title>
 
   <link rel="manifest" href="manifest.json">
@@ -19,16 +20,137 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
 
-  <link rel="stylesheet" href="./styles.css?v=2.0">
-  <link rel="stylesheet" href="./custom-styles.css?v=2.0">
-  <link rel="stylesheet" href="./tailwind-built.css?v=2.0">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"
-    rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script>
+    window.addEventListener('load', () => {
+      [
+        './styles.css?v=2.1',
+        './custom-styles.css?v=2.7',
+        './tailwind-built.css?v=2.1',
+        'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap',
+        'https://fonts.googleapis.com/icon?family=Material+Icons+Round'
+      ].forEach((href) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      });
+    }, { once: true });
+  </script>
+  <noscript>
+    <link rel="stylesheet" href="./styles.css?v=2.1">
+    <link rel="stylesheet" href="./custom-styles.css?v=2.7">
+    <link rel="stylesheet" href="./tailwind-built.css?v=2.1">
+  </noscript>
+
       <style>
+        :root {
+          --primary: #0021e4;
+          --secondary: #565e74;
+          --success: #10b981;
+          --warning: #f59e0b;
+          --error: #ba1a1a;
+          --bg: #fbf8ff;
+          --card-bg: #ffffff;
+          --card: #ffffff;
+          --input-bg: #ffffff;
+          --surface-container: #eeecfb;
+          --text: #1a1b25;
+          --muted: #444557;
+          --border: #e2e1f0;
+          --shadow-xl: 0 20px 30px -10px rgba(46, 68, 255, 0.12);
+          --radius-md: 12px;
+          --radius-lg: 16px;
+          --spacing-lg: 24px;
+          --spacing-xl: 32px;
+        }
+
+        :root.dark {
+          --bg: #020617;
+          --card-bg: #111827;
+          --card: #111827;
+          --input-bg: #1f2937;
+          --surface-container: #1f2937;
+          --text: #f8fafc;
+          --muted: #cbd5e1;
+          --border: #334155;
+        }
+
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          min-height: 100vh;
+          background: var(--bg);
+          color: var(--text);
+          font-family: Manrope, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          line-height: 1.5;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .hidden { display: none !important; }
+
+        .card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-xl);
+        }
+
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: var(--text);
+          font-size: 0.875rem;
+          font-weight: 700;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          width: 100%;
+          min-height: 48px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--input-bg);
+          color: var(--text);
+          padding: 12px 14px;
+          font: inherit;
+        }
+
+        button {
+          min-height: 48px;
+          border: 0;
+          border-radius: var(--radius-md);
+          padding: 0.875rem 1.5rem;
+          font: inherit;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .primary { background: var(--primary); color: #ffffff; }
+        .secondary { background: var(--surface-container); color: var(--text); }
+        .success { background: var(--success); color: #ffffff; }
+        .warning { background: var(--warning); color: #ffffff; }
+
+        #auth-setup {
+          width: min(450px, calc(100% - 32px));
+        }
+
+        #app-container {
+          min-height: 100vh;
+        }
+
         /* Estilos base para componentes que necesitan consistencia */
         footer, [role="contentinfo"] {
-          background-color: var(--card) !important;
+          background-color: var(--card-bg) !important;
           color: var(--text) !important;
           padding: 20px !important;
           text-align: center !important;
@@ -42,6 +164,10 @@
           margin: 0 !important;
           color: var(--text) !important;
           font-weight: 500 !important;
+        }
+
+        footer p:first-child {
+          color: var(--primary) !important;
         }
 
         @media (max-width: 768px) {
@@ -86,6 +212,7 @@
 
         .btn-icon { min-width: 44px; min-height: 44px; }
       </style>
+  <script src="telemetry-auto.js?v=1.5" defer></script>
 </head>
 
 <body>
@@ -303,6 +430,7 @@
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <h2>📦 Inventario por Marca</h2>
             </div>
+            <div id="inventory-search-container" aria-label="Buscar en inventario"></div>
             <div id="inventory-list" style="margin-top:20px;">
               <p style="color:var(--muted);">Cargando inventario...</p>
             </div>
@@ -619,76 +747,18 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
-
-  <!-- ============================================================
-       LIBRERÍA DE ENCRIPTACIÓN (CRYPTOJS)
-       ============================================================ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
-
-  <!-- ============================================================
-       CHART.JS (SOLO UNA VEZ)
-       ============================================================ -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" defer></script>
-
   <!-- ============================================================
        CONFIGURACIÓN Y UI BASE
        ============================================================ -->
-  <script src="firebase-config.js?v=1.6" defer></script>
-  <script src="security-utils.js?v=1.2" defer></script>
+  <script src="firebase-config.js?v=1.7" defer></script>
   <script src="date-utils.js?v=1.2" defer></script>
-  <script src="ui.js?v=1.7" defer></script>
-
-  <!-- ============================================================
-       INVENTORY-CORE V5 - MOTOR CENTRAL
-       ============================================================ -->
-  <script src="inventory-core.js?v=5.0" defer></script>
-  <script src="scanner-mlkit.js?v=7.0" defer></script>
-  <script src="refill-safe.js?v=6.0" defer></script>
-  <script src="inventory.js?v=3.0" defer></script>
-  <script src="inventory-ui.js?v=3.0" defer></script>
-  <script src="app.js?v=2.0" defer></script>
-  <script src="audit.js?v=2.3" defer></script>
-  <!-- audit-pro-ui desactivado temporalmente: sobreescribía la UI de auditoría por bodega -->
-
-  <!-- ============================================================
-       SISTEMA Y PERFIL (FASE 2.2)
-       ============================================================ -->
-  <script src="system.js?v=1.2" defer></script>
-  <script src="system-events.js?v=1.2" defer></script>
-  <script src="weather.js?v=1.5" defer></script>
-  <script src="profile.js?v=1.5" defer></script>
-  <script src="profile-ui.js?v=1.8" defer></script>
-
-  <!-- ============================================================
-       ANALYTICS (FASE 2.3) - DESPUÉS DE PROFILE
-       ============================================================ -->
-  <script src="analytics.js?v=1.7" defer></script>
-  <script src="analytics-ui.js?v=1.9" defer></script>
-
-  <!-- ============================================================
-       FRASES MOTIVACIONALES (NUEVO)
-       ============================================================ -->
-  <script src="ai-phrases.js?v=1.5" defer></script>
-  <script src="phrases.js?v=1.2" defer></script>
-
-  <!-- ============================================================
-       MIGRACIÓN V2 (TEMPORAL - quitar después de migrar)
-       Ejecutar migrarInventarioAV2() desde consola del navegador
-       ============================================================ -->
-  <script src="migrate-to-v2.js?v=2.0" defer></script>
-
-  <!-- ============================================================
-       GENERADOR DE FRASES IA CONTEXTUAL
-       ============================================================ -->
-  <script src="ai-phrases-enhanced.js?v=1.0" defer></script>
+  <script src="app-loader.js?v=1.2" defer></script>
 
   <!-- ============================================================
        AUTENTICACIÓN Y APP (SIEMPRE AL FINAL)
        ============================================================ -->
   <script src="login.js?v=1.1" defer></script>
-  <script src="auth.js?v=2.4" defer></script>
+  <script src="auth.js?v=2.5" defer></script>
 
   <!-- ============================================================
        SERVICE WORKER
