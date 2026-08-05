@@ -115,7 +115,7 @@ function showApp() {
   const appContainer = document.getElementById('app-container');
 
   if (authSetup) authSetup.style.display = 'none';
-  if (appContainer) appContainer.style.display = 'block';
+  if (appContainer) appContainer.style.display = 'flex';
   const footer = document.querySelector('footer');
   if (footer) footer.style.display = 'none';
 
