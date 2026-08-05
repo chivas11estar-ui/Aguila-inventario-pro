@@ -24,6 +24,12 @@ function switchTab(tabName, updateHash = true) {
     item.classList.toggle('active', item.getAttribute('data-tab') === tabName);
   });
 
+  if (tabName === 'analytics' && typeof window.loadStats === 'function') {
+    Promise.resolve(window.loadStats())
+      .then(() => window.renderAnalyticsUI?.())
+      .catch(error => console.error('Error cargando analíticas:', error));
+  }
+
   if (typeof runTabLoader === 'function') runTabLoader(tabName);
 }
 
