@@ -105,13 +105,19 @@ window.loadStats = async function () {
     console.log("ðŸ“Š [ARCHITECT] Verificando requisitos para carga de estadÃ­sticas...");
 
     // 1. ASIGNACIÃ“N EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
-    const det = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante;
+    const det = window.PROFILE_STATE?.determinante
+        || window.ANALYTICS_STATE?.determinante
+        || window.INVENTORY_CORE?.determinante
+        || window.INVENTORY_STATE?.determinante
+        || window.inventoryStore?.determinante;
 
     // 2. VALIDACIÃ“N ESTRICTA (Race Condition evitada)
     if (!det || det === "null" || det === "undefined") {
         console.warn('ðŸ›‘ [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
         return; 
     }
+
+    window.ANALYTICS_STATE.determinante = det;
 
     const hoy = new Date();
     const hoyStr = getLocalDateString(hoy); 
