@@ -304,8 +304,13 @@ async function loadUserData(userId) {
 
       // 🚀 [FAST BOOT] Carga optimizada en paralelo
       console.log('⚡ [ARCHITECT] Iniciando carga paralela optimizada...');
-      
-      // Lanzar carga de inventario de inmediato (no esperar)
+
+      // El loader registra los módulos autenticados de forma diferida.
+      // Debemos esperarlo antes de invocar loadInventory().
+      if (typeof window.loadAguilaAppModules === 'function') {
+        await window.loadAguilaAppModules();
+      }
+
       if (typeof window.loadInventory === 'function') {
         window.loadInventory();
       }
