@@ -105,6 +105,8 @@ async function fallbackLogout() {
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
+  const footer = document.querySelector('footer');
+  if (footer) footer.style.display = '';
 }
 
 function showApp() {
@@ -114,6 +116,8 @@ function showApp() {
 
   if (authSetup) authSetup.style.display = 'none';
   if (appContainer) appContainer.style.display = 'block';
+  const footer = document.querySelector('footer');
+  if (footer) footer.style.display = 'none';
 
   // Forzar redibujado de mapas/gráficos si es necesario
   window.dispatchEvent(new Event('resize'));
