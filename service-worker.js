@@ -3,7 +3,7 @@
 // Estrategia: network-first para app shell y fallback offline
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v8.5";
+const CACHE_NAME = "aguila-pro-v8.6";
 
 const APP_SHELL_ASSETS = [
   "/",
@@ -39,7 +39,6 @@ const APP_SHELL_ASSETS = [
   "/analytics.js",
   "/analytics-ui.js",
   "/ai-phrases.js",
-  "/ai-phrases-enhanced.js",
   "/phrases.js",
   "/migrate-to-v2.js",
   "/login.js",

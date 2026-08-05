@@ -34,8 +34,7 @@
     { src: 'analytics-ui.js?v=2.0' },
     { src: 'ai-phrases.js?v=1.6' },
     { src: 'phrases.js?v=1.3' },
-    { src: 'migrate-to-v2.js?v=2.1' },
-    { src: 'ai-phrases-enhanced.js?v=1.1' }
+    { src: 'migrate-to-v2.js?v=2.1' }
   ];
 
   let appModulesPromise = null;

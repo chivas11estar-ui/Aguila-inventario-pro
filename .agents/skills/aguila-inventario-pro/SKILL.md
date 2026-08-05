@@ -38,6 +38,20 @@ Al recibir un reporte:
 
 Consultar `references/bridge-gemini.md` para endpoints, interruptores y límites.
 
+## Mapa de Módulos Confirmado
+
+| Área | Archivo | Responsabilidad / evidencia confirmada | Riesgo |
+| --- | --- | --- | --- |
+| Orquestación | `app-loader.js` | Carga dinámica secuencial de los scripts de la aplicación. | Alto |
+| Inventario V2 | `inventory-core.js` | Lee y escribe `productos/{determinante}/{codigoBarras}`; expone `cargarInventario()` y `handleAddProductV2()`. | Crítico |
+| Compatibilidad | `inventory.js` | Delega la carga V2 a `inventory-core.js` y conserva una ruta legacy. | Alto |
+| Presentación | `inventory-ui.js` | Renderiza productos, marcas, existencias y agotados. | Alto |
+| Frases IA | `ai-phrases.js` | Usa `/.netlify/functions/generate-phrase`, fallback local y persistencia Firebase. | Medio |
+| Frases manuales | `phrases.js` | Gestiona frases del usuario y consume `displayDailyAIPhrase()`. | Medio |
+| Frases IA (legacy) | `legacy/ai-phrases-enhanced.js` | Sin consumidores activos confirmados; eliminado del loader. | Bajo |
+| Backend Firebase | `functions/index.js` | Cloud Functions configuradas en `firebase.json`. | Alto |
+| Backend Netlify | `netlify/functions/generate-phrase.js` | Función Netlify consumida por `ai-phrases.js`. | Medio |
+
 ## Entrega
 
 Informar causa, impacto, archivos tocados, validación y pasos de prueba. Si hay una acción externa pendiente, separarla claramente del diagnóstico y pedir autorización.

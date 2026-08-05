@@ -51,10 +51,14 @@ El usuario principal suele estar presionado: tiene mercancía llegando, poco tie
 - Si recomiendas una mejora, explica por qué ayuda al promotor en piso de ventas.
 - Si hay riesgo de pérdida de datos o publicación externa, detente y pide confirmación.
 
-## Comando local recomendado
+## Orden de lectura obligatorio
 
-Para abrir el agente local con Qwen:
+Antes de diagnosticar o modificar la aplicación, leer en este orden:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Agente-Local-Qwen.ps1
-```
+1. `.agents/skills/aguila-inventario-pro/SKILL.md`
+2. `.agents/skills/aguila-inventario-pro/references/arquitectura.md`, si existe
+3. `AGENTS.md`
+4. `aguila-inventario-pro-complemento-v2.md`, si existe
+5. `SKILL-1.md`, si existe
+
+Si existe una contradicción, prevalece el código real. La discrepancia debe reportarse y no debe modificarse el código para ajustarlo a documentación no verificada.
