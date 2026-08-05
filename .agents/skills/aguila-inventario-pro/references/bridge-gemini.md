@@ -2,7 +2,7 @@
 
 ## Flujo
 
-1. `telemetry-auto.js` captura `error`, `unhandledrejection` y consola.
+1. La telemetría automática del cliente está pendiente de restauración; mientras tanto, recopilar manualmente `error`, `unhandledrejection` y consola.
 2. Envía `POST /errors` al servidor `aguila-bridge` con mensaje, archivo, línea, stack y determinante.
 3. `server.js` valida origen/dominio y escribe un evento JSON por línea en `bugs.log`.
 4. Si se habilita, `repair-agent.js` selecciona el archivo, solicita una propuesta a Gemini, valida sintaxis y puede crear una rama Git.

@@ -26,7 +26,7 @@ Trabajar como guardián técnico de una PWA de inventario para promotores que op
 
 ## Errores enviados por el Bridge/Gemini
 
-El navegador reporta excepciones al bridge mediante `telemetry-auto.js`. El bridge puede pedir a Gemini una reparación, pero una sugerencia de IA **no es una autorización de cambio**.
+La telemetría automática no está disponible actualmente en el cliente; los errores deben reportarse con archivo, línea y stack. El bridge puede pedir a Gemini una reparación, pero una sugerencia de IA **no es una autorización de cambio**.
 
 Al recibir un reporte:
 

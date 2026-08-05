@@ -25,7 +25,7 @@ Dos promotores de la misma determinante ven y modifican el mismo inventario. No 
 | Búsqueda y escáner | `search-controller.js`, `scanner-mlkit.js` | Medio |
 | Datos | `analytics.js`, `analytics-ui.js` | Medio |
 | PWA | `service-worker.js`, `manifest.json` | Alto |
-| Telemetría | `telemetry-auto.js` | Alto |
+| Telemetría | Pendiente de restauración en el cliente | Alto |
 
 ## Flujos que no deben romperse
 
