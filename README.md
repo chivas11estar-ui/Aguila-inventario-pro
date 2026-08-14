@@ -1,8 +1,8 @@
-🦅 Águila Inventario Pro v7.6
+🦅 Águila Inventario Pro v8.0
 
 > Sistema profesional de gestión de inventario para promotores de tienda, con sincronización en tiempo real, escáner avanzado (Google ML Kit) y soporte PWA con modo offline.
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/aguilainvantario/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/aguilainventario/deploys)
 ![Firebase](https://img.shields.io/badge/Firebase-Realtime_DB-orange)
 ![ML Kit](https://img.shields.io/badge/Google-ML_Kit-red)
 ![PWA](https://img.shields.io/badge/PWA-Instalable_%2B_Offline-blueviolet)
@@ -85,11 +85,11 @@
 ---
 
 ## 🌐 Demo en Vivo
-🔗 https://aguilainvantario.netlify.app
+🔗 https://aguilainventario.netlify.app
 
-**Credenciales de prueba:**
+**Acceso de demostración:**
 
-Email: demo@aguilapro.com Contraseña: demo123456
+Solicita una cuenta de prueba al administrador. Las credenciales no se publican en el repositorio.
 
 ---
 
