@@ -193,6 +193,9 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
   const det = await getCachedDeterminante();
   const safeCode = sanitizeBarcode(codigoBarras);
   const producto = await buscarProductoPorCodigo(codigoBarras);
+  if (!producto || !producto._exists || !Array.isArray(producto.lotes)) {
+    throw new Error('Producto no encontrado');
+  }
   let pendiente = parseFloat(cantidadTotal);
   const updates = {};
   const detalle = [];
@@ -202,6 +205,9 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
     updates[`productos/${det}/${safeCode}/lotes/${lote.loteId}/stock`] = parseFloat((lote.stock - aTomar).toFixed(2));
     detalle.push({ bodega: lote.bodega, tomado: aTomar });
     pendiente = parseFloat((pendiente - aTomar).toFixed(2));
+  }
+  if (pendiente > 0) {
+    throw new Error('Stock insuficiente para completar el movimiento');
   }
   await firebase.database().ref().update(updates);
   return { detalle };
@@ -213,6 +219,8 @@ window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
 window.cargarInventario = cargarInventario;
 window.sanitizeBarcode = sanitizeBarcode;
+window.generarLoteId = generarLoteId;
+window.guardarProducto = guardarProducto;
 window.handleAddProductV2 = handleAddProductV2;
 
 function initInventoryCoreEvents() {

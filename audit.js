@@ -62,7 +62,6 @@ if (document.readyState === 'loading') {
 } else {
   initAuditEvents();
 }
-});
 
 function ensureManualWarehouseInput() {
   const select = document.getElementById('audit-warehouse');
