@@ -520,6 +520,46 @@ textarea:focus {
   margin: 0 0 4px;
 }
 
+/* El escáner rápido se inyecta dinámicamente junto al buscador.
+   Debe estar fuera del flujo cuando está cerrado; de lo contrario,
+   su video y botón de cierre dejan un hueco grande antes del inventario. */
+.hidden-scanner {
+  display: none !important;
+}
+
+.visible-scanner {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.visible-scanner #search-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.visible-scanner .close-scan-btn {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  z-index: 2;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #fff;
+  font-size: 24px;
+}
+
 .search-icon {
   color: var(--muted);
   font-size: 21px;
