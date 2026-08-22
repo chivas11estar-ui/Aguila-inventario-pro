@@ -472,6 +472,34 @@ body::before {
   display: block;
 }
 
+/* En móvil el contenido debe crecer con sus tarjetas. Mantener un flex de
+   altura completa y un segundo scroll interno deja una franja vacía antes
+   de la barra inferior y puede ocultar los últimos botones. */
+@media (max-width: 760px) {
+  body {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  #app-container {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .main-content {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .tab-content,
+  .tab-content.active {
+    flex: none;
+    min-height: 0;
+    height: auto;
+    overflow: visible;
+  }
+}
+
 .tab-content > .card:first-child {
   border-radius: 18px;
 }

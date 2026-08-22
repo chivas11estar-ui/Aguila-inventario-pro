@@ -144,6 +144,14 @@ async function loadUserProfile() {
                             window.renderProfileUI();
             }
 
+            // El clima debe solicitarse al cargar el perfil, no solamente
+            // cuando el usuario pulsa el botón de refrescar.
+            if (window.fetchWeatherData && window.PROFILE_STATE.preferences.mostrarClima !== false) {
+                            window.fetchWeatherData(true).catch(error => {
+                                console.warn('⚠️ No se pudo inicializar el clima:', error);
+                            });
+            }
+
             // Cargar datos secundarios
             loadDailyActivity();
 

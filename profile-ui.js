@@ -102,6 +102,24 @@ function renderProfileHeader(userData, preferences) {
 function renderWeatherCard(weather) {
   const weatherCity = weather?.city || 'Ubicacion actual';
 
+  if (weather?.loading) {
+    return `
+      <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-2">
+            <span class="material-icons-round text-primary">cloud</span>
+            <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
+          </div>
+          <span class="material-icons-round animate-spin text-primary">refresh</span>
+        </div>
+        <div class="text-center py-6 text-slate-500 dark:text-slate-400">
+          <p>Obteniendo clima y ubicación…</p>
+          <p class="text-xs mt-1">${weatherCity}</p>
+        </div>
+      </section>
+    `;
+  }
+
   if (!weather || weather.error) {
     return `
       <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
