@@ -150,12 +150,30 @@ window.limpiarFormularioRefillSafe = function() {
 };
 
 // 4. EVENTOS
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('refill-form')?.addEventListener('submit', window.handleRefillSubmitSafe);
+// Este módulo se carga después de autenticarse. Por eso no puede depender
+// únicamente de DOMContentLoaded: cuando llega aquí, ese evento ya pudo ocurrir.
+function initRefillEvents() {
+  if (window.__aguilaRefillEventsBound) return;
+
+  const form = document.getElementById('refill-form');
+  if (!form) return;
+
+  form.addEventListener('submit', window.handleRefillSubmitSafe);
   document.getElementById('refill-barcode')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); window.searchProductForRefillSafe(e.target.value); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.searchProductForRefillSafe(e.target.value);
+    }
   });
   document.getElementById('btn-refill-mode-exit')?.addEventListener('click', () => window.setRefillModeSafe('exit'));
   document.getElementById('btn-refill-mode-pieces')?.addEventListener('click', () => window.setRefillModeSafe('pieces'));
   document.getElementById('btn-refill-mode-entry')?.addEventListener('click', () => window.setRefillModeSafe('entry'));
-});
+
+  window.__aguilaRefillEventsBound = true;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initRefillEvents, { once: true });
+} else {
+  initRefillEvents();
+}
