@@ -3,7 +3,7 @@
 // Estrategia: network-first para app shell y fallback offline
 // ============================================================
 
-const CACHE_NAME = "aguila-pro-v9.0";
+const CACHE_NAME = "aguila-pro-v9.1-refill-fix";
 
 const APP_SHELL_ASSETS = [
   "/",
