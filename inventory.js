@@ -74,7 +74,11 @@ async function loadInventory() {
       }
       if (typeof window.cargarInventario === 'function') {
     window.INVENTORY_STATE.isRenderingInventory = true;
-            return window.cargarInventario();
+    try {
+      return await window.cargarInventario();
+    } finally {
+      window.INVENTORY_STATE.isRenderingInventory = false;
+    }
   }
 
   // Fallback: si inventory-core.js aún no cargó, intentar la ruta antigua
