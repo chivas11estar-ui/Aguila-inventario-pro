@@ -6,7 +6,7 @@
 
 'use strict';
 
-window.INVENTORY_CORE = { determinante: null, _initialized: false };
+window.INVENTORY_CORE = { determinante: null, _initialized: false, _inventoryListenerDeterminante: null };
 
 if (!window.INVENTORY_STATE) {
     window.INVENTORY_STATE = {
@@ -72,7 +72,12 @@ async function buscarProductoPorCodigo(codigoBarras) {
 async function cargarInventario() {
   const det = await getCachedDeterminante();
   if (!det) return;
+  if (window.INVENTORY_CORE._inventoryListenerDeterminante === det) {
+    return;
+  }
+
   const inventoryRef = firebase.database().ref('productos/' + det);
+  window.INVENTORY_CORE._inventoryListenerDeterminante = det;
 
   // Limpiar estado inicial
   window.INVENTORY_STATE.productos = [];
@@ -137,7 +142,8 @@ async function guardarProducto(formData) {
 async function handleAddProductV2(event) {
   if (event) event.preventDefault(); // 🛡️ EVITA EL REINICIO
 
-  const submitBtn = event.target.querySelector('button[type="submit"]');
+  const form = event?.target || document.getElementById('add-product-form');
+  const submitBtn = form?.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = true;
 
   try {
@@ -187,6 +193,9 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
   const det = await getCachedDeterminante();
   const safeCode = sanitizeBarcode(codigoBarras);
   const producto = await buscarProductoPorCodigo(codigoBarras);
+  if (!producto || !producto._exists || !Array.isArray(producto.lotes)) {
+    throw new Error('Producto no encontrado');
+  }
   let pendiente = parseFloat(cantidadTotal);
   const updates = {};
   const detalle = [];
@@ -196,6 +205,9 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal) {
     updates[`productos/${det}/${safeCode}/lotes/${lote.loteId}/stock`] = parseFloat((lote.stock - aTomar).toFixed(2));
     detalle.push({ bodega: lote.bodega, tomado: aTomar });
     pendiente = parseFloat((pendiente - aTomar).toFixed(2));
+  }
+  if (pendiente > 0) {
+    throw new Error('Stock insuficiente para completar el movimiento');
   }
   await firebase.database().ref().update(updates);
   return { detalle };
@@ -207,11 +219,22 @@ window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
 window.cargarInventario = cargarInventario;
 window.sanitizeBarcode = sanitizeBarcode;
+window.generarLoteId = generarLoteId;
+window.guardarProducto = guardarProducto;
 window.handleAddProductV2 = handleAddProductV2;
 
-document.addEventListener('DOMContentLoaded', () => {
+function initInventoryCoreEvents() {
+  if (window.__aguilaInventoryCoreEventsBound) return;
   const form = document.getElementById('add-product-form');
-  if (form) form.addEventListener('submit', handleAddProductV2);
-});
+  if (!form) return;
+  form.addEventListener('submit', handleAddProductV2);
+  window.__aguilaInventoryCoreEventsBound = true;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initInventoryCoreEvents, { once: true });
+} else {
+  initInventoryCoreEvents();
+}
 
 console.log('✅ inventory-core.js V5.0 (MOTOR COMPLETO)');

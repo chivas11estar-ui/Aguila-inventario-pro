@@ -23,7 +23,7 @@ function getStoreId() {
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initAuditEvents() {
   console.log('✓ [AUDIT V3] Inicializando módulo de Auditoría...');
 
   document.getElementById('save-warehouse-btn').onclick = saveBodega;
@@ -55,7 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ensureManualWarehouseInput();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuditEvents, { once: true });
+} else {
+  initAuditEvents();
+}
 
 function ensureManualWarehouseInput() {
   const select = document.getElementById('audit-warehouse');
