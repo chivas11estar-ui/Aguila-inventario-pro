@@ -195,13 +195,22 @@ function setupPhrasesEventListeners() {
 // Exponer la función de eliminación al scope global para el onclick
 window.deleteMotivationalPhrase = deleteMotivationalPhrase;
 
-// Inicialización diferida
-document.addEventListener('DOMContentLoaded', () => {
+// Este módulo se carga después de autenticarse; el callback de auth
+// también se ejecuta inmediatamente para la sesión ya iniciada.
+function initPhrasesModule() {
+  if (window.__aguilaPhrasesAuthBound) return;
   firebase.auth().onAuthStateChanged(user => {
     if (user) {
       initMotivationalPhrases(user.uid);
     }
   });
-});
+  window.__aguilaPhrasesAuthBound = true;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPhrasesModule, { once: true });
+} else {
+  initPhrasesModule();
+}
 
 console.log('✅ phrases.js cargado correctamente');
