@@ -38,16 +38,24 @@ window.addEventListener('hashchange', () => {
   if (hash) switchTab(hash, false);
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+function initAppNavigation() {
   const initialHash = window.location.hash.replace('#', '');
   if (initialHash) switchTab(initialHash, false);
 
   document.querySelectorAll('[data-tab]').forEach(el => {
+    if (el.dataset.aguilaNavigationBound === 'true') return;
     el.addEventListener('click', (e) => {
       e.preventDefault();
       switchTab(el.getAttribute('data-tab'));
     });
+    el.dataset.aguilaNavigationBound = 'true';
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAppNavigation, { once: true });
+} else {
+  initAppNavigation();
+}
 
 window.switchTab = switchTab;
