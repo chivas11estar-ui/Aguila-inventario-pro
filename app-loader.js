@@ -17,7 +17,7 @@
     { src: 'ui.js?v=1.8', global: () => window.enhanceQuantityInputs },
     { src: 'listener-manager.js?v=1.0' },
     { src: 'inventory-core.js?v=5.3', global: () => window.cargarInventario && window.handleAddProductV2 },
-    { src: 'scanner-mlkit.js?v=7.1', global: () => window.ScannerService || window.openScanner },
+    { src: 'scanner-mlkit.js?v=7.2', global: () => window.ScannerService || window.openScanner },
     { src: 'refill-safe.js?v=6.3', global: () => window.searchProductForRefillSafe },
     { src: 'inventory.js?v=3.3', global: () => window.loadInventory },
     { src: 'search-controller.js?v=1.1' },
