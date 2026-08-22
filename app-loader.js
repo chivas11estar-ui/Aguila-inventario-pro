@@ -24,7 +24,7 @@
     { src: 'lote-mover.js?v=1.1', global: () => window.moverProducto && window.moverLote },
     { src: 'inventory-ui.js?v=3.3' },
     { src: 'app.js?v=2.3', global: () => window.switchTab },
-    { src: 'audit.js?v=2.5', global: () => window.buscarProductoAudit },
+    { src: 'audit.js?v=2.6', global: () => window.buscarProductoAudit },
     { src: 'system.js?v=1.3' },
     { src: 'system-events.js?v=1.3' },
     { src: 'weather.js?v=1.7' },
