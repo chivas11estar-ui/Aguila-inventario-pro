@@ -116,17 +116,62 @@ window.ScannerService = {
 
     async attachToElement(videoElement) {
         if (!this.persistentStream || !videoElement) return false;
+
         if (this.activeVideoElement && this.activeVideoElement !== videoElement) {
             this.activeVideoElement.pause();
             this.activeVideoElement.srcObject = null;
         }
-        videoElement.srcObject = this.persistentStream;
+
         this.activeVideoElement = videoElement;
-        return new Promise((resolve) => {
-            videoElement.onloadedmetadata = async () => {
-                try { await videoElement.play(); this.initDetector(); resolve(true); } catch (e) { resolve(false); }
-            };
-        });
+
+        try {
+            if (videoElement.srcObject !== this.persistentStream) {
+                videoElement.srcObject = this.persistentStream;
+            }
+
+            // En el segundo uso, loadedmetadata puede haber ocurrido antes de
+            // registrar el listener. Si ya hay metadatos, continuamos sin esperar.
+            if (videoElement.readyState < 1) {
+                await new Promise((resolve, reject) => {
+                    let settled = false;
+                    let timeoutId = null;
+
+                    const cleanup = () => {
+                        videoElement.removeEventListener('loadedmetadata', onLoaded);
+                        videoElement.removeEventListener('error', onError);
+                        if (timeoutId) clearTimeout(timeoutId);
+                    };
+
+                    const finish = (error) => {
+                        if (settled) return;
+                        settled = true;
+                        cleanup();
+                        if (error) reject(error);
+                        else resolve();
+                    };
+
+                    const onLoaded = () => finish();
+                    const onError = () => finish(new Error('No se pudo preparar el video de la cámara'));
+
+                    videoElement.addEventListener('loadedmetadata', onLoaded, { once: true });
+                    videoElement.addEventListener('error', onError, { once: true });
+                    timeoutId = setTimeout(
+                        () => finish(new Error('La cámara tardó demasiado en iniciar')),
+                        5000
+                    );
+
+                    // Cierra la carrera si los metadatos llegaron justo al registrar eventos.
+                    if (videoElement.readyState >= 1) finish();
+                });
+            }
+
+            await videoElement.play();
+            this.initDetector();
+            return true;
+        } catch (error) {
+            console.error("❌ [ScannerService] No se pudo adjuntar el video:", error);
+            return false;
+        }
     },
 
     initDetector() {
@@ -194,6 +239,9 @@ window.ScannerService = {
             this.persistentStream.getTracks().forEach(t => t.stop());
             this.persistentStream = null;
         }
+        this.torchEnabled = false;
+        this.lastScannedCode = null;
+        this.lastScanTime = 0;
     }
 };
 
@@ -220,6 +268,10 @@ Object.defineProperty(window, 'openScanner', {
             });
         } else {
             modal.classList.add('hidden');
+            window.ScannerService.hardStop();
+            if (typeof window.showToast === 'function') {
+                window.showToast('No se pudo iniciar la cámara. Intenta nuevamente.', 'error');
+            }
         }
     },
     writable: false,
