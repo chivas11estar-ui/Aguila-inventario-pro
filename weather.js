@@ -4,6 +4,8 @@
 // Copyright © 2025 José A. G. Betancourt
 // ============================================================
 
+let weatherRequestInFlight = null;
+
 function normalizeWeatherText(text) {
     return String(text || '')
         .toLowerCase()
@@ -57,19 +59,6 @@ function getOpenMeteoPresentation(weatherCode) {
     return { label: 'Clima estable', icon: 'wb_sunny' };
 }
 
-async function getCityName(lat, lon, fallbackName) {
-    try {
-        const url = 'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lon) + '&localityLanguage=es';
-        const geoRes = await fetch(url);
-        if (!geoRes.ok) throw new Error('Reverse geocode HTTP ' + geoRes.status);
-        const geoData = await geoRes.json();
-        return geoData.city || geoData.locality || geoData.principalSubdivision || fallbackName;
-    } catch (e) {
-        console.warn('⚠️ Error al obtener nombre de la ciudad (BigDataCloud):', e);
-        return fallbackName;
-    }
-}
-
 async function getPrecisePosition() {
     if (!navigator.geolocation) {
         throw new Error('Geolocalización no soportada por este navegador.');
@@ -85,6 +74,13 @@ async function getPrecisePosition() {
 }
 
 window.fetchWeatherData = async function (requestPreciseLocation = false) {
+    if (weatherRequestInFlight) return weatherRequestInFlight;
+
+    weatherRequestInFlight = (async () => {
+    if (window.PROFILE_STATE) {
+        window.PROFILE_STATE.weather = { loading: true, city: 'Ubicación actual' };
+        if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+    }
     let lat = 19.4326;
     let lon = -99.1332;
     let cityName = 'Ciudad de México';
@@ -95,7 +91,7 @@ window.fetchWeatherData = async function (requestPreciseLocation = false) {
             const pos = await getPrecisePosition();
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
-            cityName = await getCityName(lat, lon, 'Ubicación Actual');
+            cityName = 'Ubicación actual';
         }
     } catch (e) {
         const denied = e && (e.code === e.PERMISSION_DENIED || e.code === 1);
@@ -142,6 +138,13 @@ window.fetchWeatherData = async function (requestPreciseLocation = false) {
     }
 
     if (typeof window.renderProfileUI === 'function') window.renderProfileUI();
+    })();
+
+    try {
+        return await weatherRequestInFlight;
+    } finally {
+        weatherRequestInFlight = null;
+    }
 };
 
 console.log('✅ weather.js (Módulo Clima) cargado correctamente');
