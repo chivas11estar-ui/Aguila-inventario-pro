@@ -22,7 +22,7 @@
     { src: 'inventory.js?v=3.3', global: () => window.loadInventory },
     { src: 'search-controller.js?v=1.1' },
     { src: 'lote-mover.js?v=1.1', global: () => window.moverProducto && window.moverLote },
-    { src: 'inventory-ui.js?v=3.2' },
+    { src: 'inventory-ui.js?v=3.3' },
     { src: 'app.js?v=2.2', global: () => window.switchTab },
     { src: 'audit.js?v=2.4', global: () => window.buscarProductoAudit },
     { src: 'system.js?v=1.3' },
