@@ -13,6 +13,7 @@ let currentAuditLoteId    = null;
 let isQuickAuditMode      = false;
 let quickAuditItems       = [];
 let availableAuditWarehouses = [];
+let auditSessionItems     = [];
 
 // Fuente única de verdad — sin onAuthStateChanged propio
 function getStoreId() {
@@ -104,6 +105,8 @@ function saveBodega() {
   }
 
   currentAuditWarehouse = val;
+  auditSessionItems = [];
+  renderAuditSession();
   display.innerHTML = `📍 Auditando: <strong>${currentAuditWarehouse}</strong>`;
   display.style.cssText = `
     background:#e0f2fe; color:#0369a1;
@@ -118,6 +121,25 @@ function saveBodega() {
 
   showToast(`📍 Bodega fijada: ${currentAuditWarehouse}`, 'success');
   setTimeout(() => document.getElementById('audit-barcode').focus(), 300);
+}
+
+function renderAuditSession() {
+  const productsCount = document.getElementById('audit-products-count');
+  const boxesCount = document.getElementById('audit-boxes-count');
+  const history = document.getElementById('audit-history');
+  const totalBoxes = auditSessionItems.reduce((sum, item) => sum + item.contado, 0);
+
+  if (productsCount) productsCount.textContent = String(auditSessionItems.length);
+  if (boxesCount) boxesCount.textContent = String(totalBoxes);
+  if (!history) return;
+
+  history.innerHTML = auditSessionItems.length
+    ? auditSessionItems.map(item => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <strong>${item.producto}</strong><br>
+          <small>${item.codigo} · ${item.bodega} · ${item.contado} cajas · diferencia ${item.diferencia > 0 ? '+' : ''}${item.diferencia}</small>
+        </div>`).join('')
+    : '<p style="color:var(--muted);">Historial vacío</p>';
 }
 
 function hydrateAuditWarehouseOptions() {
@@ -343,6 +365,8 @@ async function registrarConteo() {
         ? '✅ Inventario exacto'
         : `⚠️ Diferencia: ${diferencia > 0 ? '+' : ''}${diferencia} cajas`;
       showToast(msg, diferencia === 0 ? 'success' : 'warning');
+      auditSessionItems.push({ producto: currentAuditProduct.nombre, codigo, bodega: currentAuditWarehouse, contado: cajasContadas, diferencia });
+      renderAuditSession();
 
     } else {
       // Producto en esta bodega no existía — crear lote nuevo
@@ -373,6 +397,8 @@ async function registrarConteo() {
         });
 
       showToast(`✅ Lote nuevo creado en ${currentAuditWarehouse}: ${cajasContadas} cajas`, 'success');
+      auditSessionItems.push({ producto: currentAuditProduct.nombre, codigo, bodega: currentAuditWarehouse, contado: cajasContadas, diferencia: cajasContadas });
+      renderAuditSession();
     }
 
     limpiarCamposAudit();
