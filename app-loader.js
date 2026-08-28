@@ -1,6 +1,7 @@
 // ============================================================
 // Aguila Inventario Pro - carga diferida de la app autenticada
-// Mantiene ligera la pantalla publica de login para moviles.
+// FAST BOOT: carga solo las dependencias necesarias para mostrar
+// el inventario y deja los módulos secundarios en segundo plano.
 // ============================================================
 
 'use strict';
@@ -37,7 +38,28 @@
     { src: 'migrate-to-v2.js?v=2.1' }
   ];
 
+  // Dependencias mínimas para que el usuario pueda ver y operar el inventario.
+  // Se mantienen en fases para respetar las dependencias de ejecución.
+  const CRITICAL_STAGE_1 = [
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js',
+    'security-utils.js?v=1.2',
+    'ui.js?v=1.8',
+    'listener-manager.js?v=1.0'
+  ];
+  const CRITICAL_STAGE_2 = [
+    'inventory-core.js?v=5.4',
+    'inventory-ui.js?v=3.3'
+  ];
+  const CRITICAL_STAGE_3 = [
+    'inventory.js?v=3.4'
+  ];
+
   let appModulesPromise = null;
+
+  function getModuleBySrc(src) {
+    return APP_MODULES.find(moduleConfig => moduleConfig.src === src);
+  }
 
   function loadScriptOnce(moduleConfig) {
     const existing = document.querySelector(`script[data-aguila-src="${moduleConfig.src}"]`);
@@ -49,8 +71,12 @@
       script.defer = true;
       script.dataset.aguilaSrc = moduleConfig.src;
       script.onload = () => {
-        if (moduleConfig.src.includes('firebase-firestore') && typeof firebase.firestore === 'function') {
-          window.firestore = firebase.firestore();
+        try {
+          if (moduleConfig.src.includes('firebase-firestore') && typeof firebase.firestore === 'function') {
+            window.firestore = firebase.firestore();
+          }
+        } catch (error) {
+          console.warn('[LOADER] Firestore init warning:', error);
         }
         resolve();
       };
@@ -59,19 +85,56 @@
     });
   }
 
+  async function loadStage(srcs) {
+    await Promise.all(srcs.map(async (src) => {
+      const moduleConfig = getModuleBySrc(src);
+      if (!moduleConfig) return;
+
+      try {
+        if (typeof moduleConfig.global === 'function' && moduleConfig.global()) return;
+      } catch (error) {
+        // Si la comprobacion falla, intentamos cargar el modulo.
+      }
+      await loadScriptOnce(moduleConfig);
+    }));
+  }
+
+  async function loadCriticalInventoryModules() {
+    // Fase 1: dependencias compartidas en paralelo.
+    await loadStage(CRITICAL_STAGE_1);
+
+    // Fase 2: motor y UI del inventario en paralelo.
+    await loadStage(CRITICAL_STAGE_2);
+
+    // Fase 3: adaptador legacy que expone loadInventory().
+    await loadStage(CRITICAL_STAGE_3);
+  }
+
+  function loadSecondaryModulesInBackground() {
+    const critical = new Set([
+      ...CRITICAL_STAGE_1,
+      ...CRITICAL_STAGE_2,
+      ...CRITICAL_STAGE_3
+    ]);
+
+    const secondary = APP_MODULES.filter(moduleConfig => !critical.has(moduleConfig.src));
+
+    // No bloquea el arranque. Los errores secundarios no deben impedir
+    // que el inventario ya visible siga funcionando.
+    loadStage(secondary.map(moduleConfig => moduleConfig.src)).catch(error => {
+      console.warn('[LOADER] Algunos módulos secundarios no pudieron cargarse:', error);
+    });
+  }
+
   window.loadAguilaAppModules = function loadAguilaAppModules() {
     if (appModulesPromise) return appModulesPromise;
 
-    appModulesPromise = APP_MODULES.reduce((chain, moduleConfig) => {
-      return chain.then(async () => {
-        try {
-          if (typeof moduleConfig.global === 'function' && moduleConfig.global()) return;
-        } catch (error) {
-          // Si la comprobacion falla, intentamos cargar el modulo.
-        }
-        await loadScriptOnce(moduleConfig);
+    // La promesa solo representa el BOOT CRÍTICO. Una vez resuelta,
+    // los módulos secundarios comienzan en segundo plano.
+    appModulesPromise = loadCriticalInventoryModules()
+      .then(() => {
+        loadSecondaryModulesInBackground();
       });
-    }, Promise.resolve());
 
     return appModulesPromise;
   };
