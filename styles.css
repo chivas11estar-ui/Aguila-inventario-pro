@@ -447,7 +447,6 @@ body::before {
   margin: 0 auto;
   flex: 1;
   width: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -463,41 +462,12 @@ body::before {
 .tab-content {
   display: none;
   flex: 1;
-  min-height: 0;
   overflow-y: auto;
   animation: aguilaFadeUp 0.22s ease both;
 }
 
 .tab-content.active {
   display: block;
-}
-
-/* En móvil el contenido debe crecer con sus tarjetas. Mantener un flex de
-   altura completa y un segundo scroll interno deja una franja vacía antes
-   de la barra inferior y puede ocultar los últimos botones. */
-@media (max-width: 760px) {
-  body {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
-  }
-
-  #app-container {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
-  .main-content {
-    flex: 0 0 auto;
-    overflow: visible;
-  }
-
-  .tab-content,
-  .tab-content.active {
-    flex: none;
-    min-height: 0;
-    height: auto;
-    overflow: visible;
-  }
 }
 
 .tab-content > .card:first-child {
@@ -546,46 +516,6 @@ textarea:focus {
 
 .search-panel {
   margin: 0 0 4px;
-}
-
-/* El escáner rápido se inyecta dinámicamente junto al buscador.
-   Debe estar fuera del flujo cuando está cerrado; de lo contrario,
-   su video y botón de cierre dejan un hueco grande antes del inventario. */
-.hidden-scanner {
-  display: none !important;
-}
-
-.visible-scanner {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.92);
-}
-
-.visible-scanner #search-video-feed {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background: #000;
-}
-
-.visible-scanner .close-scan-btn {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  right: 16px;
-  z-index: 2;
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
-  padding: 0;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.86);
-  color: #fff;
-  font-size: 24px;
 }
 
 .search-icon {

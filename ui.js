@@ -156,6 +156,7 @@ function initUI() {
   console.log('ðŸŽ¨ Inicializando UI...');
   
   setupTabs();
+  installBarcodeEventRouter();
   connectGlobalScanButtons();
   enhanceQuantityInputs();
   
@@ -208,83 +209,75 @@ window.enhanceQuantityInputs = enhanceQuantityInputs;
  * Conector Global de Eventos de CÃ¡mara (Bridge V4.2)
  * Asegura que todos los botones de escaneo tengan un comportamiento consistente.
  */
+function routeBarcodeScanned(event) {
+  const code = String(event?.detail?.code || '').trim();
+  if (!code) return;
+
+  const activeTab = window.APP_STATE?.activeTab
+    || document.querySelector('.tab-content.active:not(.hidden)')?.id?.replace(/^tab-/, '')
+    || '';
+  const inputEvents = (input) => {
+    input.value = code;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.focus();
+  };
+
+  if (activeTab === 'add') {
+    const input = document.getElementById('add-barcode');
+    if (!input) return;
+    inputEvents(input);
+    if (typeof window.buscarProductoParaAgregar === 'function') {
+      window.buscarProductoParaAgregar(code);
+    } else if (typeof window.buscarProductoPorCodigo === 'function') {
+      window.buscarProductoPorCodigo(code).then((product) => {
+        if (!product || (!product._exists && !product._catalogExists)) return;
+        showToast(product._exists
+          ? `Producto existente: ${product.nombre}`
+          : `Producto encontrado en el catálogo: ${product.nombre}`, 'info');
+        const name = document.getElementById('add-product-name');
+        const brand = document.getElementById('add-brand');
+        const pieces = document.getElementById('add-pieces-per-box');
+        if (name) name.value = product.nombre || '';
+        if (brand) brand.value = product.marca || '';
+        if (pieces) pieces.value = product.piezasPorCaja || '';
+      }).catch((error) => console.error('BARCODE_ADD_LOOKUP_FAILED', error));
+    }
+    return;
+  }
+
+  if (activeTab === 'refill') {
+    const input = document.getElementById('refill-barcode');
+    if (!input) return;
+    inputEvents(input);
+    const search = window.searchProductForRefillSafe || window.searchProductForRefill;
+    if (typeof search === 'function') search(code);
+    return;
+  }
+
+  if (activeTab === 'audit') {
+    const input = document.getElementById('audit-barcode');
+    if (!input) return;
+    inputEvents(input);
+    if (typeof window.buscarProductoAudit === 'function') window.buscarProductoAudit();
+  }
+}
+
+function installBarcodeEventRouter() {
+  if (window.__aguilaBarcodeRouterInstalled) return;
+  window.addEventListener('barcodeScanned', routeBarcodeScanned);
+  window.__aguilaBarcodeRouterInstalled = true;
+}
 function connectGlobalScanButtons() {
-    // 1. BotÃ³n pestaÃ±a AÃ‘ADIR
-    document.getElementById('btn-scan-add')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('add-barcode');
-            if (input) {
-                input.value = code;
-                // Disparar eventos para activar validaciones y bÃºsquedas automÃ¡ticas
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.focus();
-
-                // Si existe una funciÃ³n para buscar en "Agregar", llamarla
-                if (typeof window.buscarProductoParaAgregar === 'function') {
-                    window.buscarProductoParaAgregar(code);
-                } else if (typeof window.buscarProductoPorCodigo === 'function') {
-                    // Fallback: verificar si ya existe el producto
-                    window.buscarProductoPorCodigo(code).then(prod => {
-                        if (prod && (prod._exists || prod._catalogExists)) {
-                            showToast(prod._exists
-                                ? `Producto existente: ${prod.nombre}`
-                                : `Producto encontrado en el catálogo: ${prod.nombre}`, 'info');
-                            if (document.getElementById('add-product-name')) {
-                                document.getElementById('add-product-name').value = prod.nombre || '';
-                            }
-                            if (document.getElementById('add-brand')) {
-                                document.getElementById('add-brand').value = prod.marca || '';
-                            }
-                            if (document.getElementById('add-pieces-per-box')) {
-                                document.getElementById('add-pieces-per-box').value = prod.piezasPorCaja || '';
-                            }
-                        }
-                    });
-                }
-            }
-        });
+    // Add, Refill y Audit comparten un único router barcodeScanned.
+    ['btn-scan-add', 'btn-scan-refill', 'btn-scan-audit'].forEach((buttonId) => {
+      document.getElementById(buttonId)?.addEventListener('click', (event) => {
+        event.preventDefault();
+        window.openScanner(() => {});
+      });
     });
 
-    // 2. BotÃ³n pestaÃ±a RELLENAR
-    document.getElementById('btn-scan-refill')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('refill-barcode');
-            if (input) {
-                input.value = code;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.focus();
-
-                // Prioridad a refill-safe.js
-                if (typeof window.searchProductForRefillSafe === 'function') {
-                    window.searchProductForRefillSafe(code);
-                } else if (typeof window.searchProductForRefill === 'function') {
-                    window.searchProductForRefill(code);
-                }
-            }
-        });
-    });
-
-    // 3. BotÃ³n pestaÃ±a AUDITORÃA (Modo Normal)
-    document.getElementById('btn-scan-audit')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openScanner((code) => {
-            const input = document.getElementById('audit-barcode');
-            if (input) {
-                input.value = code;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                // Llamar a la bÃºsqueda de auditorÃ­a
-                if (typeof window.buscarProductoAudit === 'function') {
-                    window.buscarProductoAudit();
-                }
-            }
-        });
-    });
-
-    // 4. BotÃ³n BÃºsqueda Global (Si existe el ID)
+    // 4. Botón Búsqueda Global (Si existe el ID)
     document.getElementById('btn-trigger-scan')?.addEventListener('click', (e) => {
         e.preventDefault();
         window.openScanner((code) => {

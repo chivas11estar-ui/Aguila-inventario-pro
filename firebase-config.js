@@ -132,11 +132,11 @@
     window.cleanAppText = repairTextV2;
 })();
 
-// Consola limpia para uso diario: oculta ruido de arranque y deja errores reales visibles.
+// Consola limpia para uso diario: activa DEBUG para ver todo.
 (function setupQuietProductionConsole() {
     if (window.__aguilaQuietProductionConsole) return;
     window.__aguilaQuietProductionConsole = true;
-    window.AGUILA_DEBUG = window.AGUILA_DEBUG === true;
+    window.AGUILA_DEBUG = true; // ACTIVADO PARA SOLUCIONAR TU ERROR
 
     const originalLog = console.log;
     const originalInfo = console.info;
@@ -186,39 +186,60 @@ const firebaseConfig = {
   appId: _D(_S.a)
 };
 
-function initFirebase() {
+async function initFirebase() {
   console.log('🛡️ Iniciando Firebase (Capa de Seguridad Activa)...');
-  
-  // VERIFICACIÓN TEMPORAL (Eliminar después de confirmar)
-  // console.log('DEBUG [API_KEY]:', firebaseConfig.apiKey);
 
   try {
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
       console.error('❌ Error: SDK de Firebase no detectado.');
-      return false; 
+      throw new Error('FIREBASE_SDK_UNAVAILABLE');
     }
-    
+
+    const qaRuntime = window.QA_RUNTIME;
+    const activeFirebaseConfig = qaRuntime?.getFirebaseConfig
+      ? qaRuntime.getFirebaseConfig(firebaseConfig)
+      : firebaseConfig;
+
     if (!firebase.apps || firebase.apps.length === 0) {
-      // Inicializar con la configuración ya decodificada
-      firebase.initializeApp(firebaseConfig);
+      firebase.initializeApp(activeFirebaseConfig);
+      window.markAguilaBoot?.('T4_FIREBASE_INITIALIZED');
       console.log('✅ Firebase blindado e inicializado');
+    } else if (qaRuntime?.enabled && firebase.app().options?.projectId !== qaRuntime.constants?.QA_PROJECT_ID) {
+      throw new Error('QA_EMULATOR_REQUIRED');
     }
-    
+
     window.firebaseApp = firebase.app();
     window.firebaseAuth = firebase.auth();
     window.firebaseDB = firebase.database();
-    window.firestore = firebase.firestore();
+    window.firestore = typeof firebase.firestore === 'function' ? firebase.firestore() : null;
 
-    return true;
+    if (qaRuntime?.enabled) {
+      qaRuntime.configureFirebase({ auth: window.firebaseAuth, database: window.firebaseDB });
+      window.markAguilaBoot?.('T5_EMULATOR_ROUTED');
+      await window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+      window.QA_RUNTIME_READY = qaRuntime.ensureEmulators();
+      await window.QA_RUNTIME_READY;
+    } else {
+      window.QA_RUNTIME_READY = Promise.resolve({ status: 'production' });
+      await window.QA_RUNTIME_READY;
+    }
 
+    window.markAguilaBoot?.('T6_FIREBASE_READY');
+    return {
+      app: window.firebaseApp,
+      auth: window.firebaseAuth,
+      database: window.firebaseDB,
+      qa: Boolean(qaRuntime?.enabled)
+    };
   } catch (err) {
     console.error('❌ Error crítico en initFirebase:', err);
-    return false;
+    throw err;
   }
 }
 
-// Inicialización automática
-initFirebase();
-window.initFirebase = initFirebase;
+window.markAguilaBoot?.('T3_FIREBASE_CONFIG');
+window.FIREBASE_READY = initFirebase();
+window.FIREBASE_READY.catch(() => console.error('QA_EMULATOR_REQUIRED'));
+window.initFirebase = () => window.FIREBASE_READY;
 
 console.log('🛡️ Configuración de Firebase endurecida y verificada.');

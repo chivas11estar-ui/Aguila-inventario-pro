@@ -87,14 +87,9 @@ async function fallbackLogout() {
     firebase.database().ref().off();
   }
 
-  window.INVENTORY_STATE = {
-    productos: [], productosFiltrados: [], marcasExpandidas: {}, searchTerm: '',
-    determinante: null, isLoading: false, isRenderingInventory: false
-  };
-  window.PROFILE_STATE = {
-    determinante: null, nombrePromotor: '', userData: null,
-    darkMode: localStorage.getItem('theme') === 'dark'
-  };
+  window.INVENTORY_STATE = window.INVENTORY_STATE || {};
+  window.INVENTORY_STATE.productos = [];
+  window.PROFILE_STATE = {};
   window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
   window.ANALYTICS_STATE.determinante = null;
 
@@ -105,8 +100,6 @@ async function fallbackLogout() {
 function showLoginScreen() {
   document.getElementById('auth-setup').style.display = 'block';
   document.getElementById('app-container').style.display = 'none';
-  const footer = document.querySelector('footer');
-  if (footer) footer.style.display = '';
 }
 
 function showApp() {
@@ -116,11 +109,22 @@ function showApp() {
 
   if (authSetup) authSetup.style.display = 'none';
   if (appContainer) appContainer.style.display = 'flex';
-  const footer = document.querySelector('footer');
-  if (footer) footer.style.display = 'none';
 
   // Forzar redibujado de mapas/gráficos si es necesario
   window.dispatchEvent(new Event('resize'));
+}
+
+async function ensureAuthenticatedAppModules() {
+  if (typeof window.loadAguilaAppModules !== 'function') return;
+
+  try {
+    await window.loadAguilaAppModules();
+    window.markAguilaBoot?.('T8_APP_MODULES');
+  } catch (error) {
+    console.error('❌ No se pudieron cargar módulos de la app:', error);
+    showToast('No se pudo cargar la app completa. Revisa tu conexión.', 'error');
+    throw error;
+  }
 }
 
 async function handleLogin() {
@@ -136,6 +140,8 @@ async function handleLogin() {
 
   try {
     console.log('🔐 Intentando login...');
+    await requireQaRuntimeReady();
+    window.QA_RUNTIME?.assertQaIdentity?.(email, determinante);
     if (loginButton) {
       loginButton.disabled = true;
       loginButton.dataset.originalText = loginButton.textContent;
@@ -194,15 +200,19 @@ async function handleRegister() {
   }
 
   try {
+    await requireQaRuntimeReady();
+    if (window.QA_RUNTIME?.enabled) throw new Error('QA_WRITE_BLOCKED');
     console.log('📝 Registrando usuario:', email);
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
 
-    // Guardamos el determinante LIMPIO (sin espacios)
+    // Guardamos el determinante LIMPIO y como STRING (Fuerza consistencia)
+    const safeDeterminante = String(determinante).trim().toUpperCase();
+
     await firebase.database().ref('usuarios/' + userCredential.user.uid).set({
       email: email,
       nombrePromotor: promoterName,
       nombreTienda: storeName,
-      determinante: determinante, // Ya va sin espacios
+      determinante: safeDeterminante,
       fechaRegistro: getLocalISOString()
     });
 
@@ -229,6 +239,8 @@ async function handleForgotPassword() {
   }
 
   try {
+    await requireQaRuntimeReady();
+    if (window.QA_RUNTIME?.enabled) throw new Error('QA_WRITE_BLOCKED');
     console.log('📧 Enviando enlace de recuperación a:', email);
     await firebase.auth().sendPasswordResetEmail(email);
     showToast('✅ Enlace enviado a tu email', 'success');
@@ -291,30 +303,45 @@ async function loadUserData(userId) {
     const userData = snapshot.val();
 
     if (userData && userData.determinante) {
-      // Inyectar en el estado global ANTES de cualquier desencriptación
+      // Forzar que el determinante sea STRING para evitar errores de permisos en Firebase
+      const currentDet = String(userData.determinante).trim().toUpperCase();
+
+      if (window.QA_RUNTIME?.enabled && !window.QA_RUNTIME.isQaDeterminanteAllowed(currentDet)) {
+        console.error('QA_WRITE_BLOCKED');
+        await firebase.auth().signOut();
+        showLoginScreen();
+        showToast('QA solo permite el determinante 99922.', 'error');
+        return;
+      }
+
       window.PROFILE_STATE = window.PROFILE_STATE || {};
-      window.PROFILE_STATE.determinante = userData.determinante;
+      window.PROFILE_STATE.determinante = currentDet;
       window.PROFILE_STATE.nombrePromotor = userData.nombrePromotor;
-      // ✅ FIX: Guardar determinante también en inventoryStore
-      window.inventoryStore.determinante = userData.determinante;
+
+      // ✅ FIX: Asegurar inicialización de inventoryStore
+      window.inventoryStore = window.inventoryStore || {};
+      window.inventoryStore.determinante = currentDet;
+      window.INVENTORY_STATE = window.INVENTORY_STATE || {};
+      window.INVENTORY_STATE.determinante = currentDet;
+      window.INVENTORY_CORE = window.INVENTORY_CORE || {};
+      window.INVENTORY_CORE.determinante = currentDet;
+      window.ANALYTICS_STATE = window.ANALYTICS_STATE || {};
+      window.ANALYTICS_STATE.determinante = currentDet;
       
-      console.log('✅ [ARCHITECT] Determinante listo:', userData.determinante);
+      console.log('✅ [ARCHITECT] Determinante estandarizado:', currentDet);
       
       // Actualizar UI básica
       const userInfo = document.getElementById('user-info');
       if (userInfo) userInfo.textContent = `👤 ${userData.email}`;
-      
+
+      await ensureAuthenticatedAppModules();
+
       showApp();
 
       // 🚀 [FAST BOOT] Carga optimizada en paralelo
       console.log('⚡ [ARCHITECT] Iniciando carga paralela optimizada...');
-
-      // El loader registra los módulos autenticados de forma diferida.
-      // Debemos esperarlo antes de invocar loadInventory().
-      if (typeof window.loadAguilaAppModules === 'function') {
-        await window.loadAguilaAppModules();
-      }
-
+      
+      // Lanzar carga de inventario de inmediato (no esperar)
       if (typeof window.loadInventory === 'function') {
         window.loadInventory();
       }
@@ -373,31 +400,45 @@ function getErrorMessage(errorCode) {
   return errors[errorCode] || '❌ Error de autenticación: ' + errorCode;
 }
 
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    console.log('✅ Usuario autenticado:', user.email);
-    loadUserData(user.uid);
-  } else {
-    currentUser = null;
-    console.log('📝 Sin usuario autenticado');
+async function requireQaRuntimeReady() {
+  try {
+    if (window.FIREBASE_READY) await window.FIREBASE_READY;
+    if (window.QA_RUNTIME?.requireReady) await window.QA_RUNTIME.requireReady();
+  } catch (error) {
+    console.error('QA_EMULATOR_REQUIRED');
     showLoginScreen();
+    showToast('QA requiere Firebase Emulator activo. No se conectó a producción.', 'error');
+    throw error;
   }
-});
+}
+
+async function startAuthStateObserver() {
+  try {
+    await requireQaRuntimeReady();
+  } catch (_) {
+    return;
+  }
+
+  window.markAguilaBoot?.('T7_AUTH_LISTENER');
+  firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+      currentUser = user;
+      console.log('✅ Usuario autenticado:', user.email);
+      loadUserData(user.uid);
+    } else {
+      currentUser = null;
+      console.log('📝 Sin usuario autenticado');
+      showLoginScreen();
+    }
+  });
+}
+
+startAuthStateObserver();
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📋 Registrando eventos de autenticación');
 
-  const loginForm = document.getElementById('login-form');
-  loginForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleLogin();
-  });
-  loginForm?.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    if (!document.getElementById('btn-login')?.disabled) await handleLogin();
-  });
+  document.getElementById('btn-login')?.addEventListener('click', handleLogin);
 
   document.getElementById('register-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();

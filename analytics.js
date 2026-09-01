@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Ãguila Inventario Pro - MÃ³dulo: analytics.js
 // LÃ³gica de Analytics (con Top 10)
 // Copyright Â© 2025 JosÃ© A. G. Betancourt
@@ -17,7 +17,8 @@ window.ANALYTICS_STATE = {
         topMarcas: [],
         historico7Dias: {},
         dailyAveragePiecesPerProduct: [] // Nueva propiedad para el promedio por producto
-    }
+    },
+    ...(window.ANALYTICS_STATE || {})
 };
 
 function isRefillMovement(m) {
@@ -105,19 +106,13 @@ window.loadStats = async function () {
     console.log("ðŸ“Š [ARCHITECT] Verificando requisitos para carga de estadÃ­sticas...");
 
     // 1. ASIGNACIÃ“N EXPRESA Y SEGURA DEL DETERMINANTE (Fuente de Verdad: PROFILE_STATE)
-    const det = window.PROFILE_STATE?.determinante
-        || window.ANALYTICS_STATE?.determinante
-        || window.INVENTORY_CORE?.determinante
-        || window.INVENTORY_STATE?.determinante
-        || window.inventoryStore?.determinante;
+    const det = window.PROFILE_STATE?.determinante || window.ANALYTICS_STATE?.determinante;
 
     // 2. VALIDACIÃ“N ESTRICTA (Race Condition evitada)
     if (!det || det === "null" || det === "undefined") {
         console.warn('ðŸ›‘ [ARCHITECT] loadStats cancelada: Determinante no disponible (Evitando Permission Denied).');
         return; 
     }
-
-    window.ANALYTICS_STATE.determinante = det;
 
     const hoy = new Date();
     const hoyStr = getLocalDateString(hoy); 
@@ -453,9 +448,13 @@ window.initAnalytics = initAnalytics;
 // window.fetchAnalyticsData = fetchAnalyticsData; 
 
 // Exportador CSV v2 para supervisor (resumen + detalle redondeado)
-window.generateAndRenderTop10 = function exportSupervisorReportV2() {
+window.generateAndRenderTop10 = async function exportSupervisorReportV2() {
     try {
         showToast('Generando reporte de inventario...', 'info');
+        // Carga bajo demanda del motor de Excel (xlsx) solo al exportar.
+        if (window.ensureAguilaXLSX) {
+            await window.ensureAguilaXLSX();
+        }
         const productos = window.INVENTORY_STATE?.productos || [];
         const analytics = window.ANALYTICS_STATE?.resumen?.analyticsPerProduct || {};
         const movs = window.ANALYTICS_STATE?.movimientos || [];
@@ -481,18 +480,14 @@ window.generateAndRenderTop10 = function exportSupervisorReportV2() {
             if (p.ubicacion && !productosConsolidados[p.nombre].ubicaciones.includes(p.ubicacion)) productosConsolidados[p.nombre].ubicaciones.push(p.ubicacion);
         });
         const rows = Object.values(productosConsolidados).map((p) => {
-            // Plan B para nombres de campos (Soporte para versiones viejas y nuevas)
             const stats = analytics[p.codigo] || analytics[p.nombre] || { daily: 0, weekly: 0, monthly: 0 };
             const stockCajas = toInt(p.cajas);
             const stockPiezas = toInt(p.piezas);
             const ventaDiaria = toInt(stats.daily);
-
-            // Buscar rellenos de hoy con nombres de campos flexibles
-            const movsHoy = movs.filter((m) =>
-                (m.productoNombre === p.nombre || m.productoCodigo === p.codigo || m.codigo === p.codigo) &&
-                movementDateKey(m) === hoyStr &&
-                isRefillMovement(m)
-            );
+            const ventaSemanal = toInt(stats.weekly);
+            const ventaMensual = toInt(stats.monthly);
+            const diasInventario = stockPiezas <= 0 ? "AGOTADO" : (ventaDiaria > 0 ? toInt(stockPiezas / ventaDiaria) : "N/D");
+            const movsHoy = movs.filter((m) => m.productoNombre === p.nombre && movementDateKey(m) === hoyStr && isRefillMovement(m));
             const rellenoHoyCajas = toInt(movsHoy.reduce((acc, m) => acc + (parseFloat(m.cajasMovidas) || 0), 0));
             const rellenoHoyPiezas = toInt(movsHoy.reduce((acc, m) => acc + (parseInt(m.piezasMovidas, 10) || 0), 0));
             let estado = 'OK', prioridad = 'Baja', accion = 'Mantener';

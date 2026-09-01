@@ -529,18 +529,11 @@ function setupSearchBar() {
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-function initializeInventoryUISearch() {
-  // Este módulo se carga dinámicamente después de autenticarse. En ese
-  // momento DOMContentLoaded puede haber ocurrido ya, por lo que también
-  // inicializamos el buscador inmediatamente cuando el DOM está listo.
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupSearchBar, { once: true });
-  } else {
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
     setupSearchBar();
-  }
-}
-
-initializeInventoryUISearch();
+  }, 1000);
+});
 
 // ============================================================
 // EXPONER FUNCIONES PÚBLICAS

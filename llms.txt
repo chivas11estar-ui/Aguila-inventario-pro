@@ -1,0 +1,28 @@
+# Aguila Inventario Pro
+
+> PWA de inventario profesional para promotores de tienda, con captura por codigo de barras, multi-lote, Firebase, modo offline y herramientas de auditoria.
+
+## Sitio principal
+
+- Inicio: https://aguilainventario.netlify.app/
+- App: https://aguilainventario.netlify.app/index.html
+- Landing: https://aguilainventario.netlify.app/landing.html
+- Privacidad: https://aguilainventario.netlify.app/privacy.html
+- Manifest PWA: https://aguilainventario.netlify.app/manifest.json
+- Sitemap: https://aguilainventario.netlify.app/sitemap.xml
+- Robots: https://aguilainventario.netlify.app/robots.txt
+
+## Resumen para agentes
+
+Aguila Inventario Pro ayuda a promotores a registrar entradas, consultar inventario, rellenar anaquel desde bodega, mover lotes, auditar stock fisico y revisar datos operativos desde celular.
+
+La app publica muestra una pantalla de autenticacion porque el inventario y los datos de tienda estan protegidos por Firebase Authentication y determinante.
+
+## Temas principales
+
+- Inventario multi-tienda y multi-lote.
+- Escaneo de codigos de barras.
+- Relleno y auditoria de stock.
+- PWA instalable con soporte offline.
+- Analitica operativa para promotores.
+- Perfil, clima y herramientas de sistema.

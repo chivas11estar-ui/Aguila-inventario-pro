@@ -13,7 +13,6 @@ let currentAuditLoteId    = null;
 let isQuickAuditMode      = false;
 let quickAuditItems       = [];
 let availableAuditWarehouses = [];
-let auditSessionItems     = [];
 
 // Fuente única de verdad — sin onAuthStateChanged propio
 function getStoreId() {
@@ -24,12 +23,15 @@ function getStoreId() {
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-function initAuditEvents() {
+function initAuditBindings() {
+  if (window.__aguilaAuditBindingsReady) return;
+  window.__aguilaAuditBindingsReady = true;
+
   console.log('✓ [AUDIT V3] Inicializando módulo de Auditoría...');
 
   document.getElementById('save-warehouse-btn').onclick = saveBodega;
 
-  document.getElementById('audit-barcode').onkeydown = (e) => {
+  document.getElementById('audit-barcode').onkeypress = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); buscarProductoAudit(); }
   };
 
@@ -59,9 +61,9 @@ function initAuditEvents() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAuditEvents, { once: true });
+  document.addEventListener('DOMContentLoaded', initAuditBindings);
 } else {
-  initAuditEvents();
+  initAuditBindings();
 }
 
 function ensureManualWarehouseInput() {
@@ -105,8 +107,6 @@ function saveBodega() {
   }
 
   currentAuditWarehouse = val;
-  auditSessionItems = [];
-  renderAuditSession();
   display.innerHTML = `📍 Auditando: <strong>${currentAuditWarehouse}</strong>`;
   display.style.cssText = `
     background:#e0f2fe; color:#0369a1;
@@ -121,25 +121,6 @@ function saveBodega() {
 
   showToast(`📍 Bodega fijada: ${currentAuditWarehouse}`, 'success');
   setTimeout(() => document.getElementById('audit-barcode').focus(), 300);
-}
-
-function renderAuditSession() {
-  const productsCount = document.getElementById('audit-products-count');
-  const boxesCount = document.getElementById('audit-boxes-count');
-  const history = document.getElementById('audit-history');
-  const totalBoxes = auditSessionItems.reduce((sum, item) => sum + item.contado, 0);
-
-  if (productsCount) productsCount.textContent = String(auditSessionItems.length);
-  if (boxesCount) boxesCount.textContent = String(totalBoxes);
-  if (!history) return;
-
-  history.innerHTML = auditSessionItems.length
-    ? auditSessionItems.map(item => `
-        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
-          <strong>${item.producto}</strong><br>
-          <small>${item.codigo} · ${item.bodega} · ${item.contado} cajas · diferencia ${item.diferencia > 0 ? '+' : ''}${item.diferencia}</small>
-        </div>`).join('')
-    : '<p style="color:var(--muted);">Historial vacío</p>';
 }
 
 function hydrateAuditWarehouseOptions() {
@@ -365,8 +346,6 @@ async function registrarConteo() {
         ? '✅ Inventario exacto'
         : `⚠️ Diferencia: ${diferencia > 0 ? '+' : ''}${diferencia} cajas`;
       showToast(msg, diferencia === 0 ? 'success' : 'warning');
-      auditSessionItems.push({ producto: currentAuditProduct.nombre, codigo, bodega: currentAuditWarehouse, contado: cajasContadas, diferencia });
-      renderAuditSession();
 
     } else {
       // Producto en esta bodega no existía — crear lote nuevo
@@ -397,8 +376,6 @@ async function registrarConteo() {
         });
 
       showToast(`✅ Lote nuevo creado en ${currentAuditWarehouse}: ${cajasContadas} cajas`, 'success');
-      auditSessionItems.push({ producto: currentAuditProduct.nombre, codigo, bodega: currentAuditWarehouse, contado: cajasContadas, diferencia: cajasContadas });
-      renderAuditSession();
     }
 
     limpiarCamposAudit();
@@ -437,61 +414,10 @@ function startQuickAudit() {
   document.getElementById('btn-quick-audit-mode').classList.replace('secondary', 'warning');
 
   renderQuickAuditList();
-  ensureQuickAuditManualInput();
 
-  try {
-    const scannerResult = window.openScanner?.({
-      onScan: handleQuickAuditScan,
-      continuous: true
-    });
-    if (scannerResult?.catch) {
-      scannerResult.catch(() => {
-        showToast('📷 Cámara no disponible. Usa el código manual.', 'info');
-        document.getElementById('quick-audit-barcode')?.focus();
-      });
-    }
-  } catch (_) {
-    showToast('📷 Cámara no disponible. Usa el código manual.', 'info');
-    document.getElementById('quick-audit-barcode')?.focus();
-  }
-}
-
-function ensureQuickAuditManualInput() {
-  const container = document.getElementById('audit-quick-scan-container');
-  const list = document.getElementById('quick-audit-list');
-  if (!container || !list || document.getElementById('quick-audit-barcode')) return;
-
-  const manual = document.createElement('div');
-  manual.id = 'quick-audit-manual';
-  manual.className = 'form-group';
-  manual.innerHTML = `
-    <label for="quick-audit-barcode">Código manual (si no hay cámara)</label>
-    <div style="display:flex;gap:8px;">
-      <input id="quick-audit-barcode" type="text" inputmode="numeric"
-        placeholder="Escanea o escribe el código" autocomplete="off" />
-      <button id="btn-quick-audit-add" type="button" class="primary"
-        aria-label="Agregar código a auditoría rápida">Agregar</button>
-    </div>`;
-  container.insertBefore(manual, list);
-
-  const input = manual.querySelector('#quick-audit-barcode');
-  const addCode = async () => {
-    const barcode = String(input.value || '').trim();
-    if (barcode.length < 8) {
-      showToast('⚠️ Escribe un código válido', 'warning');
-      input.focus();
-      return;
-    }
-    input.value = '';
-    await handleQuickAuditScan(barcode);
-    input.focus();
-  };
-  manual.querySelector('#btn-quick-audit-add').addEventListener('click', addCode);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addCode();
-    }
+  window.openScanner({
+    onScan: handleQuickAuditScan,
+    continuous: true
   });
 }
 

@@ -11,7 +11,8 @@ window.INVENTORY_STATE = {
   searchTerm: '',
   determinante: null,
   isLoading: false,
-        isRenderingInventory: false
+        isRenderingInventory: false,
+  ...(window.INVENTORY_STATE || {})
 };
 
 const BRAND_EXPIRY_CONFIG = {
@@ -74,11 +75,7 @@ async function loadInventory() {
       }
       if (typeof window.cargarInventario === 'function') {
     window.INVENTORY_STATE.isRenderingInventory = true;
-    try {
-      return await window.cargarInventario();
-    } finally {
-      window.INVENTORY_STATE.isRenderingInventory = false;
-    }
+            return window.cargarInventario();
   }
 
   // Fallback: si inventory-core.js aún no cargó, intentar la ruta antigua

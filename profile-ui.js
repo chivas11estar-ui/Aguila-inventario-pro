@@ -96,53 +96,103 @@ function renderProfileHeader(userData, preferences) {
   `;
 }
 
+function getWeatherSceneMeta(weather) {
+  const now = new Date();
+  const hour = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const condition = String(weather?.condition || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  let phase = 'day';
+  let phaseLabel = 'Dia';
+  if (hour >= 5 && hour < 8) {
+    phase = 'dawn';
+    phaseLabel = 'Amanecer';
+  } else if (hour >= 18 && hour < 20) {
+    phase = 'sunset';
+    phaseLabel = 'Atardecer';
+  } else if (hour >= 20 || hour < 5) {
+    phase = 'night';
+    phaseLabel = 'Noche';
+  }
+
+  let motion = 'clear';
+  if (condition.includes('torment')) {
+    motion = 'storm';
+  } else if (condition.includes('lluv') || condition.includes('lloviz')) {
+    motion = 'rain';
+  } else if (condition.includes('niebla') || condition.includes('neblina') || condition.includes('bruma')) {
+    motion = 'mist';
+  } else if (condition.includes('nubl')) {
+    motion = 'cloudy';
+  }
+
+  return {
+    sceneClass: `weather-scene weather-scene--${phase} weather-scene--${motion}`,
+    phaseLabel,
+    timeLabel: `${String(hour).padStart(2, '0')}:${minutes}`
+  };
+}
+
+function renderWeatherSceneLayer() {
+  return `
+    <div class="weather-scene-bg" aria-hidden="true">
+      <span class="weather-sky-haze"></span>
+      <span class="weather-starfield weather-starfield-far"></span>
+      <span class="weather-starfield weather-starfield-near"></span>
+      <span class="weather-shooting-star"></span>
+      <span class="weather-orb weather-orb-main"></span>
+      <span class="weather-light-rays"></span>
+      <span class="weather-cloud weather-cloud-a"></span>
+      <span class="weather-cloud weather-cloud-b"></span>
+      <span class="weather-cloud weather-cloud-c"></span>
+      <span class="weather-rain weather-rain-a"></span>
+      <span class="weather-rain weather-rain-b"></span>
+      <span class="weather-horizon"></span>
+      <span class="weather-stars"></span>
+    </div>
+  `;
+}
 // ============================================================
 // RENDERIZAR TARJETA DE CLIMA
 // ============================================================
 function renderWeatherCard(weather) {
   const weatherCity = weather?.city || 'Ubicacion actual';
+  const scene = getWeatherSceneMeta(weather);
 
-  if (weather?.loading) {
+  if (!weather || weather.error) {
+    const statusIcon = weather?.error ? 'cloud_sync' : 'sync';
+    const statusTitle = weather?.error ? 'Clima en pausa' : 'Actualizando clima';
+    const statusText = weather?.error
+      ? 'Toca actualizar o permite ubicacion para mejorar el dato.'
+      : 'Tomando tu ubicacion y preparando el clima actual.';
     return `
-      <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+      <section class="weather-card weather-card-dynamic bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50 ${scene.sceneClass}">
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center gap-2">
             <span class="material-icons-round text-primary">cloud</span>
-            <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
-          </div>
-          <span class="material-icons-round animate-spin text-primary">refresh</span>
-        </div>
-        <div class="text-center py-6 text-slate-500 dark:text-slate-400">
-          <p>Obteniendo clima y ubicación…</p>
-          <p class="text-xs mt-1">${weatherCity}</p>
-        </div>
-      </section>
-    `;
-  }
-
-  if (!weather || weather.error) {
-    return `
-      <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center gap-2">
-            <span class="material-icons-round text-primary">cloud_off</span>
             <h3 class="font-bold text-slate-800 dark:text-white">Clima Actual</h3>
           </div>
           <button id="refresh-weather-btn" class="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary transition-transform active:scale-95">
             <span class="material-icons-round text-sm">refresh</span>
           </button>
         </div>
-        <div class="text-center py-6 text-slate-500 dark:text-slate-400">
-          <span class="material-icons-round weather-icon-animated text-5xl mb-2">cloud_off</span>
-          <p>No se pudo cargar el clima.</p>
-          <p class="text-xs mt-1">${weatherCity}</p>
+        ${renderWeatherSceneLayer()}
+        <div class="weather-scene-panel weather-scene-placeholder text-center py-6 text-slate-500 dark:text-slate-400">
+          <span class="material-icons-round weather-icon-animated text-6xl text-blue-400 mb-2">${statusIcon}</span>
+          <p class="weather-placeholder-title">${statusTitle}</p>
+          <p class="weather-placeholder-copy">${statusText}</p>
+          <p class="weather-source-line">${weather?.source || 'Open-Meteo'}${weather?.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
+          <p class="weather-time-chip">${scene.phaseLabel} · ${scene.timeLabel}</p>
         </div>
       </section>
     `;
   }
 
   return `
-    <section class="weather-card bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50">
+    <section class="weather-card weather-card-dynamic bg-white dark:bg-slate-800 rounded-3xl p-6 ios-shadow border border-slate-100 dark:border-slate-700/50 ${scene.sceneClass}">
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center gap-2">
           <span class="material-icons-round text-primary">cloud</span>
@@ -152,14 +202,17 @@ function renderWeatherCard(weather) {
           <span class="material-icons-round text-sm">refresh</span>
         </button>
       </div>
-      <div class="weather-panel-animated bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
+      ${renderWeatherSceneLayer()}
+      <div class="weather-panel-animated weather-scene-panel bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
         <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
         <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
         <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${weather.condition || 'Desconocido'}</p>
+        <p class="weather-source-line">${weather.source || 'Clima'}${weather.updatedAt ? ` · ${weather.updatedAt}` : ''}${weather.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
           <span class="material-icons-round text-[14px]">location_on</span>
           <span>${weatherCity}</span>
         </p>
+        <p class="weather-time-chip">${scene.phaseLabel} · ${scene.timeLabel}</p>
       </div>
       <div class="grid grid-cols-2 gap-4 mt-6">
         <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30">
@@ -253,7 +306,7 @@ function renderMotivationalPhrasesCard() {
 function renderProfileFooter() {
   return `
     <footer class="text-center py-4">
-      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v8.0</p>
+      <p class="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Águila Inventario Pro v7.6</p>
     </footer>
   `;
 }
@@ -340,7 +393,7 @@ function setupProfileEvents() {
 // ACTUALIZAR SOLO EL CLIMA (SIN RE-RENDERIZAR TODO EL PERFIL)
 // ============================================================
 function updateWeatherUI() {
-  const weatherContainer = document.querySelector('section.bg-white > div.bg-slate-50.dark\\:bg-slate-900\\/50'); // Selector más específico
+  const weatherContainer = document.querySelector('.weather-scene-panel') || document.querySelector('section.bg-white > div.bg-slate-50.dark\\:bg-slate-900\\/50');
   if (!weatherContainer) {
     console.warn('⚠️ Contenedor de clima no encontrado para actualizar la UI.');
     return;
@@ -348,12 +401,15 @@ function updateWeatherUI() {
   
   const { weather } = window.PROFILE_STATE;
   const weatherCity = weather?.city || 'Ubicacion actual';
+  const scene = getWeatherSceneMeta(weather);
 
   if (!weather || weather.error) {
     weatherContainer.innerHTML = `
-      <span class="material-icons-round weather-icon-animated text-6xl text-slate-400 mb-2">cloud_off</span>
-      <p class="text-lg text-slate-500 dark:text-slate-400">Clima no disponible</p>
-      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">${weatherCity}</p>
+      <span class="material-icons-round weather-icon-animated text-6xl text-blue-400 mb-2">${weather?.error ? 'cloud_sync' : 'sync'}</span>
+      <p class="weather-placeholder-title">${weather?.error ? 'Clima en pausa' : 'Actualizando clima'}</p>
+      <p class="weather-placeholder-copy">${weather?.error ? 'Toca actualizar o permite ubicacion para mejorar el dato.' : 'Tomando tu ubicacion y preparando el clima actual.'}</p>
+      <p class="weather-source-line">${weather?.source || 'Open-Meteo'}${weather?.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
+      <p class="weather-time-chip">${scene.phaseLabel} · ${scene.timeLabel}</p>
     `;
     return;
   }
@@ -362,6 +418,7 @@ function updateWeatherUI() {
     <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
     <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${weather.condition || 'Desconocido'}</p>
+        <p class="weather-source-line">${weather.source || 'Clima'}${weather.updatedAt ? ` · ${weather.updatedAt}` : ''}${weather.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
       <span class="material-icons-round text-[14px]">location_on</span>
       <span>${weatherCity}</span>
@@ -408,4 +465,3 @@ window.updateWeatherUI = updateWeatherUI;
 window.updateActivityUI = updateActivityUI; // Mantenido por compatibilidad, pero su funcionalidad es limitada con el nuevo diseño
 
 console.log('✅ profile-ui.js (Fase 2.2 - Render UI) cargado correctamente con nuevo diseño');
-

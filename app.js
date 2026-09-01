@@ -1,61 +1,174 @@
 /* ============================================================
-   Águila Inventario Pro - app.js
-   Navegación Fluida con Soporte de Botón Atrás
+   Aguila Inventario Pro - app.js
+   Logica principal y navegacion eficiente
    ============================================================ */
 
 let isOnline = navigator.onLine;
+let lastAnalyticsLoad = 0;
+window.APP_STATE = window.APP_STATE || { activeTab: 'inventory' };
+
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateOfflineStatus();
+  showToast('Conexion establecida', 'success');
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateOfflineStatus();
+  showToast('Modo offline activado', 'warning');
+});
+
+function updateOfflineStatus() {
+  const btn = document.getElementById('btn-offline-status');
+  if (!btn) return;
+
+  const icon = btn.querySelector('.material-icons-round');
+  if (icon) {
+    icon.textContent = isOnline ? 'sensors' : 'sensors_off';
+  } else {
+    btn.textContent = isOnline ? 'En linea' : 'Offline';
+  }
+  btn.title = isOnline ? 'En linea' : 'Sin conexion (Modo Offline)';
+}
 
 function switchTab(tabName, updateHash = true) {
   if (!tabName) return;
+
   const selectedTab = document.getElementById(`tab-${tabName}`);
   if (!selectedTab) return;
 
-  if (updateHash) window.location.hash = tabName;
+  window.APP_STATE = window.APP_STATE || {};
+  window.APP_STATE.activeTab = tabName;
 
-  document.querySelectorAll('.tab-content').forEach(tab => {
+  const currentTab = document.querySelector('.tab-content.active');
+  if (currentTab?.id === selectedTab.id && !selectedTab.classList.contains('hidden')) return;
+
+  // Si updateHash es true, actualizamos la URL para que el botón "Atrás" de Android funcione
+  if (updateHash) {
+    window.location.hash = tabName;
+  }
+
+  document.querySelectorAll('.tab-content').forEach((tab) => {
     tab.classList.remove('active');
     tab.classList.add('hidden');
   });
 
   selectedTab.classList.remove('hidden');
   selectedTab.classList.add('active');
+  selectedTab.scrollTop = 0;
+  window.scrollTo(0, 0);
 
-  document.querySelectorAll('[data-tab]').forEach(item => {
+  document.querySelectorAll('[data-tab]').forEach((item) => {
     item.classList.toggle('active', item.getAttribute('data-tab') === tabName);
   });
 
-  if (tabName === 'analytics' && typeof window.loadStats === 'function') {
-    Promise.resolve(window.loadStats())
-      .then(() => window.renderAnalyticsUI?.())
-      .catch(error => console.error('Error cargando analíticas:', error));
-  }
+  runTabLoader(tabName);
 
-  if (typeof runTabLoader === 'function') runTabLoader(tabName);
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.remove('active');
 }
 
+// Escuchar cambios en el hash (Botón atrás de Android)
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
   if (hash) switchTab(hash, false);
 });
 
-function initAppNavigation() {
-  const initialHash = window.location.hash.replace('#', '');
-  if (initialHash) switchTab(initialHash, false);
+function runTabLoader(tabName) {
+  if (tabName === 'analytics') {
+    const now = Date.now();
+    if (typeof window.loadStats === 'function' && now - lastAnalyticsLoad > 60000) {
+      lastAnalyticsLoad = now;
+      window.loadStats();
+    }
+    return;
+  }
 
-  document.querySelectorAll('[data-tab]').forEach(el => {
-    if (el.dataset.aguilaNavigationBound === 'true') return;
-    el.addEventListener('click', (e) => {
-      e.preventDefault();
-      switchTab(el.getAttribute('data-tab'));
-    });
-    el.dataset.aguilaNavigationBound = 'true';
-  });
-}
+  if ((tabName === 'inventory' || tabName === 'out-of-stock') && typeof window.loadInventory === 'function') {
+    window.loadInventory();
+    return;
+  }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAppNavigation, { once: true });
-} else {
-  initAppNavigation();
+  if (tabName === 'audit' && typeof window.loadAuditUI === 'function') {
+    window.loadAuditUI();
+    return;
+  }
+
+  if (tabName === 'system') {
+    if (typeof window.loadUserProfile === 'function') {
+      window.loadUserProfile();
+      return;
+    }
+
+    setTimeout(() => {
+      if (typeof window.loadUserProfile === 'function') window.loadUserProfile();
+    }, 500);
+  }
 }
 
 window.switchTab = switchTab;
+
+document.addEventListener('click', (e) => {
+  const navItem = e.target.closest('[data-tab]');
+  if (!navItem) return;
+
+  e.preventDefault();
+  switchTab(navItem.getAttribute('data-tab'));
+});
+
+document.getElementById('btn-menu')?.addEventListener('click', () => {
+  document.getElementById('sidebar')?.classList.toggle('active');
+});
+
+document.getElementById('btn-scanner')?.addEventListener('click', () => {
+  if (typeof openScanner === 'function') {
+    openScanner((barcode) => {
+      showToast(`Codigo detectado: ${barcode}`, 'success');
+    });
+  } else {
+    showToast('El escaner no esta disponible', 'error');
+  }
+});
+
+document.getElementById('close-scanner')?.addEventListener('click', () => {
+  if (typeof closeScanner === 'function') closeScanner();
+});
+
+document.getElementById('btn-add-product')?.addEventListener('click', () => {
+  showToast('Funcion de agregar producto en desarrollo', 'info');
+});
+
+document.getElementById('btn-change-password')?.addEventListener('click', () => {
+  showToast('Funcion de cambiar contrasena en desarrollo', 'info');
+});
+
+function initAppDomState() {
+  updateOfflineStatus();
+
+  // Cargar pestaña inicial basada en el hash
+  const initialHash = window.location.hash.replace('#', '');
+  if (initialHash) {
+    switchTab(initialHash, false);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAppDomState);
+} else {
+  initAppDomState();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'h') {
+    e.preventDefault();
+    switchTab('inventory');
+  }
+
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('scanner-modal');
+    if (modal && !modal.classList.contains('hidden') && typeof closeScanner === 'function') {
+      closeScanner();
+    }
+  }
+});

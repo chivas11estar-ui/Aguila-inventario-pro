@@ -4,22 +4,22 @@
   "name": "Aguila Inventario Pro",
   "short_name": "Aguila Pro",
   "description": "Sistema de inventario profesional con modo offline para promotores.",
-  "id": "/?source=pwa",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "id": "./?source=pwa",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#004aad",
   "theme_color": "#004aad",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -28,31 +28,10 @@
   "categories": ["business", "productivity", "utilities"],
   "shortcuts": [
     {
-      "name": "Agregar Producto",
-      "short_name": "Agregar",
-      "description": "Registrar un nuevo producto escaneado",
-      "url": "/?action=add",
-      "icons": [
-        {
-          "src": "/icon-192x192.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
       "name": "Ver Inventario",
       "short_name": "Inventario",
-      "description": "Ver inventario por tienda y caducidad",
-      "url": "/?action=inventory",
-      "icons": [
-        {
-          "src": "/icon-192x192.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "url": "./index.html?action=inventory",
+      "icons": [{ "src": "icon-192x192.png", "sizes": "96x96" }]
     }
-  ],
-  "display_override": ["standalone"]
+  ]
 }
