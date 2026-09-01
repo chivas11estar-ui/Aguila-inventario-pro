@@ -616,9 +616,10 @@ function initInventoryCoreBindings() {
   const form = document.getElementById('add-product-form');
   if (form) form.addEventListener('submit', handleAddProductV2);
 
-  firebase.auth().onAuthStateChanged((user) => {
-    if (user) cargarInventario();
-  });
+  // NOTA: No se registra un onAuthStateChanged propio aquí.
+  // auth.js (loadUserData) es la fuente única de arranque y llama a
+  // loadInventory() tras cargar los módulos. Un segundo listener aquí
+  // provocaba una doble lectura de Firebase y listeners duplicados.
 }
 
 if (document.readyState === 'loading') {

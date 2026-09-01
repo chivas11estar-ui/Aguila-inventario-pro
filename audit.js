@@ -14,6 +14,18 @@ let isQuickAuditMode      = false;
 let quickAuditItems       = [];
 let availableAuditWarehouses = [];
 
+// ============================================================
+// FUENTE DE VERDAD DEL ESCAPE HTML (evita XSS en datos del usuario)
+// ============================================================
+function escapeAuditHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Fuente única de verdad — sin onAuthStateChanged propio
 function getStoreId() {
   return window.PROFILE_STATE?.determinante
@@ -45,9 +57,15 @@ function initAuditBindings() {
   document.getElementById('btn-save-quick-audit').onclick  = saveQuickAudit;
   document.getElementById('btn-cancel-quick-audit').onclick = endQuickAudit;
 
-  // Cargar catálogo de bodegas al abrir y refrescarlo periódicamente.
+  // Cargar catálogo de bodegas al abrir y refrescarlo solo cuando la
+  // pestaña de auditoría está activa (evita trabajo en background).
   hydrateAuditWarehouseOptions();
-  setInterval(hydrateAuditWarehouseOptions, 6000);
+  window.__auditHydrateInterval = setInterval(() => {
+    const auditTab = document.getElementById('tab-audit');
+    if (auditTab && auditTab.classList.contains('active')) {
+      hydrateAuditWarehouseOptions();
+    }
+  }, 10000);
 
   document.addEventListener('click', (e) => {
     const tabBtn = e.target.closest('[data-tab="audit"]');
@@ -107,7 +125,7 @@ function saveBodega() {
   }
 
   currentAuditWarehouse = val;
-  display.innerHTML = `📍 Auditando: <strong>${currentAuditWarehouse}</strong>`;
+  display.innerHTML = `📍 Auditando: <strong>${escapeAuditHtml(currentAuditWarehouse)}</strong>`;
   display.style.cssText = `
     background:#e0f2fe; color:#0369a1;
     padding:15px; border-radius:10px;
@@ -149,9 +167,15 @@ function hydrateAuditWarehouseOptions() {
 
   availableAuditWarehouses = Array.from(seen).sort((a, b) => a.localeCompare(b, 'es-MX'));
 
+  // Evitar reconstruir el <select> si las opciones no cambiaron:
+  // preserva la selección actual del usuario y reduce trabajo de DOM.
+  const newOptionsKey = availableAuditWarehouses.join('|');
+  if (newOptionsKey === window.__auditLastOptionsKey) return;
+  window.__auditLastOptionsKey = newOptionsKey;
+
   const selectedBefore = select.value;
   const options = ['<option value="">Selecciona una bodega...</option>']
-    .concat(availableAuditWarehouses.map(b => `<option value="${b}">${b}</option>`));
+    .concat(availableAuditWarehouses.map(b => `<option value="${escapeAuditHtml(b)}">${escapeAuditHtml(b)}</option>`));
   select.innerHTML = options.join('');
 
   if (selectedBefore && availableAuditWarehouses.includes(selectedBefore)) {
@@ -237,12 +261,14 @@ async function buscarProductoAudit() {
 function renderAuditStockInfo(lote) {
   const info = document.getElementById('audit-stock-info');
   info.style.display = 'block';
+  const bodega = escapeAuditHtml(lote.bodega);
+  const fecha = escapeAuditHtml(lote.fechaCaducidad);
   info.innerHTML = `
     <div style="padding:12px;background:#d1fae5;border-left:4px solid #10b981;border-radius:8px;">
-      <strong style="color:#065f46;">📦 Stock en sistema: ${lote.stock} cajas</strong><br>
+      <strong style="color:#065f46;">📦 Stock en sistema: ${escapeAuditHtml(lote.stock)} cajas</strong><br>
       <span style="font-size:13px;color:#047857;">
-        📍 ${lote.bodega}
-        ${lote.fechaCaducidad ? ` · 📅 Vence: ${lote.fechaCaducidad}` : ''}
+        📍 ${bodega}
+        ${fecha ? ` · 📅 Vence: ${fecha}` : ''}
       </span>
     </div>`;
 }
@@ -255,35 +281,50 @@ function renderAuditLoteSelector(lotes) {
   info.style.display = 'block';
   info.innerHTML = `
     <div style="padding:12px;background:#e0f2fe;border-left:4px solid #0284c7;border-radius:8px;">
-      <strong style="color:#0c4a6e;">📦 Hay ${lotes.length} fechas en "${currentAuditWarehouse}":</strong>
+      <strong style="color:#0c4a6e;">📦 Hay ${escapeAuditHtml(lotes.length)} fechas en "${escapeAuditHtml(currentAuditWarehouse)}":</strong>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
         ${lotes.map(l => `
           <div
-            onclick="seleccionarLoteAudit('${l.loteId}', ${l.stock}, '${l.bodega}', '${l.fechaCaducidad}')"
-            id="audit-lote-${l.loteId}"
+            class="audit-lote-btn"
+            data-lote-id="${escapeAuditHtml(l.loteId)}"
+            data-stock="${escapeAuditHtml(l.stock)}"
+            data-bodega="${escapeAuditHtml(l.bodega)}"
+            data-fecha="${escapeAuditHtml(l.fechaCaducidad)}"
             style="
               padding:10px;border-radius:8px;cursor:pointer;
               border:2px solid #bae6fd;background:#f0f9ff;
             "
           >
             <div style="font-weight:600;color:#0369a1;">
-              📅 Vence: ${l.fechaCaducidad || 'Sin fecha'}
+              📅 Vence: ${escapeAuditHtml(l.fechaCaducidad) || 'Sin fecha'}
             </div>
             <div style="font-size:12px;color:#0284c7;">
-              ${l.stock} cajas en sistema
+              ${escapeAuditHtml(l.stock)} cajas en sistema
             </div>
           </div>
         `).join('')}
       </div>
     </div>`;
+
+  // Delegación de eventos (evita inline onclick con datos sin escapar).
+  info.querySelectorAll('.audit-lote-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.seleccionarLoteAudit(
+        btn.dataset.loteId,
+        parseFloat(btn.dataset.stock) || 0,
+        btn.dataset.bodega,
+        btn.dataset.fecha
+      );
+    });
+  });
 }
 
 window.seleccionarLoteAudit = function(loteId, stock, bodega, fecha) {
   currentAuditLoteId = loteId;
 
-  document.querySelectorAll('[id^="audit-lote-"]').forEach(el => {
-    el.style.border    = el.id === `audit-lote-${loteId}` ? '2px solid #2563eb' : '2px solid #bae6fd';
-    el.style.background = el.id === `audit-lote-${loteId}` ? '#eff6ff' : '#f0f9ff';
+  document.querySelectorAll('.audit-lote-btn').forEach(el => {
+    el.style.border    = el.dataset.loteId === loteId ? '2px solid #2563eb' : '2px solid #bae6fd';
+    el.style.background = el.dataset.loteId === loteId ? '#eff6ff' : '#f0f9ff';
   });
 
   renderAuditStockInfo({ loteId, stock, bodega, fechaCaducidad: fecha });
@@ -478,7 +519,7 @@ function renderQuickAuditList() {
   if (quickAuditItems.length === 0) {
     container.innerHTML = `
       <p style="text-align:center;color:#9ca3af;padding:20px;">
-        Escanea productos en <strong>${currentAuditWarehouse}</strong> para comenzar...
+        Escanea productos en <strong>${escapeAuditHtml(currentAuditWarehouse)}</strong> para comenzar...
       </p>`;
     return;
   }
@@ -490,6 +531,10 @@ function renderQuickAuditList() {
                      : diferencia > 0  ? `+${diferencia} sobrante`
                      : `${diferencia} faltante`;
 
+    const nombre = escapeAuditHtml(item.nombre);
+    const codigo = escapeAuditHtml(item.codigoBarras);
+    const stockSistema = escapeAuditHtml(item.stockSistema);
+
     return `
       <div style="
         display:flex;justify-content:space-between;align-items:center;
@@ -497,22 +542,28 @@ function renderQuickAuditList() {
         background:${diferencia !== 0 ? 'rgba(245,158,11,0.05)' : 'white'};
       ">
         <div style="flex:1;">
-          <strong style="color:#1f2937;">${item.nombre}</strong>
-          <small style="color:#6b7280;display:block;">${item.codigoBarras}</small>
-          <small style="color:#9ca3af;">Sistema: ${item.stockSistema} cajas</small>
+          <strong style="color:#1f2937;">${nombre}</strong>
+          <small style="color:#6b7280;display:block;">${codigo}</small>
+          <small style="color:#9ca3af;">Sistema: ${stockSistema} cajas</small>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
           <span style="font-size:11px;color:${diffColor};font-weight:600;">${diffText}</span>
-          <button onclick="updateQuickAuditItemQuantity(${index}, -1)"
+          <button data-audit-qty="-1" data-index="${index}"
             style="background:none;border:none;font-size:20px;color:#ef4444;cursor:pointer;padding:4px;">−</button>
           <span style="font-size:1.2em;font-weight:bold;min-width:30px;text-align:center;">
             ${item.quantity}
           </span>
-          <button onclick="updateQuickAuditItemQuantity(${index}, 1)"
+          <button data-audit-qty="1" data-index="${index}"
             style="background:none;border:none;font-size:20px;color:#22c55e;cursor:pointer;padding:4px;">+</button>
         </div>
       </div>`;
   }).join('');
+
+  container.querySelectorAll('button[data-audit-qty]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.updateQuickAuditItemQuantity(parseInt(btn.dataset.index, 10), parseInt(btn.dataset.auditQty, 10));
+    });
+  });
 }
 
 function updateQuickAuditItemQuantity(index, change) {

@@ -136,7 +136,7 @@
 (function setupQuietProductionConsole() {
     if (window.__aguilaQuietProductionConsole) return;
     window.__aguilaQuietProductionConsole = true;
-    window.AGUILA_DEBUG = true; // ACTIVADO PARA SOLUCIONAR TU ERROR
+    window.AGUILA_DEBUG = false; // Producción: logs reducidos. Activar a true solo para depurar.
 
     const originalLog = console.log;
     const originalInfo = console.info;

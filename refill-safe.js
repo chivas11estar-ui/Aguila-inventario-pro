@@ -117,6 +117,15 @@ window.searchProductForRefillSafe = async function(barcode) {
   } catch (e) { showToast('❌ Error de red', 'error'); }
 };
 
+function escaparHtmlSeguro(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderLoteSelector(lotes) {
   const infoDiv = document.getElementById('refill-product-info');
   if (!infoDiv) return;
@@ -124,21 +133,32 @@ function renderLoteSelector(lotes) {
 
   const validLotes = refillMode === 'entry' ? lotes : lotes.filter(l => l.stock > 0);
   let html = `<div style="padding:10px; background:rgba(59,130,246,0.1); border-radius:12px; margin-bottom:15px;">
-                <h4 style="margin:0;">📦 Stock Total: ${refillCurrentProduct.stockTotal} cajas</h4>
+                <h4 style="margin:0;">📦 Stock Total: ${escaparHtmlSeguro(refillCurrentProduct.stockTotal)} cajas</h4>
               </div>`;
 
   if (validLotes.length > 0) {
     html += `<p style="font-size:11px; opacity:0.7;">${refillMode === 'entry' ? 'Selecciona destino:' : 'Selecciona bodega o deja vacío para "Auto-Relleno":'}</p>
              <div style="display:grid; gap:8px;">`;
     validLotes.forEach(l => {
-      html += `<div onclick="seleccionarLote('${l.loteId}', '${l.bodega}')" id="lote-btn-${l.loteId}"
+      const loteIdSafe = escaparHtmlSeguro(l.loteId);
+      const bodegaSafe = escaparHtmlSeguro(l.bodega);
+      const bodegaAttrSafe = escaparHtmlSeguro(l.bodega);
+      html += `<div data-lote-id="${loteIdSafe}" data-bodega="${bodegaAttrSafe}" class="aguila-lote-btn"
                 style="padding:12px; border-radius:10px; border:2px solid var(--border); cursor:pointer; display:flex; justify-content:space-between;">
-                <strong>📍 ${l.bodega}</strong> <span>${l.stock} cajas</span>
+                <strong>📍 ${bodegaSafe}</strong> <span>${escaparHtmlSeguro(l.stock)} cajas</span>
                </div>`;
     });
     html += `</div>`;
   }
   infoDiv.innerHTML = html;
+
+  // Delegación de eventos (evita inline onclick con datos sin escapar).
+  infoDiv.querySelectorAll('.aguila-lote-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.seleccionarLote(btn.dataset.loteId, btn.dataset.bodega);
+    });
+  });
+
   refillCurrentLoteId = null;
   if (refillMode === 'entry' && validLotes.length === 1) {
     refillCurrentLoteId = validLotes[0].loteId;
@@ -148,8 +168,8 @@ function renderLoteSelector(lotes) {
 
 window.seleccionarLote = function(id, bodega) {
   refillCurrentLoteId = id;
-  document.querySelectorAll('[id^="lote-btn-"]').forEach(el => {
-    el.style.borderColor = el.id === 'lote-btn-' + id ? 'var(--primary)' : 'var(--border)';
+  document.querySelectorAll('.aguila-lote-btn').forEach(el => {
+    el.style.borderColor = el.dataset.loteId === id ? 'var(--primary)' : 'var(--border)';
   });
   document.getElementById('refill-warehouse').value = bodega;
 };

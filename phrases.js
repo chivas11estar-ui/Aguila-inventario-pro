@@ -8,6 +8,16 @@ let userMotivationalPhrases = [];
 let userPhrasesRef = null;
 let currentUserName = 'Campeón'; // Valor por defecto
 
+// Escape HTML para evitar XSS al renderizar frases guardadas por el usuario.
+function escapePhraseHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ============================================================
 // INICIALIZACIÓN DEL MÓDULO
 // ============================================================
@@ -100,10 +110,10 @@ function renderPhrasesList() {
 
   listContainer.innerHTML = userMotivationalPhrases.map(phrase => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f3f4f6;">
-      <span style="color: #1f2937; font-style: italic;">“${phrase.text}”</span>
+      <span style="color: #1f2937; font-style: italic;">“${escapePhraseHtml(phrase.text)}”</span>
       ${phrase.id !== 'default' ? `
-      <button 
-        onclick="deleteMotivationalPhrase('${phrase.id}')" 
+      <button
+        data-delete-phrase="${escapePhraseHtml(phrase.id)}"
         class="btn-icon error" 
         style="font-size: 16px; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;"
         title="Eliminar frase"
@@ -113,6 +123,12 @@ function renderPhrasesList() {
       ` : ''}
     </div>
   `).join('');
+
+  listContainer.querySelectorAll('button[data-delete-phrase]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.deleteMotivationalPhrase(btn.dataset.deletePhrase);
+    });
+  });
 }
 
 

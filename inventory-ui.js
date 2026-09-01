@@ -161,6 +161,9 @@ function renderProductCard(product, targetId) {
   const moveAction = bodegas.length === 1 && firstBodega?.id
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
+  // Acción de resurtir: usa JSON.stringify (productCodeArg) para evitar
+  // inyección de código vía el código de barras del producto.
+  const resurtirAction = `window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = ${productCodeArg}; window.searchProductForRefillSafe(${productCodeArg}); window.setRefillModeSafe('entry'); }, 100);`;
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -283,7 +286,7 @@ function renderProductCard(product, targetId) {
           
           ${isOutOfStock ? `
             <button 
-              onclick="window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = '${product.codigoBarras}'; window.searchProductForRefillSafe('${product.codigoBarras}'); window.setRefillModeSafe('entry'); }, 100);"
+              onclick='${resurtirAction}'
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0; background: var(--success);"
             >
