@@ -79,7 +79,11 @@ body {
   color: var(--text);
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
-  min-height: 100vh;
+  /* Layout de app de pantalla completa: el body NO debe crecer ni scrollear.
+     Todo el scroll vertical vive en .tab-content (overflow-y:auto),
+     evitando doble barra de scroll y el "salto" al hacer scroll en móvil. */
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ============================================

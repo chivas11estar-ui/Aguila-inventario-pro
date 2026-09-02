@@ -125,7 +125,8 @@
 
         body {
           margin: 0;
-          min-height: 100vh;
+          height: 100vh;
+          overflow: hidden;
           background: var(--bg);
           color: var(--text);
           font-family: Manrope, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -182,10 +183,16 @@
 
         #auth-setup {
           width: min(450px, calc(100% - 32px));
+          /* Pantalla de login con scroll propio: con body en overflow:hidden,
+             permitimos desplazarse aquí para no cortar el formulario en móviles. */
+          margin: 0 auto !important;
+          overflow-y: auto;
+          max-height: 100vh;
+          padding: var(--spacing-xl) 16px !important;
         }
 
         #app-container {
-          min-height: 100vh;
+          height: 100vh;
         }
 
         /* Estilos base para componentes que necesitan consistencia */
@@ -333,7 +340,7 @@
     <!-- ============================================================
          PANTALLA AUTH
          ============================================================ -->
-    <section id="auth-setup" class="card" style="max-width:450px; margin: 60px auto; padding: var(--spacing-xl); border: none;">
+    <section id="auth-setup" class="card" style="max-width:450px; border:none;">
       <div style="text-align:center; margin-bottom: var(--spacing-xl);">
         <span style="font-size: 64px; margin-bottom: 16px; display: block;">🦅</span>
         <h2 style="color: var(--primary); font-weight: 800; letter-spacing: -0.04em; font-size: 2rem;">Águila Pro</h2>
