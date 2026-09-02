@@ -12,15 +12,22 @@
     const QUEUE_KEY = 'aguila_telemetry_queue';
     const MAX_QUEUE = 25;
 
+    // Interruptor para silenciar la telemetria si el Bridge no esta disponible.
+    // Poner en false para evitar cualquier fetch a un bridge caido (evita
+    // ERR_CONNECTION_TIMEOUT en la consola). Por defecto activo, pero el fetch
+    // usa un timeout corto y aborta silenciosamente si el bridge no responde.
+    const TELEMETRY_ENABLED = window.AGUILA_TELEMETRY_ENABLED !== false;
+    const FETCH_TIMEOUT_MS = 3000;
+
     window.AGUILA_TELEMETRY_STATUS = {
-        active: true,
+        active: TELEMETRY_ENABLED,
         endpoint: BRIDGE_ENDPOINT,
         lastSentAt: null,
         lastError: null,
         queued: 0
     };
 
-    console.log('[TELEMETRY] Agente de escucha activo');
+    // console.log('[TELEMETRY] Agente de escucha activo');
 
     function getDeterminante() {
         return window.PROFILE_STATE?.determinante ||
@@ -50,20 +57,41 @@
     }
 
     async function sendPayload(payload) {
-        const response = await fetch(BRIDGE_ENDPOINT, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        if (!TELEMETRY_ENABLED) return null;
 
-        if (!response.ok) {
-            throw new Error(`Bridge HTTP ${response.status}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+        try {
+            const response = await fetch(BRIDGE_ENDPOINT, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`Bridge HTTP ${response.status}`);
+            }
+
+            window.AGUILA_TELEMETRY_STATUS.lastSentAt = new Date().toISOString();
+            window.AGUILA_TELEMETRY_STATUS.lastError = null;
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            // Fallo silencioso: si el bridge no responde, guardamos en cola
+            // sin generar errores de red visibles en la consola.
+            if (error && error.name === 'AbortError') {
+                const abortErr = new Error(`Bridge timeout ${FETCH_TIMEOUT_MS}ms`);
+                abortErr.silent = true;
+                throw abortErr;
+            }
+            error.silent = true;
+            throw error;
         }
-
-        window.AGUILA_TELEMETRY_STATUS.lastSentAt = new Date().toISOString();
-        window.AGUILA_TELEMETRY_STATUS.lastError = null;
-        return response;
     }
 
     async function flushQueue() {
@@ -83,6 +111,8 @@
     }
 
     async function reportError(errorData) {
+        if (!TELEMETRY_ENABLED) return;
+
         const payload = {
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
@@ -97,11 +127,12 @@
         try {
             await sendPayload(payload);
             flushQueue();
-            console.log('[TELEMETRY] Error reportado al Bridge');
+            // console.log('[TELEMETRY] Error reportado al Bridge');
         } catch (error) {
             queuePayload(payload);
             window.AGUILA_TELEMETRY_STATUS.lastError = error.message;
-            console.warn('[TELEMETRY] Bridge no disponible; error guardado en cola local:', error.message);
+            // Silenciado para evitar spam en consola si el bridge no está disponible
+            // console.warn('[TELEMETRY] Bridge no disponible; error guardado en cola local:', error.message);
         }
     }
 
@@ -142,5 +173,7 @@
         };
     });
 
-    flushQueue();
+    if (TELEMETRY_ENABLED) {
+        flushQueue();
+    }
 })();
