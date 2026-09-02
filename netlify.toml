@@ -27,7 +27,8 @@
     X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
 
-# JavaScript - Sin caché para actualizaciones inmediatas
+# JavaScript - SIN cache: el navegador siempre revalida y recibe la version
+# mas reciente tras cada deploy (evita servir codigo viejo / Ctrl+F5 manual).
 [[headers]]
   for = "/*.js"
   [headers.values]
@@ -59,7 +60,8 @@
     Content-Type = "image/png"
     Cache-Control = "public, max-age=31536000, immutable"
 
-# CSS - Sin caché
+# CSS - SIN cache: el navegador siempre revalida y recibe la version
+# mas reciente tras cada deploy (evita servir estilos viejos).
 [[headers]]
   for = "/*.css"
   [headers.values]
@@ -84,6 +86,13 @@
   for = "/sitemap.xml"
   [headers.values]
     Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+# llms.txt - guia para agentes IA
+[[headers]]
+  for = "/llms.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
     Cache-Control = "public, max-age=3600"
 
 # ============================================================
