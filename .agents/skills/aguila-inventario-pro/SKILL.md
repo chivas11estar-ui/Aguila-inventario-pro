@@ -1,11 +1,19 @@
 ---
 name: aguila-inventario-pro
-description: Mantener, diagnosticar y modificar Águila Inventario Pro, una PWA de inventario compartido por determinante para promotores de campo. Usar al investigar errores de producción, Firebase, PWA/offline, escáner, entrada, relleno, auditoría, búsqueda, perfiles, bridge de telemetría o reparaciones sugeridas por Gemini.
+description: Mantener, diagnosticar y modificar Águila Inventario Pro, una PWA de inventario compartido por determinante para promotores de campo. Usar al investigar errores de producción, Firebase, PWA/offline, escáner, entrada, relleno, auditoría, búsqueda, perfiles, bridge de telemetría o reparaciones sugeridas por IA.
 ---
 
 # Águila Inventario Pro
 
 Trabajar como guardián técnico de una PWA de inventario para promotores que operan con prisa en tienda. Priorizar integridad de stock, claridad móvil y reversibilidad.
+
+## Estado real del proyecto (verificado 2026-09)
+
+- Repositorio GitHub: `chivas11estar-ui/Aguila-inventario-pro` (rama `main`).
+- Deploy: Netlify (`aguilainventario.netlify.app`) vinculado al repo; el push a `main` dispara el deploy automáticamente.
+- Motor de inventario: `inventory-core.js` **V3 Multi-Lote** (transacciones atómicas, catálogo compartido `catalogoProductos`, validación de datos). Es la versión activa y más robusta; no hay que "subirlo a V5" — la nomenclatura de versión en el encabezado es inconsistente pero el contenido correcto es este.
+- Service worker: caché `aguila-pro-v9.0`, estrategia network-first. JS/CSS se sirven con `no-cache` y el SW se registra con `updateViaCache:'none'` + `reg.update()` para que la app siempre tome la versión nueva tras un deploy (no se requiere Ctrl+F5).
+- Bridge de telemetría: `aguila-bridge/` (server.js + repair-agent.js) corre en una VM; los interruptores de seguridad (`DRY_RUN`, `ENABLE_AUTO_REPAIR`, `ENABLE_GIT_PUSH`) deben permanecer apagados durante diagnóstico.
 
 ## Antes de cambiar algo
 
@@ -24,33 +32,26 @@ Trabajar como guardián técnico de una PWA de inventario para promotores que op
 - Mantener la interfaz apta para móvil, contraste en modo oscuro, botones táctiles y captura rápida por código de barras.
 - Ejecutar validación de sintaxis o la prueba más cercana antes de entregar un cambio.
 
-## Errores enviados por el Bridge/Gemini
+## Errores enviados por el Bridge/IA
 
-La telemetría automática no está disponible actualmente en el cliente; los errores deben reportarse con archivo, línea y stack. El bridge puede pedir a Gemini una reparación, pero una sugerencia de IA **no es una autorización de cambio**.
+El navegador reporta excepciones al bridge mediante `telemetry-auto.js`. Una sugerencia de IA **no es una autorización de cambio**.
 
 Al recibir un reporte:
 
 1. Confirmar que la fuente pertenece a `aguilainventario.netlify.app` y que el archivo existe dentro de `APP AGUILA`.
 2. Correlacionar `bugs.log`, el error, el archivo y los datos de la determinante sin exponer claves, tokens ni información de usuarios.
-3. Revisar la propuesta completa de Gemini como un diff: preservar la mayor parte del archivo, validar sintaxis y buscar efectos secundarios.
+3. Revisar la propuesta completa como un diff: preservar la mayor parte del archivo, validar sintaxis y buscar efectos secundarios.
 4. Dejar `DRY_RUN=true` y `ENABLE_GIT_PUSH=false` mientras se diagnostica. Requerir revisión humana antes de habilitar una reparación automática o publicar.
 5. Si el error no contiene `source` o proviene de otro dominio, no reparar automáticamente.
 
 Consultar `references/bridge-gemini.md` para endpoints, interruptores y límites.
 
-## Mapa de Módulos Confirmado
+## Flujo de publicación
 
-| Área | Archivo | Responsabilidad / evidencia confirmada | Riesgo |
-| --- | --- | --- | --- |
-| Orquestación | `app-loader.js` | Carga dinámica secuencial de los scripts de la aplicación. | Alto |
-| Inventario V2 | `inventory-core.js` | Lee y escribe `productos/{determinante}/{codigoBarras}`; expone `cargarInventario()` y `handleAddProductV2()`. | Crítico |
-| Compatibilidad | `inventory.js` | Delega la carga V2 a `inventory-core.js` y conserva una ruta legacy. | Alto |
-| Presentación | `inventory-ui.js` | Renderiza productos, marcas, existencias y agotados. | Alto |
-| Frases IA | `ai-phrases.js` | Usa `/.netlify/functions/generate-phrase`, fallback local y persistencia Firebase. | Medio |
-| Frases manuales | `phrases.js` | Gestiona frases del usuario y consume `displayDailyAIPhrase()`. | Medio |
-| Frases IA (legacy) | `legacy/ai-phrases-enhanced.js` | Sin consumidores activos confirmados; eliminado del loader. | Bajo |
-| Backend Firebase | `functions/index.js` | Cloud Functions configuradas en `firebase.json`. | Alto |
-| Backend Netlify | `netlify/functions/generate-phrase.js` | Función Netlify consumida por `ai-phrases.js`. | Medio |
+1. Editar en `APP AGUILA` (repo git ya inicializado, `origin` → GitHub).
+2. `git add` los archivos tocados, `git commit` con mensaje descriptivo, `git push origin main`.
+3. Netlify despliega automáticamente; verificar estado con `netlify api` o la API REST (`/api/v1/sites/{id}/deploys`).
+4. Si se cambiaron JS/CSS/SW, recordar que el deploy toma efecto sin Ctrl+F5 (no-cache + SW auto-update).
 
 ## Entrega
 

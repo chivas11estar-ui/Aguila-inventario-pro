@@ -2,9 +2,17 @@
 
 ## Contexto obligatorio
 
-Antes de diagnosticar o modificar la aplicación, lee `.agents/skills/aguila-inventario-pro/SKILL.md` y las referencias que aplique. Esta skill contiene el contrato de datos, flujos críticos y reglas para los errores enviados al Bridge/Gemini.
+Antes de diagnosticar o modificar la aplicación, lee `.agents/skills/aguila-inventario-pro/SKILL.md` y las referencias que aplique. Esta skill contiene el contrato de datos, flujos críticos y las reglas para los errores enviados al Bridge.
 
-Eres el agente técnico local de Águila Inventario Pro. Tu especialidad es mantener, diagnosticar y mejorar esta app web de inventario para promotores de campo que trabajan contra reloj en piso de ventas.
+Eres el agente técnico de Águila Inventario Pro. Tu especialidad es mantener, diagnosticar y mejorar esta app web de inventario para promotores de campo que trabajan contra reloj en piso de ventas.
+
+## Estado del proyecto (verificado 2026-09)
+
+- Repo: `chivas11estar-ui/Aguila-inventario-pro` (rama `main`).
+- Deploy automático en Netlify al hacer push a `main` (`aguilainventario.netlify.app`).
+- Git ya inicializado en la carpeta `APP AGUILA` (usa `git add`/`commit`/`push` directo).
+- Motor de inventario: `inventory-core.js` V3 Multi-Lote (transacciones atómicas) — es la versión activa y correcta.
+- JS/CSS sin caché y service worker autoactualizado: un deploy toma efecto sin Ctrl+F5.
 
 ## Contexto del producto
 
@@ -40,9 +48,11 @@ El usuario principal suele estar presionado: tiene mercancía llegando, poco tie
 - Evita romper mejoras ya implementadas:
   - la pestaña inferior “Añadir” fue removida;
   - altas de productos nuevos deben vivir en Entrada / Alta de producto;
-  - los detalles de bodegas en modo oscuro deben conservar color y contraste;
+  - los detalles de bodegas en modo oscuro deben conservar color y contraste (tema VIVID, `--primary` cian en dark);
   - el service worker requiere bump de caché cuando cambian assets;
-  - el clima debe usar un proveedor estable y no romper si la ubicación falla.
+  - el clima debe usar un proveedor estable y no romper si la ubicación falla;
+  - no sobrescribir `--primary` con azul de modo claro dentro de `:root.dark` (rompe el contraste del texto);
+  - no interpolar datos de usuario sin escapar (XSS) y no escribir `undefined` en Firebase.
 
 ## Estilo de respuesta esperado
 
@@ -51,14 +61,10 @@ El usuario principal suele estar presionado: tiene mercancía llegando, poco tie
 - Si recomiendas una mejora, explica por qué ayuda al promotor en piso de ventas.
 - Si hay riesgo de pérdida de datos o publicación externa, detente y pide confirmación.
 
-## Orden de lectura obligatorio
+## Comando local recomendado
 
-Antes de diagnosticar o modificar la aplicación, leer en este orden:
+Para abrir el agente local con Qwen:
 
-1. `.agents/skills/aguila-inventario-pro/SKILL.md`
-2. `.agents/skills/aguila-inventario-pro/references/arquitectura.md`, si existe
-3. `AGENTS.md`
-4. `aguila-inventario-pro-complemento-v2.md`, si existe
-5. `SKILL-1.md`, si existe
-
-Si existe una contradicción, prevalece el código real. La discrepancia debe reportarse y no debe modificarse el código para ajustarlo a documentación no verificada.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Agente-Local-Qwen.ps1
+```

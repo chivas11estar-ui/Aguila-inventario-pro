@@ -6,26 +6,27 @@
 
 ## Datos y acceso
 
-- Autenticación: Firebase Authentication.
+- Autenticación: Firebase Authentication (proyecto `promosentry`, Realtime Database).
 - Perfil: `usuarios/{uid}` con `determinante`, `nombrePromotor` y `nombreTienda`.
-- Inventario compartido: `productos/{determinante}/{codigoBarras}`.
+- Inventario compartido: `productos/{determinante}/{codigoBarras}` (con subnodo `lotes/{loteId}`).
+- Catálogo descriptivo compartido: `catalogoProductos/{codigoBarras}`.
 - Movimientos: `movimientos/{determinante}`.
 - Auditorías: `auditorias/{determinante}`.
 
 Dos promotores de la misma determinante ven y modifican el mismo inventario. No usar `uid` como clave de inventario. Validar siempre que la determinante del perfil coincida con la ruta que se lee o escribe.
 
-## Módulos principales
+## Módulos principales (estado real)
 
 | Área | Archivos principales | Riesgo |
 | --- | --- | --- |
-| Arranque y sesión | `index.html`, `auth.js`, `login.js`, `app.js` | Alto |
-| Inventario y lotes | `inventory-core.js`, `inventory.js`, `inventory-ui.js`, `lote-mover.js` | Crítico |
+| Arranque y sesión | `index.html`, `auth.js`, `login.js`, `app.js`, `app-loader.js` | Alto |
+| Inventario y lotes | `inventory-core.js` (V3 Multi-Lote), `inventory.js`, `inventory-ui.js`, `lote-mover.js` | Crítico |
 | Relleno y entrada | `refill-safe.js` | Crítico |
 | Auditoría | `audit.js` | Crítico |
 | Búsqueda y escáner | `search-controller.js`, `scanner-mlkit.js` | Medio |
 | Datos | `analytics.js`, `analytics-ui.js` | Medio |
-| PWA | `service-worker.js`, `manifest.json` | Alto |
-| Telemetría | Pendiente de restauración en el cliente | Alto |
+| PWA | `service-worker.js`, `manifest.json`, `netlify.toml` | Alto |
+| Telemetría | `telemetry-auto.js` (bridge en `aguila-bridge/`) | Alto |
 
 ## Flujos que no deben romperse
 
@@ -33,7 +34,12 @@ Dos promotores de la misma determinante ven y modifican el mismo inventario. No 
 2. La entrada, el relleno, los movimientos y la auditoría deben reflejarse para todos los usuarios de la determinante.
 3. Productos agotados se calculan por stock total del producto, no por un lote aislado.
 4. Los scripts se pueden cargar de manera directa o diferida: verificar la ruta real de carga antes de agregar un módulo.
-5. El service worker requiere una nueva versión de caché cuando cambian recursos de la app.
+5. El service worker requiere una nueva versión de caché cuando cambian recursos de la app; JS/CSS se sirven con `no-cache` y el SW se autoactualiza en cada carga.
+
+## Seguridad conocida (bugs corregidos)
+
+- No interpolar datos de usuario (bodega, nombre, código) en `innerHTML`/`onclick` sin escapar → usar escape HTML y delegación de eventos con `data-*`.
+- No escribir `undefined` en `.update()`/`.set()` de Firebase (rechaza `undefined`): sanitizar arrays como `bodegasafectadas` antes de escribir.
 
 ## Comprobaciones antes de una corrección
 
