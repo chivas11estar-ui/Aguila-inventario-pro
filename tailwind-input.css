@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* FIX modo oscuro: por defecto Tailwind v4 activa las clases dark:
+   solo cuando el SISTEMA OPERATIVO está en modo oscuro (prefers-color-scheme).
+   La app tiene su propio interruptor "Modo Oscuro" que agrega la clase
+   .dark al <html> (ver profile.js -> applyTheme()), independiente del
+   sistema operativo. Esta línea conecta ambos: ahora las utilidades
+   dark: obedecen la clase .dark de la app, no el tema del celular. */
+@custom-variant dark (&:where(.dark, .dark *));

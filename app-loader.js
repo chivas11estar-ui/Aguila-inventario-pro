@@ -43,7 +43,7 @@
     'profile-ui.js?v=2.3',
     'analytics.js?v=1.9',
     'ai-phrases.js?v=1.6',
-    'phrases.js?v=1.3',
+    'phrases.js?v=1.4',
     'migrate-to-v2.js?v=2.1',
     'ai-phrases-enhanced.js?v=1.1'
   ];

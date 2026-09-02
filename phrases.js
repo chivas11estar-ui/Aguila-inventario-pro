@@ -211,6 +211,82 @@ function setupPhrasesEventListeners() {
 // Exponer la función de eliminación al scope global para el onclick
 window.deleteMotivationalPhrase = deleteMotivationalPhrase;
 
+// ============================================================
+// INTEGRACIÓN CON EL PERFIL (profile-ui.js)
+// El botón "Añadir" del perfil usa #new-custom-phrase-input y
+// #custom-phrases-list. Esta capa une phrases.js con esa UI
+// sin romper el form legacy (#add-phrase-form -> addMotivationalPhrase).
+// ============================================================
+window.addMotivationalPhrase = async function (text) {
+  // Acepta texto directo (botón del perfil) o un evento (form legacy).
+  const rawValue = (text && typeof text === 'string') ? text : document.getElementById('new-phrase-input')?.value;
+  const phraseText = String(rawValue || '')
+    .replace(/<[^>]*>/g, "") // Eliminar HTML (anti-XSS)
+    .replace(/[{}()[\]]/g, "") // Eliminar llaves que confunden placeholders
+    .substring(0, 100);
+
+  if (!phraseText || phraseText.length < 3) {
+    if (typeof showToast === 'function') showToast('⚠️ La frase es muy corta o contiene caracteres prohibidos.', 'warning');
+    return;
+  }
+
+  if (!userPhrasesRef) {
+    if (typeof showToast === 'function') showToast('❌ Error de conexión. No se pudo guardar la frase.', 'error');
+    return;
+  }
+
+  // Si la única frase es la por defecto, eliminarla antes de añadir la nueva.
+  if (userMotivationalPhrases.length === 1 && userMotivationalPhrases[0].id === 'default') {
+    await userPhrasesRef.set(null);
+  }
+
+  try {
+    await userPhrasesRef.push({ text: phraseText });
+    if (typeof showToast === 'function') showToast('✅ ¡Frase añadida con éxito!', 'success');
+  } catch (error) {
+    console.error('❌ Error añadiendo frase:', error);
+    if (typeof showToast === 'function') showToast('❌ No se pudo guardar la frase. Error: ' + error.message, 'error');
+  }
+};
+
+window.renderMotivationalPhrasesList = function () {
+  // Render en el contenedor real del perfil si existe; si no, en el legacy.
+  const container = document.getElementById('custom-phrases-list') || document.getElementById('phrases-list');
+  if (!container) return;
+
+  if (userMotivationalPhrases.length === 0 || (userMotivationalPhrases.length === 1 && userMotivationalPhrases[0].id === 'default')) {
+    container.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:16px;">Aún no has añadido frases personalizadas.</p>';
+    return;
+  }
+
+  container.innerHTML = userMotivationalPhrases.map(phrase => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f3f4f6;">
+      <span style="color:#1f2937; font-style:italic;">“${escapePhraseHtml(phrase.text)}”</span>
+      ${phrase.id !== 'default' ? `
+      <button data-delete-phrase="${escapePhraseHtml(phrase.id)}" class="btn-icon error"
+        style="font-size:16px; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
+        title="Eliminar frase">❌</button>
+      ` : ''}
+    </div>
+  `).join('');
+
+  container.querySelectorAll('button[data-delete-phrase]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.deleteMotivationalPhrase(btn.dataset.deletePhrase);
+    });
+  });
+};
+
+// Al cargar las frases, además del header, refrescar la lista del perfil
+// si el contenedor #custom-phrases-list ya está en el DOM.
+const _origRenderPhrasesList = renderPhrasesList;
+renderPhrasesList = function () {
+  _origRenderPhrasesList();
+  if (document.getElementById('custom-phrases-list')) {
+    window.renderMotivationalPhrasesList();
+  }
+};
+
 // Inicialización diferida
 document.addEventListener('DOMContentLoaded', () => {
   firebase.auth().onAuthStateChanged(user => {
