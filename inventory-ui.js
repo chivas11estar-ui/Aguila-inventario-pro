@@ -150,6 +150,14 @@ function renderBrandSection(marca, productos, targetId) {
 // ============================================================
 // RENDERIZAR TARJETA DE PRODUCTO
 // ============================================================
+function escapeAttrValue(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function renderProductCard(product, targetId) {
   const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
   const firstBodega = bodegas[0] || null;
@@ -161,9 +169,6 @@ function renderProductCard(product, targetId) {
   const moveAction = bodegas.length === 1 && firstBodega?.id
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
-  // Acción de resurtir: usa JSON.stringify (productCodeArg) para evitar
-  // inyección de código vía el código de barras del producto.
-  const resurtirAction = `window.switchTab('refill'); setTimeout(() => { document.getElementById('refill-barcode').value = ${productCodeArg}; window.searchProductForRefillSafe(${productCodeArg}); window.setRefillModeSafe('entry'); }, 100);`;
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -215,8 +220,8 @@ function renderProductCard(product, targetId) {
   return `
     <div
       data-product-item
-      data-product-name="${productName}"
-      data-product-code="${product.codigoBarras}"
+      data-product-name="${escapeAttrValue(productName)}"
+      data-product-code="${escapeAttrValue(product.codigoBarras)}"
       class="product-card aguila-product-card"
       style="border-left: 6px solid ${statusBorder};"
     >
@@ -286,7 +291,7 @@ function renderProductCard(product, targetId) {
           
           ${isOutOfStock ? `
             <button 
-              onclick='${resurtirAction}'
+              data-resurtir
               class="primary"
               style="flex: 1.5; padding: 10px; font-size: 13px; margin: 0; background: var(--success);"
             >
@@ -536,6 +541,30 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     setupSearchBar();
   }, 1000);
+
+  // Delegación de eventos para el botón "Resurtir" (evita inline onclick
+  // con datos del usuario, que rompía el HTML y permitía inyección).
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-resurtir]');
+    if (!btn) return;
+    e.preventDefault();
+
+    // El código de barras vive en el contenedor padre de la tarjeta.
+    const card = btn.closest('[data-product-item]');
+    const codigo = card?.getAttribute('data-product-code') || '';
+    if (!codigo) {
+      if (typeof showToast === 'function') showToast('No se pudo obtener el código de barras', 'error');
+      return;
+    }
+
+    if (typeof window.switchTab === 'function') window.switchTab('refill');
+    setTimeout(() => {
+      const barcodeInput = document.getElementById('refill-barcode');
+      if (barcodeInput) barcodeInput.value = codigo;
+      if (typeof window.searchProductForRefillSafe === 'function') window.searchProductForRefillSafe(codigo);
+      if (typeof window.setRefillModeSafe === 'function') window.setRefillModeSafe('entry');
+    }, 100);
+  });
 });
 
 // ============================================================

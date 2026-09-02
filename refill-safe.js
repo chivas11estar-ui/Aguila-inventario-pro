@@ -258,6 +258,16 @@ async function executeRefillOperation(operation) {
     }
 
     const cajasConfirmadas = parseFloat(result.totalMovido ?? totalCajas) || 0;
+
+    // Sanitizar el detalle antes de escribir en Firebase: Realtime DB
+    // rechaza valores `undefined` en .update(). Garantizamos que cada
+    // bodega/lote/tomado exista (evita "values argument contains undefined").
+    const bodegasAfectadas = (Array.isArray(result.detalle) ? result.detalle : []).map((d) => ({
+      loteId: d?.loteId != null ? String(d.loteId) : '',
+      bodega: (d?.bodega ?? '').trim() || 'General',
+      tomado: Number(d?.tomado) || 0
+    }));
+
     await confirmRefillOperation(det, operationId, {
       tipo: movementType,
       productoNombre: product.nombre,
@@ -266,7 +276,7 @@ async function executeRefillOperation(operation) {
       piezasPorCaja: ppc,
       cajasMovidas: cajasConfirmadas,
       piezasMovidas: Math.round(cajasConfirmadas * ppc),
-      bodegasafectadas: result.detalle,
+      bodegasafectadas: bodegasAfectadas,
       origenStock,
       stockBodegaDescontado,
       fecha,
