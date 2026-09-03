@@ -1,19 +1,11 @@
 ---
 name: aguila-inventario-pro
-description: Mantener, diagnosticar y modificar Águila Inventario Pro, una PWA de inventario compartido por determinante para promotores de campo. Usar al investigar errores de producción, Firebase, PWA/offline, escáner, entrada, relleno, auditoría, búsqueda, perfiles, bridge de telemetría o reparaciones sugeridas por IA.
+description: Mantener, diagnosticar y modificar Águila Inventario Pro, una PWA de inventario compartido por determinante para promotores de campo. Usar al investigar errores de producción, Firebase, PWA/offline, escáner, entrada, relleno, auditoría, búsqueda, perfiles, bridge de telemetría o reparaciones sugeridas por Gemini.
 ---
 
 # Águila Inventario Pro
 
 Trabajar como guardián técnico de una PWA de inventario para promotores que operan con prisa en tienda. Priorizar integridad de stock, claridad móvil y reversibilidad.
-
-## Estado real del proyecto (verificado 2026-09)
-
-- Repositorio GitHub: `chivas11estar-ui/Aguila-inventario-pro` (rama `main`).
-- Deploy: Netlify (`aguilainventario.netlify.app`) vinculado al repo; el push a `main` dispara el deploy automáticamente.
-- Motor de inventario: `inventory-core.js` **V3 Multi-Lote** (transacciones atómicas, catálogo compartido `catalogoProductos`, validación de datos). Es la versión activa y más robusta; no hay que "subirlo a V5" — la nomenclatura de versión en el encabezado es inconsistente pero el contenido correcto es este.
-- Service worker: caché `aguila-pro-v9.0`, estrategia network-first. JS/CSS se sirven con `no-cache` y el SW se registra con `updateViaCache:'none'` + `reg.update()` para que la app siempre tome la versión nueva tras un deploy (no se requiere Ctrl+F5).
-- Bridge de telemetría: `aguila-bridge/` (server.js + repair-agent.js) corre en una VM; los interruptores de seguridad (`DRY_RUN`, `ENABLE_AUTO_REPAIR`, `ENABLE_GIT_PUSH`) deben permanecer apagados durante diagnóstico.
 
 ## Antes de cambiar algo
 
@@ -32,26 +24,19 @@ Trabajar como guardián técnico de una PWA de inventario para promotores que op
 - Mantener la interfaz apta para móvil, contraste en modo oscuro, botones táctiles y captura rápida por código de barras.
 - Ejecutar validación de sintaxis o la prueba más cercana antes de entregar un cambio.
 
-## Errores enviados por el Bridge/IA
+## Errores del Bridge (DESHABILITADO — referencia histórica)
 
-El navegador reporta excepciones al bridge mediante `telemetry-auto.js`. Una sugerencia de IA **no es una autorización de cambio**.
+`telemetry-auto.js` captura errores del navegador, pero el servidor `aguila-bridge` está **apagado y ya no se usa**. La app funciona sin él (el fetch al bridge usa timeout corto y fallo silencioso). El bloque de abajo es solo referencia por si se reactiva algún día.
 
-Al recibir un reporte:
+El bridge podría pedir a una IA una reparación, pero una sugerencia de IA **no es una autorización de cambio**:
 
 1. Confirmar que la fuente pertenece a `aguilainventario.netlify.app` y que el archivo existe dentro de `APP AGUILA`.
 2. Correlacionar `bugs.log`, el error, el archivo y los datos de la determinante sin exponer claves, tokens ni información de usuarios.
-3. Revisar la propuesta completa como un diff: preservar la mayor parte del archivo, validar sintaxis y buscar efectos secundarios.
+3. Revisar la propuesta completa de IA como un diff: preservar la mayor parte del archivo, validar sintaxis y buscar efectos secundarios.
 4. Dejar `DRY_RUN=true` y `ENABLE_GIT_PUSH=false` mientras se diagnostica. Requerir revisión humana antes de habilitar una reparación automática o publicar.
 5. Si el error no contiene `source` o proviene de otro dominio, no reparar automáticamente.
 
-Consultar `references/bridge-gemini.md` para endpoints, interruptores y límites.
-
-## Flujo de publicación
-
-1. Editar en `APP AGUILA` (repo git ya inicializado, `origin` → GitHub).
-2. `git add` los archivos tocados, `git commit` con mensaje descriptivo, `git push origin main`.
-3. Netlify despliega automáticamente; verificar estado con `netlify api` o la API REST (`/api/v1/sites/{id}/deploys`).
-4. Si se cambiaron JS/CSS/SW, recordar que el deploy toma efecto sin Ctrl+F5 (no-cache + SW auto-update).
+Consultar `references/bridge-gemini.md` para el estado actual del bridge.
 
 ## Entrega
 
