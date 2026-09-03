@@ -1839,8 +1839,8 @@ html {
     width: 118px;
     height: 42px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.78);
-    filter: blur(0.2px);
+    background: rgba(255,255,255,0.85);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
     animation: weatherCloudDrift 18s linear infinite;
 }
 .weather-cloud::before,
@@ -2022,9 +2022,8 @@ html {
 .weather-sky-haze {
     inset: -18% -8%;
     background:
-        radial-gradient(circle at 24% 30%, rgba(255,255,255,0.28), transparent 18%),
-        radial-gradient(circle at 68% 18%, rgba(255,255,255,0.18), transparent 20%);
-    filter: blur(10px);
+        radial-gradient(circle at 24% 30%, rgba(255,255,255,0.2), transparent 18%),
+        radial-gradient(circle at 68% 18%, rgba(255,255,255,0.15), transparent 20%);
     animation: weatherHazeDrift 14s ease-in-out infinite;
 }
 .weather-horizon {
@@ -2034,9 +2033,8 @@ html {
     height: 92px;
     border-radius: 50% 50% 0 0;
     background:
-        radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.56), transparent 58%),
-        linear-gradient(180deg, rgba(255,255,255,0.22), rgba(14,165,233,0.18));
-    filter: blur(2px);
+        radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.4), transparent 58%),
+        linear-gradient(180deg, rgba(255,255,255,0.15), rgba(14,165,233,0.12));
 }
 .weather-orb-main {
     width: 104px;
@@ -2101,10 +2099,9 @@ html {
 .weather-scene-placeholder {
     min-height: 255px;
     justify-content: center;
-    border: 1px solid rgba(255,255,255,0.26);
-    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06)) !important;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 16px 30px rgba(15,23,42,0.08);
-    backdrop-filter: blur(2px);
 }
 :root.dark .weather-panel-animated.weather-scene-panel,
 :root.dark .weather-scene-placeholder {
