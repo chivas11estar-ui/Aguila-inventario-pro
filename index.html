@@ -225,36 +225,34 @@
         }
 
         /* Fuerza el modo oscuro en elementos con estilos en línea */
-        @media (prefers-color-scheme: dark) {
-          body, #main-app, .main-content, .tab-content {
+        :root.dark body, :root.dark #main-app, :root.dark .main-content, :root.dark .tab-content {
             background-color: #020617 !important;
-          }
+        }
 
-          .card, .form-group input, .form-group select, .form-group textarea {
+        :root.dark .card, :root.dark .form-group input, :root.dark .form-group select, :root.dark .form-group textarea {
             background-color: var(--card) !important;
             color: var(--text) !important;
-          }
+        }
 
-          /* Limpieza de colores hardcodeados en HTML */
-          [style*="background: #f8fafc"],
-          [style*="background:#f8fafc"],
-          [style*="background: #f0f9ff"],
-          [style*="background:#f0f9ff"],
-          [style*="background: #fff"],
-          [style*="background:#fff"] {
+        /* Limpieza de colores hardcodeados en HTML */
+        :root.dark [style*="background: #f8fafc"],
+        :root.dark [style*="background:#f8fafc"],
+        :root.dark [style*="background: #f0f9ff"],
+        :root.dark [style*="background:#f0f9ff"],
+        :root.dark [style*="background: #fff"],
+        :root.dark [style*="background:#fff"] {
             background-color: var(--input-bg) !important;
-          }
+        }
 
-          [style*="color: #000"],
-          [style*="color:#000"],
-          [style*="color: #1e293b"],
-          [style*="color:#1e293b"] {
+        :root.dark [style*="color: #000"],
+        :root.dark [style*="color:#000"],
+        :root.dark [style*="color: #1e293b"],
+        :root.dark [style*="color:#1e293b"] {
             color: var(--text) !important;
-          }
+        }
 
-          label, h2, h3 {
+        :root.dark label, :root.dark h2, :root.dark h3 {
             color: var(--text) !important;
-          }
         }
 
         .btn-icon { min-width: 44px; min-height: 44px; }
@@ -500,7 +498,7 @@
             <h2 style="color: var(--primary); font-weight: 800;">➕ Agregar Producto</h2>
             <form id="add-product-form" style="margin-top:20px;">
               <div class="form-group">
-                <label for="add-barcode" style="color: #1e293b; font-weight: 700;">Código de Barras</label>
+                <label for="add-barcode" style="font-weight: 700;">Código de Barras</label>
                 <div style="display:flex;gap:8px;">
                   <input id="add-barcode" type="text" placeholder="Escanea o ingresa el código" style="color: #000; font-weight: 600;" />
                   <button type="button" id="btn-scan-add" class="success" aria-label="Escanear código para añadir producto"
@@ -509,12 +507,12 @@
               </div>
 
               <div class="form-group">
-                <label for="add-product-name" style="color: #1e293b; font-weight: 700;">Nombre del Producto</label>
+                <label for="add-product-name" style="font-weight: 700;">Nombre del Producto</label>
                 <input id="add-product-name" type="text" placeholder="Ej: Pepsi 1L" required />
               </div>
 
               <div class="form-group">
-                <label for="add-brand" style="color: #1e293b; font-weight: 700;">Marca</label>
+                <label for="add-brand" style="font-weight: 700;">Marca</label>
                 <select id="add-brand" required>
                   <option value="">-- Selecciona una marca --</option>
                   <option value="Sabritas">Sabritas</option>
@@ -527,22 +525,22 @@
               </div>
 
               <div class="form-group">
-                <label for="add-pieces-per-box" style="color: #1e293b; font-weight: 700;">Piezas por Caja</label>
+                <label for="add-pieces-per-box" style="font-weight: 700;">Piezas por Caja</label>
                 <input id="add-pieces-per-box" type="number" placeholder="Ej: 24" min="1" required />
               </div>
 
               <div class="form-group">
-                <label for="add-warehouse" style="color: #1e293b; font-weight: 700;">Ubicación/Almacén</label>
+                <label for="add-warehouse" style="font-weight: 700;">Ubicación/Almacén</label>
                 <input id="add-warehouse" type="text" placeholder="Ej: Almacén 1" required />
               </div>
 
               <div class="form-group">
-                <label for="add-expiry-date" style="color: #1e293b; font-weight: 700;">Fecha de Caducidad</label>
+                <label for="add-expiry-date" style="font-weight: 700;">Fecha de Caducidad</label>
                 <input id="add-expiry-date" type="date" required />
               </div>
 
               <div class="form-group">
-                <label for="add-boxes" style="color: #1e293b; font-weight: 700;">Cantidad de Cajas</label>
+                <label for="add-boxes" style="font-weight: 700;">Cantidad de Cajas</label>
                 <input id="add-boxes" type="number" placeholder="Ej: 10" min="0" required />
               </div>
 

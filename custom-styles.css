@@ -137,10 +137,10 @@ body {
 
 /* CAMPOS DE AUTOFILL (READONLY) - CORREGIDO */
 input[readonly] {
-  background: #f8fafc !important;
-  color: #475569 !important;
+  background: var(--surface-dim) !important;
+  color: var(--muted) !important;
   cursor: not-allowed;
-  border-color: #e2e8f0;
+  border-color: var(--border);
   transition: border-color 0.3s ease;
 }
 
@@ -1506,6 +1506,66 @@ html {
     border-color: rgba(189, 194, 255, 0.14) !important;
 }
 
+/* ============================================================
+   ULTRA-HIGH CONTRAST DARK MODE (FIX VISIBILITY)
+   ============================================================ */
+:root.dark .form-group label,
+:root.dark label,
+:root.dark h1,
+:root.dark h2,
+:root.dark h3,
+:root.dark h4,
+:root.dark strong,
+:root.dark .metric-value,
+:root.dark .brand-group h3,
+:root.dark .aguila-brand-title strong,
+:root.dark .aguila-product-card h4,
+:root.dark .aguila-brand-header strong {
+    color: var(--text) !important;
+}
+
+:root.dark .metric-label,
+:root.dark .brand-group div,
+:root.dark .aguila-brand-title span,
+:root.dark .aguila-product-card small,
+:root.dark .aguila-refill-meta,
+:root.dark .aguila-audit-meta,
+:root.dark .bodega-list small,
+:root.dark .search-results-summary {
+    color: var(--muted) !important;
+}
+
+:root.dark .secondary,
+:root.dark button.secondary {
+    background: var(--surface-container) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+:root.dark .aguila-lote-card,
+:root.dark .bodega-details,
+:root.dark .bodega-list li {
+    background: var(--surface-dim) !important;
+    border-color: var(--border) !important;
+}
+
+/* Fix visibility in inline-styled elements from inventory-ui.js */
+:root.dark [style*="background:#f8fafc"],
+:root.dark [style*="background: #f8fafc"],
+:root.dark [style*="background:white"],
+:root.dark [style*="background: white"] {
+    background-color: var(--surface-dim) !important;
+}
+
+:root.dark [style*="color:#1e293b"],
+:root.dark [style*="color: #1e293b"],
+:root.dark [style*="color:#475569"],
+:root.dark [style*="color: #475569"],
+:root.dark [style*="color:#111"],
+:root.dark [style*="color: #111"] {
+    color: var(--text) !important;
+}
+
 @media (max-width: 520px) {
     #refill-mode-selector {
         grid-template-columns: 1fr;
@@ -1520,6 +1580,7 @@ html {
         grid-template-columns: 1fr;
     }
 }
+
 /* ============================================================
    DARK VIVID THEME - Aguila Pro
    ============================================================ */
@@ -2129,4 +2190,64 @@ html {
     .weather-starfield {
         animation: none !important;
     }
+}
+
+/* ============================================================
+   ULTRA-HIGH CONTRAST DARK MODE (FIX VISIBILITY)
+   ============================================================ */
+:root.dark .form-group label,
+:root.dark label,
+:root.dark h1,
+:root.dark h2,
+:root.dark h3,
+:root.dark h4,
+:root.dark strong,
+:root.dark .metric-value,
+:root.dark .brand-group h3,
+:root.dark .aguila-brand-title strong,
+:root.dark .aguila-product-card h4,
+:root.dark .aguila-brand-header strong {
+    color: var(--text) !important;
+}
+
+:root.dark .metric-label,
+:root.dark .brand-group div,
+:root.dark .aguila-brand-title span,
+:root.dark .aguila-product-card small,
+:root.dark .aguila-refill-meta,
+:root.dark .aguila-audit-meta,
+:root.dark .bodega-list small,
+:root.dark .search-results-summary {
+    color: var(--muted) !important;
+}
+
+:root.dark .secondary,
+:root.dark button.secondary {
+    background: var(--surface-container) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+:root.dark .aguila-lote-card,
+:root.dark .bodega-details,
+:root.dark .bodega-list li {
+    background: var(--surface-dim) !important;
+    border-color: var(--border) !important;
+}
+
+/* Fix visibility in inline-styled elements from inventory-ui.js */
+:root.dark [style*="background:#f8fafc"],
+:root.dark [style*="background: #f8fafc"],
+:root.dark [style*="background:white"],
+:root.dark [style*="background: white"] {
+    background-color: var(--surface-dim) !important;
+}
+
+:root.dark [style*="color:#1e293b"],
+:root.dark [style*="color: #1e293b"],
+:root.dark [style*="color:#475569"],
+:root.dark [style*="color: #475569"],
+:root.dark [style*="color:#111"],
+:root.dark [style*="color: #111"] {
+    color: var(--text) !important;
 }

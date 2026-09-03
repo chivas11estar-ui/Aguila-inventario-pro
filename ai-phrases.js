@@ -228,7 +228,7 @@ const AIService = (function() {
                        async function generateViaNetlify(userName) {
                                        const safeName = sanitize(userName);
                                        const now = new Date();
-                                       const days = ['domingo','lunes','martes','miÃ©rcoles','jueves','viernes','sÃ¡bado'];
+                                       const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
                                        const weatherData = window.PROFILE_STATE?.weather || null;
                                        const santo = getSantoDia();
                                        const inventoryContext = getInventoryPhraseContext();
@@ -436,14 +436,19 @@ function normalizeAIPhraseText(value) {
 
 async function displayDailyAIPhrase() {
             const user = firebase.auth().currentUser;
-            if (!user) return;
+            const phraseContainer = document.getElementById('motivational-phrase');
+
+            if (!phraseContainer) return;
+
+            if (!user) {
+                console.log('ℹ️ Sin usuario para frase IA, esperando...');
+                phraseContainer.textContent = 'Inicia sesión para ver tu frase del día.';
+                return;
+            }
 
     // Mostrar estado de carga
-    const phraseContainer = document.getElementById('motivational-phrase');
-            if (phraseContainer) {
-                            phraseContainer.textContent = 'Generando frase del dia...';
-                            phraseContainer.style.opacity = '0.6';
-            }
+    phraseContainer.textContent = 'Generando frase del día...';
+    phraseContainer.style.opacity = '0.6';
 
     try {
                     const userSnapshot = await firebase.database().ref(`usuarios/${user.uid}`).once('value');
@@ -451,6 +456,7 @@ async function displayDailyAIPhrase() {
                     const fullName = userData?.nombrePromotor || 'Campeón';
                     const firstName = fullName.split(' ')[0];
 
+                console.log('🤖 Solicitando frase para:', firstName);
                 const phrase = await getDailyAIPhrase(user.uid, firstName);
 
                 if (phraseContainer) {
@@ -459,7 +465,7 @@ async function displayDailyAIPhrase() {
                                     phraseContainer.style.transition = 'opacity 0.3s ease-in';
                 }
     } catch (error) {
-                    console.error('ðŸ›¡ï¸ Error UI-IA:', error);
+                    console.error('🛡️ Error UI-IA:', error);
                     if (phraseContainer) {
                                         phraseContainer.textContent = `"${getFallbackPhrase('Campeón')}"`;
                                         phraseContainer.style.opacity = '1';

@@ -81,7 +81,7 @@
       'Origen: <b>' + loteOrigen.bodega + '</b> · Stock: ' + loteOrigen.stock + ' caja(s)' +
       (loteOrigen.fechaCaducidad ? ' · Cad: ' + loteOrigen.fechaCaducidad : '') +
       '</div>' +
-      '<label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px;">' +
+      '<label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">' +
       'Bodega destino</label>' +
       '<select id="lote-mover-destino" style="width:100%;padding:10px;border:1px solid #d1d5db;' +
       'border-radius:8px;font-size:14px;color:#111;background:#fff;margin-bottom:12px;">' +
@@ -91,7 +91,7 @@
       '<input id="lote-mover-destino-custom" placeholder="Nombre de bodega" ' +
       'style="display:' + (destinosActivos.length ? 'none' : 'block') + ';width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;' +
       'font-size:14px;color:#111;background:#fff;margin-bottom:12px;">' +
-      '<label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px;">' +
+      '<label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">' +
       'Cantidad a mover (cajas)</label>' +
       '<input id="lote-mover-cantidad" type="number" min="0.01" step="0.01" ' +
       'value="' + loteOrigen.stock + '" max="' + loteOrigen.stock + '" ' +

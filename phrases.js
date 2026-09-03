@@ -22,52 +22,67 @@ function escapePhraseHtml(value) {
 // INICIALIZACIÓN DEL MÓDULO
 // ============================================================
 function initMotivationalPhrases(userId) {
-  console.log('💬 Inicializando módulo de frases motivacionales...');
-  if (!userId) {
-    console.error('❌ ID de usuario no proporcionado para frases.');
-    return;
-  }
+  try {
+    console.log('💬 Inicializando módulo de frases motivacionales...');
+    if (!userId) {
+      console.error('❌ ID de usuario no proporcionado para frases.');
+      return;
+    }
 
-  // 1. Obtener el nombre del usuario una sola vez
-  firebase.database().ref(`usuarios/${userId}/nombrePromotor`).once('value')
-    .then(snap => {
-      const name = snap.val();
-      if (name) {
-        // Tomar solo el primer nombre para que sea más corto
-        currentUserName = name.split(' ')[0];
+    // 1. Obtener el nombre del usuario
+    firebase.database().ref(`usuarios/${userId}/nombrePromotor`).once('value')
+      .then(snap => {
+        const name = snap.val();
+        if (name) {
+          currentUserName = name.split(' ')[0];
+        }
+        console.log('👤 Nombre para frases:', currentUserName);
+
+        // Lanzar IA después de tener el nombre
+        if (window.displayDailyAIPhrase) {
+          window.displayDailyAIPhrase().catch(err => {
+            console.warn('⚠️ Falló frase IA:', err);
+            displayRandomPhrase();
+          });
+        } else {
+          console.warn('⚠️ displayDailyAIPhrase no disponible');
+          displayRandomPhrase();
+        }
+      })
+      .catch(err => {
+        console.error('❌ Error obteniendo nombre:', err);
+        displayRandomPhrase();
+      });
+
+    userPhrasesRef = firebase.database().ref(`usuarios/${userId}/frasesMotivacionales`);
+
+    // Listener para cambios en tiempo real
+    userPhrasesRef.on('value', (snapshot) => {
+      try {
+        if (snapshot.exists()) {
+          userMotivationalPhrases = Object.entries(snapshot.val()).map(([id, value]) => ({ id, text: value.text }));
+        } else {
+          userMotivationalPhrases = [{ id: 'default', text: '¡A darlo todo hoy, {nombre}! 🦅' }];
+        }
+        console.log('📚 Frases cargadas:', userMotivationalPhrases.length);
+
+        if (document.getElementById('phrases-list')) {
+          renderPhrasesList();
+        }
+
+        // Solo mostrar si no hay frase de la IA cargando o puesta
+        const container = document.getElementById('motivational-phrase');
+        if (container && (!container.textContent || container.dataset.isManual === 'true')) {
+          displayRandomPhrase();
+        }
+      } catch (innerErr) {
+        console.error('❌ Error en listener de frases:', innerErr);
       }
     });
 
-  userPhrasesRef = firebase.database().ref(`usuarios/${userId}/frasesMotivacionales`);
-
-  // Listener para cambios en tiempo real
-  userPhrasesRef.on('value', (snapshot) => {
-    if (snapshot.exists()) {
-      userMotivationalPhrases = Object.entries(snapshot.val()).map(([id, value]) => ({ id, text: value.text }));
-    } else {
-      // Si no hay frases, se puede añadir una por defecto con el placeholder
-      userMotivationalPhrases = [{ id: 'default', text: '¡A darlo todo hoy, {nombre}! 🦅' }];
-    }
-    console.log('📚 Frases cargadas:', userMotivationalPhrases.length);
-
-    // Si el contenedor de la lista es visible, renderizar
-    if (document.getElementById('phrases-list')) {
-      renderPhrasesList();
-    }
-    // Mostrar una frase al azar en el header
-    displayRandomPhrase();
-  });
-
-  setupPhrasesEventListeners();
-
-  // INICIO: Integración con IA
-  if (window.displayDailyAIPhrase) {
-    window.displayDailyAIPhrase().catch(err => {
-      console.warn('⚠️ Falló frase IA, usando frases manuales:', err);
-      displayRandomPhrase();
-    });
-  } else {
-    displayRandomPhrase();
+    setupPhrasesEventListeners();
+  } catch (err) {
+    console.error('❌ Error crítico inicializando frases:', err);
   }
 }
 
@@ -81,8 +96,11 @@ function displayRandomPhrase() {
   }
 
   // No sobrescribir si ya hay una frase de la IA (las de la IA vienen entre comillas)
-  if (phraseContainer.textContent && phraseContainer.textContent.startsWith('"') && !phraseContainer.dataset.isManual) {
-    console.log('✨ Manteniendo frase de la IA');
+  // O si estamos en estado "Generando..."
+  if (phraseContainer.textContent &&
+      (phraseContainer.textContent.startsWith('"') || phraseContainer.textContent.includes('...')) &&
+      !phraseContainer.dataset.isManual) {
+    console.log('✨ Manteniendo frase de la IA / Estado de carga');
     return;
   }
 
@@ -287,13 +305,24 @@ renderPhrasesList = function () {
   }
 };
 
-// Inicialización diferida
-document.addEventListener('DOMContentLoaded', () => {
+// Inicialización robusta del módulo
+function initPhrasesModule() {
+  console.log('🔄 Verificando estado de autenticación para frases...');
   firebase.auth().onAuthStateChanged(user => {
     if (user) {
+      console.log('✅ Usuario autenticado en frases.js, inicializando...');
       initMotivationalPhrases(user.uid);
+    } else {
+      console.log('ℹ️ Esperando autenticación para cargar frases.');
     }
   });
-});
+}
+
+// Ejecutar de inmediato o esperar al DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPhrasesModule);
+} else {
+  initPhrasesModule();
+}
 
 console.log('✅ phrases.js cargado correctamente');

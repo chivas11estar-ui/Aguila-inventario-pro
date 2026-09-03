@@ -77,7 +77,7 @@ function createTopByBrandSection(refillAverages) {
         return `
             <div class="top-by-brand">
                 <h2>&#127942; Top 3 por Marca</h2>
-                <p style="text-align: center; color: #94a3b8;">No hay datos disponibles</p>
+                <p style="text-align: center; color: var(--muted);">No hay datos disponibles</p>
             </div>
         `;
     }
@@ -259,7 +259,7 @@ function renderSearchResult(data) {
 
     if (!data) {
         container.innerHTML = `
-            <div class="search-result-card-empty">
+            <div class="search-result-card-empty" style="background: var(--surface-dim); color: var(--muted); border-radius: 16px; padding: 24px; border: 1px solid var(--border); text-align: center;">
                 &#128269; Producto no encontrado
             </div>
         `;
@@ -267,24 +267,24 @@ function renderSearchResult(data) {
     }
 
     container.innerHTML = `
-        <div class="search-result-card">
-            <h3>${data.nombre}</h3>
-            <p class="brand-code">${data.marca} - ${data.codigo}</p>
+        <div class="search-result-card" style="background: var(--primary); color: var(--on-primary); border-radius: 16px; padding: 24px; border: none; position: relative; overflow: hidden;">
+            <h3 style="color: var(--on-primary);">${data.nombre}</h3>
+            <p class="brand-code" style="color: var(--on-primary); opacity: 0.8;">${data.marca} - ${data.codigo}</p>
             <div class="result-metrics">
-                <div class="metric-display daily-metric">
+                <div class="metric-display daily-metric" style="background: rgba(255,255,255,0.12); color: white;">
                     <span class="metric-value">${data.piezasPorDia}</span>
                     <span class="metric-label">pzs/dia</span>
                 </div>
-                <div class="metric-display daily-metric">
+                <div class="metric-display daily-metric" style="background: rgba(255,255,255,0.12); color: white;">
                     <span class="metric-value">${data.piezasSemana || Math.round((data.piezasPorDia || 0) * 7)}</span>
                     <span class="metric-label">pzs/sem</span>
                 </div>
-                <div class="metric-display monthly-metric">
+                <div class="metric-display monthly-metric" style="background: rgba(255,255,255,0.12); color: white;">
                     <span class="metric-value">${data.promedioMensual}</span>
                     <span class="metric-label">pzs/mes (est.)</span>
                 </div>
             </div>
-            <p class="info-text">*Calculos basados en salidas de los ultimos 30 dias</p>
+            <p class="info-text" style="color: var(--on-primary); opacity: 0.7;">*Calculos basados en salidas de los ultimos 30 dias</p>
         </div>
     `;
 }
