@@ -39,7 +39,7 @@
     'system.js?v=1.3',
     'system-events.js?v=1.3',
     'weather.js?v=1.7',
-    'profile.js?v=1.7',
+    'profile.js?v=1.8',
     'profile-ui.js?v=2.3',
     'analytics.js?v=1.9',
     'ai-phrases.js?v=1.6',

@@ -32,7 +32,16 @@ window.PROFILE_STATE = {
 // EXPORTAR FUNCIONES (EARLY EXPOSURE)
 // ============================================================
 window.loadUserProfile = loadUserProfile;
-window.refreshWeather = window.fetchWeatherData;
+
+// Fix: Usar un wrapper para evitar errores si weather.js no ha cargado
+window.refreshWeather = function() {
+    if (typeof window.fetchWeatherData === 'function') {
+        return window.fetchWeatherData();
+    } else {
+        console.warn('⚠️ fetchWeatherData no disponible todavía.');
+    }
+};
+
 window.refreshActivity = loadDailyActivity;
 window.updateUserData = updateUserData;
 window.saveUserPreferences = saveUserPreferences;
@@ -143,7 +152,13 @@ async function loadUserProfile() {
 
             // Cargar datos secundarios
             loadDailyActivity();
+
+            // Fix: Llamada segura al clima
+            if (typeof window.fetchWeatherData === 'function') {
                 window.fetchWeatherData();
+            } else {
+                console.log('ℹ️ Esperando a weather.js para cargar el clima...');
+            }
 
     } catch (error) {
                 console.error('❌ Error cargando perfil:', error);
