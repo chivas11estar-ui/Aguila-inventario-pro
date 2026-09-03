@@ -225,7 +225,7 @@ const AIService = (function() {
                        /**
              * RUTA 1: Llamar a Netlify Function (Groq - Sin autenticaciÃ³n Firebase requerida)
              */
-                       async function generateViaNetlify(userName) {
+                       async function generateViaNetlify(userName, tone = 'motivacional') {
                                        const safeName = sanitize(userName);
                                        const now = new Date();
                                        const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -235,13 +235,14 @@ const AIService = (function() {
 
                 const payload = {
                                     userName: safeName,
+                                    tone: sanitize(tone),
                                     hourOfDay: now.getHours(),
                                     dayOfWeek: days[now.getDay()],
                                     date: now.toLocaleDateString('es-MX'),
                                     weather: weatherData?.condition || null,
                                     temperature: weatherData?.temperature || null,
                                     humidity: weatherData?.humidity || null,
-                                    city: weatherData?.city || 'MÃ©xico',
+                                    city: weatherData?.city || 'México',
                                     saint: santo,
                                     stockCount: inventoryContext.stockCount,
                                     outOfStockCount: inventoryContext.outOfStockCount
@@ -295,9 +296,9 @@ const AIService = (function() {
              * 1. Netlify Function: el servidor genera la frase y la app solo descarga el resultado.
              * 2. Fallback local: solo si Netlify no responde.
              */
-                       async function generate(userName) {
+                       async function generate(userName, tone = 'motivacional') {
                                        try {
-                                                       const result = await generateViaNetlify(userName);
+                                                       const result = await generateViaNetlify(userName, tone);
                                                        if (result.phrase) return result.phrase;
                                        } catch (e) {
                                                        console.log('[IA] Netlify no respondio, usando fallback local...');
@@ -361,7 +362,7 @@ async function getDailyAIPhrase(userId, userName) {
 
                 // Generar nueva frase vÃ­a cascada de IA
                 console.log('ðŸ†• [IA] Generando nueva frase para ' + today + '...');
-                    let newPhrase = await AIService.generate(`${userName} (${tone})`);
+                    let newPhrase = await AIService.generate(userName, tone);
                     let usedFallback = false;
 
                     if (!AIService.isHighQualityPhrase(newPhrase) || history.includes(AIService.normalizePhrase(newPhrase))) {
