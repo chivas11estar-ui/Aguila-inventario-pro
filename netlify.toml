@@ -27,13 +27,12 @@
     X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
 
-# JavaScript - SIN cache: el navegador siempre revalida y recibe la version
-# mas reciente tras cada deploy (evita servir codigo viejo / Ctrl+F5 manual).
+# JavaScript - cache corto con revalidacion
 [[headers]]
   for = "/*.js"
   [headers.values]
     Content-Type = "application/javascript; charset=utf-8"
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "public, max-age=3600, must-revalidate"
 
 # Manifest.json - PWA
 [[headers]]
@@ -60,13 +59,12 @@
     Content-Type = "image/png"
     Cache-Control = "public, max-age=31536000, immutable"
 
-# CSS - SIN cache: el navegador siempre revalida y recibe la version
-# mas reciente tras cada deploy (evita servir estilos viejos).
+# CSS - cache corto con revalidacion
 [[headers]]
   for = "/*.css"
   [headers.values]
     Content-Type = "text/css; charset=utf-8"
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "public, max-age=3600, must-revalidate"
 
 # Imágenes generales - Caché medio (1 semana)
 [[headers]]

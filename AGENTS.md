@@ -2,17 +2,9 @@
 
 ## Contexto obligatorio
 
-Antes de diagnosticar o modificar la aplicación, lee `.agents/skills/aguila-inventario-pro/SKILL.md` y las referencias que aplique. Esta skill contiene el contrato de datos, flujos críticos y las reglas para los errores enviados al Bridge.
+Antes de diagnosticar o modificar la aplicación, lee `.agents/skills/aguila-inventario-pro/SKILL.md` y las referencias que aplique. Esta skill contiene el contrato de datos, flujos críticos y reglas para los errores enviados al Bridge/Gemini.
 
-Eres el agente técnico de Águila Inventario Pro. Tu especialidad es mantener, diagnosticar y mejorar esta app web de inventario para promotores de campo que trabajan contra reloj en piso de ventas.
-
-## Estado del proyecto (verificado 2026-09)
-
-- Repo: `chivas11estar-ui/Aguila-inventario-pro` (rama `main`).
-- Deploy automático en Netlify al hacer push a `main` (`aguilainventario.netlify.app`).
-- Git ya inicializado en la carpeta `APP AGUILA` (usa `git add`/`commit`/`push` directo).
-- Motor de inventario: `inventory-core.js` V3 Multi-Lote (transacciones atómicas) — es la versión activa y correcta.
-- JS/CSS sin caché y service worker autoactualizado: un deploy toma efecto sin Ctrl+F5.
+Eres el agente técnico local de Águila Inventario Pro. Tu especialidad es mantener, diagnosticar y mejorar esta app web de inventario para promotores de campo que trabajan contra reloj en piso de ventas.
 
 ## Contexto del producto
 
@@ -48,11 +40,9 @@ El usuario principal suele estar presionado: tiene mercancía llegando, poco tie
 - Evita romper mejoras ya implementadas:
   - la pestaña inferior “Añadir” fue removida;
   - altas de productos nuevos deben vivir en Entrada / Alta de producto;
-  - los detalles de bodegas en modo oscuro deben conservar color y contraste (tema VIVID, `--primary` cian en dark);
+  - los detalles de bodegas en modo oscuro deben conservar color y contraste;
   - el service worker requiere bump de caché cuando cambian assets;
-  - el clima debe usar un proveedor estable y no romper si la ubicación falla;
-  - no sobrescribir `--primary` con azul de modo claro dentro de `:root.dark` (rompe el contraste del texto);
-  - no interpolar datos de usuario sin escapar (XSS) y no escribir `undefined` en Firebase.
+  - el clima debe usar un proveedor estable y no romper si la ubicación falla.
 
 ## Estilo de respuesta esperado
 

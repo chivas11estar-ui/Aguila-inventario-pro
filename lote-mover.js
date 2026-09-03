@@ -49,15 +49,6 @@
     }
   }
 
-  function escapeLoteHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   // ---------- UI: modal de mover ----------
   function buildModal(producto, loteOrigen, bodegasUsadas) {
     // Eliminar modal previo si existe
@@ -78,7 +69,7 @@
       .filter(b => b !== loteOrigen.bodega)
       .sort((a, b) => a.localeCompare(b, 'es-MX'));
     const optionsHtml = destinosActivos
-      .map(b => '<option value="' + escapeLoteHtml(b) + '">' + escapeLoteHtml(b) + '</option>')
+      .map(b => '<option value="' + b + '">' + b + '</option>')
       .join('');
 
     modal.innerHTML =
@@ -86,9 +77,9 @@
       'padding:24px;box-shadow:0 10px 40px rgba(0,0,0,0.3);color:#111;">' +
       '<h3 style="margin:0 0 8px 0;color:#004aad;font-size:18px;">🔀 Mover lote</h3>' +
       '<div style="font-size:13px;color:#374151;margin-bottom:16px;">' +
-      '<b>' + escapeLoteHtml(producto.nombre || producto.codigoBarras) + '</b><br>' +
-      'Origen: <b>' + escapeLoteHtml(loteOrigen.bodega) + '</b> · Stock: ' + escapeLoteHtml(loteOrigen.stock) + ' caja(s)' +
-      (loteOrigen.fechaCaducidad ? ' · Cad: ' + escapeLoteHtml(loteOrigen.fechaCaducidad) : '') +
+      '<b>' + (producto.nombre || producto.codigoBarras) + '</b><br>' +
+      'Origen: <b>' + loteOrigen.bodega + '</b> · Stock: ' + loteOrigen.stock + ' caja(s)' +
+      (loteOrigen.fechaCaducidad ? ' · Cad: ' + loteOrigen.fechaCaducidad : '') +
       '</div>' +
       '<label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px;">' +
       'Bodega destino</label>' +

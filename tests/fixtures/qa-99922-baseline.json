@@ -1,0 +1,123 @@
+{
+  "fixtureVersion": "2A.4",
+  "qaOnly": true,
+  "determinante": "99922",
+  "generatedFor": "qa.aguila.20260822@example.com",
+  "state": {
+    "productos": {
+      "99922": {
+        "QA-000000000001": {
+          "codigoBarras": "QA-000000000001",
+          "nombre": "PRODUCTO QA ZERO",
+          "marca": "ÁGUILA QA",
+          "piezasPorCaja": 1,
+          "actualizadoPor": "qa.aguila.20260822@example.com",
+          "fechaActualizacion": 1787356800000,
+          "lotes": {
+            "qa-zero-a": {
+              "bodega": "QA_BODEGA_A",
+              "fechaCaducidad": "2026-09-23",
+              "stock": 0,
+              "actualizado": 1787356800000
+            }
+          }
+        },
+        "QA-000000000002": {
+          "codigoBarras": "QA-000000000002",
+          "nombre": "PRODUCTO QA NORMAL",
+          "marca": "ÁGUILA QA",
+          "piezasPorCaja": 12,
+          "actualizadoPor": "qa.aguila.20260822@example.com",
+          "fechaActualizacion": 1787356800000,
+          "lotes": {
+            "qa-normal-a": {
+              "bodega": "QA_BODEGA_A",
+              "fechaCaducidad": "2026-10-15",
+              "stock": 40,
+              "actualizado": 1787356800000
+            }
+          }
+        },
+        "QA-000000000003": {
+          "codigoBarras": "QA-000000000003",
+          "nombre": "PRODUCTO QA MULTILOTE",
+          "marca": "ÁGUILA QA",
+          "piezasPorCaja": 6,
+          "actualizadoPor": "qa.aguila.20260822@example.com",
+          "fechaActualizacion": 1787356800000,
+          "lotes": {
+            "qa-lote-a": {
+              "bodega": "QA_BODEGA_A",
+              "fechaCaducidad": "2026-09-23",
+              "stock": 5,
+              "actualizado": 1787356800000
+            },
+            "qa-lote-b": {
+              "bodega": "QA_BODEGA_A",
+              "fechaCaducidad": "2026-12-11",
+              "stock": 20,
+              "actualizado": 1787356800000
+            }
+          }
+        },
+        "QA-000000000004": {
+          "codigoBarras": "QA-000000000004",
+          "nombre": "PRODUCTO QA MULTIBODEGA",
+          "marca": "ÁGUILA QA",
+          "piezasPorCaja": 24,
+          "actualizadoPor": "qa.aguila.20260822@example.com",
+          "fechaActualizacion": 1787356800000,
+          "lotes": {
+            "qa-bodega-a": {
+              "bodega": "QA_BODEGA_A",
+              "fechaCaducidad": "2026-11-01",
+              "stock": 8,
+              "actualizado": 1787356800000
+            },
+            "qa-bodega-b": {
+              "bodega": "QA_BODEGA_B",
+              "fechaCaducidad": "2027-01-15",
+              "stock": 12,
+              "actualizado": 1787356800000
+            }
+          }
+        }
+      }
+    },
+    "movimientos": {
+      "99922": {
+        "qa-movimiento-baseline": {
+          "tipo": "entrada",
+          "productoNombre": "PRODUCTO QA NORMAL",
+          "productoCodigo": "QA-000000000002",
+          "marca": "ÁGUILA QA",
+          "cajasMovidas": 40,
+          "piezasMovidas": 480,
+          "bodegasafectadas": [{ "bodega": "QA_BODEGA_A", "tomado": 40 }],
+          "fecha": 1787356800000,
+          "usuario": "qa.aguila.20260822@example.com"
+        }
+      }
+    },
+    "auditorias": {
+      "99922": {
+        "qa-auditoria-baseline": {
+          "producto": "PRODUCTO QA MULTILOTE",
+          "codigo": "QA-000000000003",
+          "bodega": "QA_BODEGA_A",
+          "loteId": "qa-lote-a",
+          "fechaCaducidad": "2026-09-23",
+          "esperado": 5,
+          "contado": 5,
+          "diferencia": 0,
+          "fecha": "2026-08-22T00:00:00.000Z",
+          "usuario": "qa.aguila.20260822@example.com",
+          "modo": "normal"
+        }
+      }
+    },
+    "auditorias_completadas": {
+      "99922": {}
+    }
+  }
+}
