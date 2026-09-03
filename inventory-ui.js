@@ -537,19 +537,23 @@ function setupSearchBar() {
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    setupSearchBar();
-  }, 1000);
+function initInventoryUIModule() {
+  console.log('📦 Inicializando módulo de inventario (UI)...');
 
-  // Delegación de eventos para el botón "Resurtir" (evita inline onclick
-  // con datos del usuario, que rompía el HTML y permitía inyección).
+  // Inyectar el buscador de inmediato si el contenedor existe
+  if (document.getElementById('inventory-search-container')) {
+    setupSearchBar();
+  } else {
+    // Si no existe (ej. cargando tab), reintentar en un momento
+    setTimeout(setupSearchBar, 500);
+  }
+
+  // Delegación de eventos para el botón "Resurtir"
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-resurtir]');
     if (!btn) return;
     e.preventDefault();
 
-    // El código de barras vive en el contenedor padre de la tarjeta.
     const card = btn.closest('[data-product-item]');
     const codigo = card?.getAttribute('data-product-code') || '';
     if (!codigo) {
@@ -565,7 +569,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.setRefillModeSafe === 'function') window.setRefillModeSafe('entry');
     }, 100);
   });
-});
+}
+
+// Ejecutar inicialización (maneja carga tardía)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initInventoryUIModule);
+} else {
+  initInventoryUIModule();
+}
 
 // ============================================================
 // EXPONER FUNCIONES PÚBLICAS
