@@ -21,7 +21,13 @@ Trabajar como guardián técnico de una PWA de inventario para promotores que op
 - No escribir en Firebase, cambiar reglas, desplegar, hacer push ni habilitar autorreparación sin autorización explícita.
 - Tratar los cambios de inventario, lotes, caducidad, movimientos y auditoría como críticos: validar cantidades y no perder registros.
 - Al cambiar archivos PWA, actualizar la versión de caché del service worker y comprobar la carga de los scripts en `index.html` o `app-loader.js`.
-- Mantener la interfaz apta para móvil, contraste en modo oscuro, botones táctiles y captura rápida por código de barras.
+- Mantener la interfaz apta para móvil, botones táctiles y captura rápida por código de barras.
+- **Modo Oscuro:** Todas las utilidades `dark:` de Tailwind y los estilos personalizados deben obedecer exclusivamente a la clase `.dark` en el `<html>` (independiente del sistema operativo).
+- **Contraste:** Garantizar legibilidad en modo oscuro usando variables semánticas (`--text`, `--muted`, `--surface-dim`) y evitando colores fijos (`#1e293b`, `white`) en el JS/HTML.
+- **Buscador:** El buscador global en la pestaña de Stock debe inicializarse de forma robusta tras la carga de módulos para evitar errores de sincronización.
+- **IA de Frases:** El sistema de frases motivacionales utiliza una Netlify Function con Groq/Llama-3. Siempre debe tener un fallback local y limpiar etiquetas de tono (ej. `(motivacional)`) antes de mostrar el texto.
+- **Clima:** La escena del clima debe mantenerse nítida (sin filtros blur excesivos) para garantizar claridad visual en el perfil.
+- **Limpieza Ferrari:** El repositorio debe mantenerse libre de archivos duplicados (`-josekarla1`), carpetas vacías y archivos de configuración redundantes. Solo la carpeta `APP AGUILA` se sincroniza con GitHub.
 - Ejecutar validación de sintaxis o la prueba más cercana antes de entregar un cambio.
 
 ## Errores del Bridge (DESHABILITADO — referencia histórica)
