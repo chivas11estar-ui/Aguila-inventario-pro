@@ -408,6 +408,8 @@ async function getDailyAIPhrase(userId, userName) {
 // ============================================================
 function normalizeAIPhraseText(value) {
             return String(value ?? '')
+                            .replace(/\s*\(motivacional\)\s*/gi, ' ')
+                            .replace(/\s*\(ventas\)\s*/gi, ' ')
                             .replace(/\u00c3\u0081/g, 'Á')
                             .replace(/\u00c3\u00a1/g, 'á')
                             .replace(/\u00c3\u0089/g, 'É')
@@ -432,6 +434,7 @@ function normalizeAIPhraseText(value) {
                             .replace(/\u00f0\u009f\u0092\u008e/g, '')
                             .replace(/\u00f0\u009f\u008e\u00af/g, '')
                             .replace(/\s+/g, ' ')
+                            .replace(/:\s+:/g, ':') // Fix dobles puntos si quedaron
                             .trim();
 }
 
