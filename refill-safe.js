@@ -93,7 +93,11 @@ window.setRefillModeSafe = function(mode) {
       submitBtn.textContent = mode === 'entry' ? '➕ Registrar Entrada' : (mode === 'pieces' ? '🧩 Mover Piezas' : '✅ Registrar Movimiento');
       submitBtn.className = mode === 'entry' ? 'success' : 'primary';
   }
-  if (refillCurrentProduct) renderLoteSelector(refillCurrentProduct.lotes || []);
+  if (refillCurrentProduct) {
+    renderLoteSelector(refillCurrentProduct.lotes || []);
+  } else {
+    actualizarVisibilidadManualEntry();
+  }
 };
 
 // 2. BÚSQUEDA Y SELECCIÓN
@@ -131,7 +135,16 @@ function renderLoteSelector(lotes) {
   if (!infoDiv) return;
   infoDiv.style.display = 'block';
 
-  const validLotes = refillMode === 'entry' ? lotes : lotes.filter(l => l.stock > 0);
+  // Filtrar lotes duplicados (mismo nombre y fecha) para limpiar la UI
+  const seenLotes = new Set();
+  const uniqueLotes = lotes.filter(l => {
+    const key = `${(l.bodega || '').trim().toLowerCase()}_${(l.fechaCaducidad || '').trim()}`;
+    if (seenLotes.has(key)) return false;
+    seenLotes.add(key);
+    return true;
+  });
+
+  const validLotes = refillMode === 'entry' ? uniqueLotes : uniqueLotes.filter(l => l.stock > 0);
   let html = `<div style="padding:10px; background:rgba(59,130,246,0.1); border-radius:12px; margin-bottom:15px;">
                 <h4 style="margin:0;">📦 Stock Total: ${escaparHtmlSeguro(refillCurrentProduct.stockTotal)} cajas</h4>
               </div>`;
@@ -142,27 +155,38 @@ function renderLoteSelector(lotes) {
     validLotes.forEach(l => {
       const loteIdSafe = escaparHtmlSeguro(l.loteId);
       const bodegaSafe = escaparHtmlSeguro(l.bodega);
-      const bodegaAttrSafe = escaparHtmlSeguro(l.bodega);
-      html += `<div data-lote-id="${loteIdSafe}" data-bodega="${bodegaAttrSafe}" class="aguila-lote-btn"
-                style="padding:12px; border-radius:10px; border:2px solid var(--border); cursor:pointer; display:flex; justify-content:space-between;">
-                <strong>📍 ${bodegaSafe}</strong> <span>${escaparHtmlSeguro(l.stock)} cajas</span>
+      const fechaSafe = l.fechaCaducidad ? ` (Vence: ${escaparHtmlSeguro(l.fechaCaducidad)})` : ' (Sin fecha)';
+      html += `<div data-lote-id="${loteIdSafe}" data-bodega="${bodegaSafe}" class="aguila-lote-btn"
+                style="padding:12px; border-radius:10px; border:2px solid var(--border); cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; flex-direction:column;">
+                  <strong>📍 ${bodegaSafe}</strong>
+                  <small style="font-size:10px; opacity:0.6;">${fechaSafe}</small>
+                </div>
+                <span style="font-weight:700;">${escaparHtmlSeguro(l.stock)} <small>caj</small></span>
                </div>`;
     });
     html += `</div>`;
+  } else if (refillMode === 'entry') {
+    html += `<p style="font-size:11px; color:var(--primary); font-weight:700;">✨ No hay bodegas registradas. Crea una nueva abajo.</p>`;
   }
+
   infoDiv.innerHTML = html;
 
-  // Delegación de eventos (evita inline onclick con datos sin escapar).
+  // Delegación de eventos
   infoDiv.querySelectorAll('.aguila-lote-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       window.seleccionarLote(btn.dataset.loteId, btn.dataset.bodega);
     });
   });
 
+  // Si solo hay un lote en modo entrada, seleccionarlo automáticamente
   refillCurrentLoteId = null;
   if (refillMode === 'entry' && validLotes.length === 1) {
-    refillCurrentLoteId = validLotes[0].loteId;
-    document.getElementById('refill-warehouse').value = validLotes[0].bodega || 'General';
+    window.seleccionarLote(validLotes[0].loteId, validLotes[0].bodega);
+  } else {
+    // Si no hay selección automática, resetear inputs de manual
+    document.getElementById('refill-warehouse').value = '';
+    actualizarVisibilidadManualEntry();
   }
 }
 
@@ -170,9 +194,32 @@ window.seleccionarLote = function(id, bodega) {
   refillCurrentLoteId = id;
   document.querySelectorAll('.aguila-lote-btn').forEach(el => {
     el.style.borderColor = el.dataset.loteId === id ? 'var(--primary)' : 'var(--border)';
+    el.style.background = el.dataset.loteId === id ? 'rgba(59,130,246,0.05)' : 'transparent';
   });
   document.getElementById('refill-warehouse').value = bodega;
+  actualizarVisibilidadManualEntry();
 };
+
+function actualizarVisibilidadManualEntry() {
+  const expiryGroup = document.getElementById('refill-expiry-date-group');
+  const warehouseInput = document.getElementById('refill-warehouse');
+
+  if (refillMode === 'entry' && !refillCurrentLoteId) {
+    // Modo Entrada y NO se ha seleccionado un lote existente -> Mostrar fecha y permitir editar bodega
+    if (expiryGroup) expiryGroup.style.display = 'block';
+    if (warehouseInput) {
+      warehouseInput.readOnly = false;
+      warehouseInput.placeholder = "Escribe el nombre de la bodega";
+    }
+  } else {
+    // Otros modos o lote seleccionado -> Ocultar fecha y bloquear bodega
+    if (expiryGroup) expiryGroup.style.display = 'none';
+    if (warehouseInput) {
+      warehouseInput.readOnly = true;
+      if (!refillCurrentLoteId) warehouseInput.placeholder = "Se llenará automáticamente";
+    }
+  }
+}
 
 // 3. PROCESAMIENTO Y ACTUALIZACIÓN DE ANALÍTICA
 async function executeRefillOperation(operation) {
