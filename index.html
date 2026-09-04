@@ -556,13 +556,20 @@
             <p style="color: #6b7280; font-size: 13px;">Escanea cualquier código: si es nuevo podrás darlo de alta aquí mismo</p>
 
             <div id="refill-mode-selector"
-              style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; flex-wrap: wrap;">
-              <button id="btn-refill-mode-exit" class="primary" style="flex: 1; opacity: 1;">&#128230; Salida (Rellenar Exhibidor)</button>
-              <button id="btn-refill-mode-pieces" class="warning" style="flex: 1; opacity: 0.6;">&#129329; Por Piezas</button>
-              <button id="btn-refill-mode-entry" class="secondary" style="flex: 1; opacity: 0.6;">&#10133; Entrada / Alta de producto</button>
+              style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+              <button id="btn-refill-mode-exit" class="primary" style="opacity: 1;">&#128230; Salida (Rellenar)</button>
+              <button id="btn-refill-mode-pieces" class="warning" style="opacity: 0.6;">🧩 Por Piezas</button>
+              <button id="btn-refill-mode-entry" class="secondary" style="opacity: 0.6;">➕ Entrada / Alta</button>
+              <button id="btn-refill-mode-reception" class="success" style="opacity: 0.6;">🚚 Recepción Tarima</button>
             </div>
 
             <form id="refill-form" style="margin-top: 20px;">
+              <div class="form-group" id="refill-name-group" style="display: none;">
+                <label for="refill-name-search">Nombre del Producto (Escribe para buscar)</label>
+                <input id="refill-name-search" type="text" placeholder="Ej: Sabritas 80g" autocomplete="off" />
+                <div id="refill-name-suggestions" class="suggestions-container"></div>
+              </div>
+
               <div class="form-group">
                 <label for="refill-barcode">Código de Barras</label>
                 <div style="display:flex;gap:8px;">

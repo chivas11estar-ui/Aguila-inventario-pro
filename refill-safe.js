@@ -78,27 +78,93 @@ window.setRefillModeSafe = function(mode) {
   const btnEntry = document.getElementById('btn-refill-mode-entry');
   const btnExit  = document.getElementById('btn-refill-mode-exit');
   const btnPieces = document.getElementById('btn-refill-mode-pieces');
+  const btnReception = document.getElementById('btn-refill-mode-reception');
   const boxesLabel = document.getElementById('refill-boxes-label');
   const submitBtn = document.querySelector('#refill-form button[type="submit"]');
+  const nameGroup = document.getElementById('refill-name-group');
 
-  [btnEntry, btnExit, btnPieces].forEach(btn => {
-    if (btn) btn.style.cssText = "opacity: 0.5; transform: scale(0.95);";
+  [btnEntry, btnExit, btnPieces, btnReception].forEach(btn => {
+    if (btn) btn.style.opacity = "0.5";
   });
 
-  const activeBtn = mode === 'entry' ? btnEntry : (mode === 'pieces' ? btnPieces : btnExit);
-  if (activeBtn) activeBtn.style.cssText = "opacity: 1; transform: scale(1.05);";
+  const activeBtn = mode === 'entry' ? btnEntry : (mode === 'pieces' ? btnPieces : (mode === 'reception' ? btnReception : btnExit));
+  if (activeBtn) activeBtn.style.opacity = "1";
 
-  if (boxesLabel) boxesLabel.textContent = mode === 'entry' ? 'Cajas a AÑADIR' : 'Cajas a MOVER';
+  if (boxesLabel) boxesLabel.textContent = (mode === 'entry' || mode === 'reception') ? 'Cajas a AÑADIR' : 'Cajas a MOVER';
+
   if (submitBtn) {
-      submitBtn.textContent = mode === 'entry' ? '➕ Registrar Entrada' : (mode === 'pieces' ? '🧩 Mover Piezas' : '✅ Registrar Movimiento');
-      submitBtn.className = mode === 'entry' ? 'success' : 'primary';
+      if (mode === 'reception') {
+          submitBtn.textContent = '🚚 Recibir Mercancía';
+          submitBtn.className = 'success';
+      } else if (mode === 'entry') {
+          submitBtn.textContent = '➕ Registrar Entrada';
+          submitBtn.className = 'success';
+      } else {
+          submitBtn.textContent = mode === 'pieces' ? '🧩 Mover Piezas' : '✅ Registrar Movimiento';
+          submitBtn.className = 'primary';
+      }
   }
+
+  // Mostrar buscador por nombre solo en modo recepción
+  if (nameGroup) nameGroup.style.display = mode === 'reception' ? 'block' : 'none';
+
   if (refillCurrentProduct) {
     renderLoteSelector(refillCurrentProduct.lotes || []);
   } else {
     actualizarVisibilidadManualEntry();
   }
 };
+
+// AUTOCOMPLETE DE PRODUCTOS POR NOMBRE
+function initRefillAutocomplete() {
+  const input = document.getElementById('refill-name-search');
+  const suggestions = document.getElementById('refill-name-suggestions');
+  if (!input || !suggestions) return;
+
+  let timeout;
+  input.addEventListener('input', () => {
+    clearTimeout(timeout);
+    const query = input.value.trim();
+    if (query.length < 3) {
+      suggestions.style.display = 'none';
+      return;
+    }
+
+    timeout = setTimeout(async () => {
+      const results = await window.buscarCatalogoPorNombre(query);
+      if (results.length > 0) {
+        suggestions.innerHTML = results.map(p => `
+          <div class="suggestion-item" data-code="${p.codigo}">
+            <strong>${p.nombre}</strong>
+            <small>${p.marca} • ${p.codigo}</small>
+          </div>
+        `).join('');
+        suggestions.style.display = 'block';
+
+        suggestions.querySelectorAll('.suggestion-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const code = item.dataset.code;
+            document.getElementById('refill-barcode').value = code;
+            window.searchProductForRefillSafe(code);
+            suggestions.style.display = 'none';
+            input.value = item.querySelector('strong').textContent;
+          });
+        });
+      } else {
+        suggestions.style.display = 'none';
+      }
+    }, 400);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+      suggestions.style.display = 'none';
+    }
+  });
+}
+
+// Ejecutar al cargar
+setTimeout(initRefillAutocomplete, 1000);
 
 // 2. BÚSQUEDA Y SELECCIÓN
 window.searchProductForRefillSafe = async function(barcode) {
@@ -204,7 +270,13 @@ function actualizarVisibilidadManualEntry() {
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
 
-  if (refillMode === 'entry' && !refillCurrentLoteId) {
+  if (refillMode === 'reception') {
+    if (expiryGroup) expiryGroup.style.display = 'none';
+    if (warehouseInput) {
+      warehouseInput.readOnly = true;
+      warehouseInput.value = "📥 Recepción";
+    }
+  } else if (refillMode === 'entry' && !refillCurrentLoteId) {
     // Modo Entrada y NO se ha seleccionado un lote existente -> Mostrar fecha y permitir editar bodega
     if (expiryGroup) expiryGroup.style.display = 'block';
     if (warehouseInput) {
@@ -266,25 +338,27 @@ async function executeRefillOperation(operation) {
     let origenStock = 'bodega';
     let stockBodegaDescontado = true;
 
-    if (mode === 'entry') {
-      if (selectedLoteId) {
+    if (mode === 'entry' || mode === 'reception') {
+      const targetWarehouse = mode === 'reception' ? '📥 Recepción' : (warehouse || 'General');
+
+      if (selectedLoteId && mode !== 'reception') {
         await modificarStock(product.codigoBarras, totalCajas, 'sumar', selectedLoteId);
         const selected = (product.lotes || []).find((lote) => lote.loteId === selectedLoteId);
-        result = { detalle: [{ loteId: selectedLoteId, bodega: selected?.bodega || warehouse, tomado: totalCajas }] };
+        result = { detalle: [{ loteId: selectedLoteId, bodega: selected?.bodega || targetWarehouse, tomado: totalCajas }] };
       } else {
         const arrival = await guardarProducto({
           codigoBarras: product.codigoBarras,
           nombre: product.nombre,
           marca: product.marca || 'Otra',
           piezasPorCaja: ppc,
-          ubicacion: warehouse || 'General',
+          ubicacion: targetWarehouse,
           fechaCaducidad: expiryDate || '',
           cajas: totalCajas
         });
-        result = { detalle: [{ loteId: arrival.loteId, bodega: warehouse || 'General', tomado: totalCajas }] };
+        result = { detalle: [{ loteId: arrival.loteId, bodega: targetWarehouse, tomado: totalCajas }] };
       }
-      movementType = 'entrada';
-      origenStock = 'entrada_bodega';
+      movementType = mode === 'reception' ? 'recepcion' : 'entrada';
+      origenStock = mode === 'reception' ? 'recepcion_tarima' : 'entrada_bodega';
       stockBodegaDescontado = false;
       stockMutationConfirmed = true;
     } else if ((parseFloat(product.stockTotal) || 0) <= 0) {

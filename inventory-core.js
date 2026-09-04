@@ -113,6 +113,27 @@ function getCatalogProductRef(codigoBarras) {
 // ============================================================
 // 5. BUSCAR PRODUCTO — retorna info + lotes expandidos
 // ============================================================
+async function buscarCatalogoPorNombre(query) {
+  if (!query || query.trim().length < 3) return [];
+  const term = query.trim().toLowerCase();
+
+  try {
+    const snapshot = await firebase.database().ref('catalogoProductos').once('value');
+    const catalog = snapshot.val() || {};
+
+    return Object.entries(catalog)
+      .map(([codigo, data]) => ({ codigo, ...data }))
+      .filter(p =>
+        p.nombre.toLowerCase().includes(term) ||
+        p.marca.toLowerCase().includes(term)
+      )
+      .slice(0, 8); // Límite de sugerencias
+  } catch (error) {
+    console.error('❌ Error buscando en catálogo:', error);
+    return [];
+  }
+}
+
 async function buscarProductoPorCodigo(codigoBarras) {
   const det = await getCachedDeterminante();
   if (!det) return null;

@@ -1566,18 +1566,49 @@ html {
     color: var(--text) !important;
 }
 
+/* SUGGESTIONS AUTOCOMPLETE */
+.suggestions-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+    position: absolute;
+    width: 100%;
+    z-index: 100;
+    box-shadow: var(--shadow-xl);
+    display: none;
+}
+
+.suggestion-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: var(--surface-container);
+}
+
+.suggestion-item strong {
+    display: block;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.suggestion-item small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
 @media (max-width: 520px) {
     #refill-mode-selector {
-        grid-template-columns: 1fr;
-    }
-
-    #refill-form [style*="grid-template-columns: 1fr 1fr"],
-    #audit .responsive-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    .aguila-kpi-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr !important;
     }
 }
 
