@@ -124,8 +124,8 @@ async function buscarCatalogoPorNombre(query) {
     return Object.entries(catalog)
       .map(([codigo, data]) => ({ codigo, ...data }))
       .filter(p =>
-        p.nombre.toLowerCase().includes(term) ||
-        p.marca.toLowerCase().includes(term)
+        String(p.nombre || '').toLowerCase().includes(term) ||
+        String(p.marca || '').toLowerCase().includes(term)
       )
       .slice(0, 8); // Límite de sugerencias
   } catch (error) {
@@ -587,23 +587,44 @@ async function handleAddProductV2(event) {
 
       const usuario = firebase.auth().currentUser?.email || 'sistema';
       const ahora = Date.now();
-      const updates = {};
+      const productRef = firebase.database().ref('productos/' + det + '/' + safeCode);
 
-      // Actualiza datos generales del producto.
-      updates[`productos/${det}/${safeCode}/nombre`] = formData.nombre.trim();
-      updates[`productos/${det}/${safeCode}/marca`] = formData.marca;
-      updates[`productos/${det}/${safeCode}/codigoBarras`] = safeCode;
-      updates[`productos/${det}/${safeCode}/piezasPorCaja`] = formData.piezasPorCaja;
-      updates[`productos/${det}/${safeCode}/actualizadoPor`] = usuario;
-      updates[`productos/${det}/${safeCode}/fechaActualizacion`] = ahora;
+      await new Promise((resolve, reject) => {
+        productRef.transaction((currentProduct) => {
+          const current = currentProduct && typeof currentProduct === 'object' ? currentProduct : {};
+          const currentLotes = current.lotes && typeof current.lotes === 'object' ? current.lotes : {};
 
-      // Actualiza el MISMO lote (no crea uno nuevo).
-      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/bodega`] = formData.ubicacion?.trim() || 'General';
-      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/fechaCaducidad`] = formData.fechaCaducidad;
-      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/stock`] = formData.cajas;
-      updates[`productos/${det}/${safeCode}/lotes/${editingLoteId}/actualizado`] = ahora;
+          if (!currentLotes[editingLoteId]) {
+            console.error('[CORE] El lote a editar no existe en DB');
+            return undefined;
+          }
 
-      await firebase.database().ref().update(updates);
+          return {
+            ...current,
+            nombre: formData.nombre.trim(),
+            marca: formData.marca,
+            codigoBarras: safeCode,
+            piezasPorCaja: formData.piezasPorCaja,
+            actualizadoPor: usuario,
+            fechaActualizacion: ahora,
+            lotes: {
+              ...currentLotes,
+              [editingLoteId]: {
+                ...currentLotes[editingLoteId],
+                bodega: formData.ubicacion?.trim() || 'General',
+                fechaCaducidad: formData.fechaCaducidad,
+                stock: formData.cajas,
+                actualizado: ahora
+              }
+            }
+          };
+        }, (error, committed) => {
+          if (error) return reject(error);
+          if (!committed) return reject(new Error('EDICION_NO_CONFIRMADA'));
+          resolve();
+        });
+      });
+
       showToast(`✅ ${formData.nombre} actualizado`, 'success');
     } else {
       await guardarProducto(formData);
