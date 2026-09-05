@@ -1,4 +1,8 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const PROJECT_ID = "promosentry";
+const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
 
 const MODELS = [
   "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -34,9 +38,25 @@ type PhraseRequest = {
 const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
+
+async function validateToken(authHeader: string | null) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.split("Bearer ")[1];
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${PROJECT_ID}`,
+      audience: PROJECT_ID,
+    });
+    return payload;
+  } catch (error: any) {
+    console.error("❌ Error validando token:", error.message);
+    return null;
+  }
+}
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -45,6 +65,12 @@ export default async (req: Request) => {
 
   if (req.method !== "POST") {
     return json({ error: "Metodo no permitido. Usa POST." }, 405);
+  }
+
+  // VALIDACIÓN DE SEGURIDAD REAL
+  const payload = await validateToken(req.headers.get("authorization"));
+  if (!payload) {
+    return json({ error: "No autorizado. Token inválido o expirado." }, 401);
   }
 
   const body = await readJson(req);

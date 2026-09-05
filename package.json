@@ -22,7 +22,8 @@
   },
   "type": "commonjs",
   "dependencies": {
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "jose": "^5.2.3"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.2"
