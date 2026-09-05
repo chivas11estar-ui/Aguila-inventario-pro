@@ -26,7 +26,7 @@ function renderInventoryUI(productos, targetId = 'inventory-list') {
 
       listElement.innerHTML = `
         <p style="color: var(--muted); text-align: center; padding: 40px;">
-          ${emptyMsg}
+          ${window.escapeHtml(emptyMsg)}
         </p>
       `;
       return;
@@ -94,11 +94,11 @@ function renderBrandSection(marca, productos, targetId) {
   const railColor = targetId === 'inventory-list' ? style.bg : '#565e74';
 
   let html = `
-    <div class="aguila-brand-section" data-brand-section="${marca}" data-container="${targetId}">
+    <div class="aguila-brand-section" data-brand-section="${window.escapeHtml(marca)}" data-container="${window.escapeHtml(targetId)}">
       <!-- Header de marca -->
       <div 
         data-brand-header 
-        data-brand-name="${marca}"
+        data-brand-name="${window.escapeHtml(marca)}"
         class="aguila-brand-header"
         style="
           background: ${finalBg} !important;
@@ -109,7 +109,7 @@ function renderBrandSection(marca, productos, targetId) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: 1px solid rgba(197, 197, 217, 0.5);
+          border: 1px solid var(--border);
           border-radius: 18px;
           box-shadow: var(--shadow-glass);
         "
@@ -120,7 +120,7 @@ function renderBrandSection(marca, productos, targetId) {
             ${targetId === 'inventory-list' ? 'local_offer' : 'block'}
           </span>
           <div style="display: flex; flex-direction: column;">
-            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">${marca}</span>
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">${window.escapeHtml(marca)}</span>
             <span style="font-size: 11px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
               ${totales.totalProductos} productos • ${totales.totalCajas} cajas
             </span>
@@ -150,25 +150,20 @@ function renderBrandSection(marca, productos, targetId) {
 // ============================================================
 // RENDERIZAR TARJETA DE PRODUCTO
 // ============================================================
-function escapeAttrValue(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 function renderProductCard(product, targetId) {
   const bodegas = Array.isArray(product.bodegas) ? product.bodegas : [];
   const firstBodega = bodegas[0] || null;
-  const productCodeArg = JSON.stringify(product.codigoBarras || '');
-  const firstBodegaIdArg = JSON.stringify(firstBodega?.id || '');
+  const productCodeArg = window.escapeHtml(`'${window.escapeJsStr(product.codigoBarras || '')}'`);
+  const firstBodegaIdArg = window.escapeHtml(`'${window.escapeJsStr(firstBodega?.id || '')}'`);
+
   const editAction = bodegas.length === 1 && firstBodega?.id
     ? `window.editarProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para editar","info")`;
   const moveAction = bodegas.length === 1 && firstBodega?.id
     ? `event.stopPropagation(); window.moverProducto && window.moverProducto(${firstBodegaIdArg}, ${productCodeArg})`
     : `if(typeof showToast==="function") showToast("Sin lote/bodega para mover","info")`;
+
   const tieneMuchasBodegas = bodegas.length > 1;
   const totalCajas = parseInt(product.totalCajas || product.cajas) || 0;
   const totalPiezas = parseInt(product.totalPiezas || product.piezas || product.piezasSueltas) || 0;
@@ -176,7 +171,6 @@ function renderProductCard(product, targetId) {
   const isOutOfStock = totalCajas <= 0 && totalPiezas <= 0 && totalAntiguo <= 0;
   
   const productName = product.nombre;
-  const brandName = product.marca;
 
   // Calcular info de caducidad
   const expiryInfo = window.calculateExpiryInfo(product, window.BRAND_EXPIRY_CONFIG);
@@ -185,7 +179,7 @@ function renderProductCard(product, targetId) {
     <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
       <span class="material-icons-round" style="font-size: 14px; color: ${expiryInfo.color};">event_note</span>
       <span style="color: ${expiryInfo.color}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em;">
-        ${expiryInfo.text}
+        ${window.escapeHtml(expiryInfo.text)}
       </span>
     </div>
   ` : '';
@@ -220,20 +214,20 @@ function renderProductCard(product, targetId) {
   return `
     <div
       data-product-item
-      data-product-name="${escapeAttrValue(productName)}"
-      data-product-code="${escapeAttrValue(product.codigoBarras)}"
+      data-product-name="${window.escapeHtml(productName)}"
+      data-product-code="${window.escapeHtml(product.codigoBarras)}"
       class="product-card aguila-product-card"
       style="border-left: 6px solid ${statusBorder};"
     >
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
         <div style="flex: 1;">
           <h4 style="margin: 0 0 8px 0; color: var(--text); font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2;">
-            ${productName} ${statusIcon}
+            ${window.escapeHtml(productName)} ${statusIcon}
           </h4>
           <div style="font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.4;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">qr_code_2</span>
-              <span>${product.codigoBarras || 'N/A'}</span>
+              <span>${window.escapeHtml(product.codigoBarras || 'N/A')}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
               <span class="material-icons-round" style="font-size: 14px; opacity: 0.6;">layers</span>
@@ -323,31 +317,31 @@ function renderProductCard(product, targetId) {
 // RENDERIZAR MÚLTIPLES BODEGAS
 // ============================================================
 function renderMultipleWarehouses(product, salesAvg = 0) {
-  const productCodeArg = JSON.stringify(product.codigoBarras || '');
+  const productCodeArg = window.escapeHtml(`'${window.escapeJsStr(product.codigoBarras || '')}'`);
   return `
-    <details class="bodega-details" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
-      <summary style="cursor: pointer; font-weight: 700; color: #2563eb; padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+    <details class="bodega-details" style="background: var(--surface-dim); border-radius: 10px; border: 1px solid var(--border);">
+      <summary style="cursor: pointer; font-weight: 700; color: var(--primary); padding: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
         <span class="material-icons-round" style="font-size:18px;">place</span>
-        Ubicado en ${product.bodegas.length} bodegas
+        Ubicado en ${Number(product.bodegas.length)} bodegas
       </summary>
       <ul style="list-style: none; padding: 0 12px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
         ${product.bodegas.filter(b => b.cajas > 0).map(bodega => {
-          const loteIdArg = JSON.stringify(bodega.id || '');
+          const loteIdArg = window.escapeHtml(`'${window.escapeJsStr(bodega.id || '')}'`);
           const bodegaExpiry = bodega.fechaCaducidad ? new Date(bodega.fechaCaducidad) : null;
           const bodegaDays = bodegaExpiry 
             ? Math.ceil((bodegaExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
             : null;
 
           return `
-            <li style="padding: 10px; background: white; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <li style="padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 700; color: #1e293b;">${bodega.ubicacion}</span>
-                <span style="font-weight: 800; color: #2563eb; font-size: 15px;">${bodega.cajas} <small style="font-weight:400; color:var(--muted);">caj</small></span>
+                <span style="font-weight: 700; color: var(--text);">${window.escapeHtml(bodega.ubicacion)}</span>
+                <span style="font-weight: 800; color: var(--primary); font-size: 15px;">${Number(bodega.cajas)} <small style="font-weight:400; color:var(--muted);">caj</small></span>
               </div>
               <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio: ${salesAvg} pzas/día</div>
               ${bodegaDays !== null ? `
-                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500; margin-top: 2px;">
-                  📅 Cad: ${bodega.fechaCaducidad} (${bodegaDays} días)
+                <div style="font-size: 11px; color: ${bodegaDays <= 30 ? 'var(--error)' : 'var(--muted)'}; font-weight: 500; margin-top: 2px;">
+                  📅 Cad: ${window.escapeHtml(bodega.fechaCaducidad)} (${bodegaDays} días)
                 </div>
               ` : ''}
               <div style="display:flex; gap:8px; margin-top:8px;">
@@ -386,8 +380,8 @@ function renderSingleWarehouse(product, salesAvg = 0) {
   const bodega = bodegas[0];
   if (!bodega) {
     return `
-      <div class="aguila-lote-card">
-        <div style="font-size: 12px; color: #64748b; font-weight: 600;">Sin bodega/lote asociado</div>
+      <div class="aguila-lote-card" style="background: var(--surface-dim); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px;">
+        <div style="font-size: 12px; color: var(--muted); font-weight: 600;">Sin bodega/lote asociado</div>
         <div style="font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px;">Promedio de venta: ${salesAvg} pzas/dia</div>
       </div>
     `;
@@ -398,17 +392,17 @@ function renderSingleWarehouse(product, salesAvg = 0) {
     : null;
   
   return `
-    <div class="aguila-lote-card" style="display: flex; flex-direction: column; gap: 4px;">
+    <div class="aguila-lote-card" style="display: flex; flex-direction: column; gap: 4px; background: var(--surface-dim); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 6px;">
           <span class="material-icons-round" style="font-size:16px;">business</span>
-          <strong>Bodega:</strong> ${bodega.ubicacion}
+          <strong>Bodega:</strong> ${window.escapeHtml(bodega.ubicacion)}
         </span>
       </div>
       <div style="font-size: 11px; color: var(--primary); font-weight: 600;">📈 Promedio de venta: ${salesAvg} pzas/día</div>
       ${bodega.fechaCaducidad ? `
-        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? '#ef4444' : '#64748b'}; font-weight: 500;">
-          📅 Caducidad: <strong>${bodega.fechaCaducidad}</strong> (${bodegaDays || '?'} días)
+        <div style="font-size: 11px; color: ${bodegaDays <= 30 ? 'var(--error)' : 'var(--muted)'}; font-weight: 500;">
+          📅 Caducidad: <strong>${window.escapeHtml(bodega.fechaCaducidad)}</strong> (${bodegaDays || '?'} días)
         </div>
       ` : ''}
     </div>
@@ -489,7 +483,7 @@ function toggleBrandUI(brandName, containerId) {
   const isExpanded = window.toggleBrandState(brandName);
 
   // Buscar TODOS los elementos con data-brand-section que coincidan con la marca
-  const allSections = document.querySelectorAll(`[data-brand-section="${brandName}"]`);
+  const allSections = document.querySelectorAll(`[data-brand-section="${window.escapeHtml(brandName)}"]`);
 
   console.log(`📍 Buscando secciones para marca "${brandName}":`, allSections.length, 'encontradas');
 
@@ -519,7 +513,7 @@ function toggleBrandUI(brandName, containerId) {
 function applyBrandStates() {
   Object.keys(window.INVENTORY_STATE.marcasExpandidas).forEach(marca => {
     const isExpanded = window.INVENTORY_STATE.marcasExpandidas[marca];
-    document.querySelectorAll(`[data-brand-section="${marca}"]`).forEach(section => {
+    document.querySelectorAll(`[data-brand-section="${window.escapeHtml(marca)}"]`).forEach(section => {
       const productsList = section.querySelector('[data-products-list]');
       const arrow = section.querySelector('[data-brand-arrow]');
       if (productsList) productsList.style.display = isExpanded ? 'block' : 'none';

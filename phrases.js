@@ -128,10 +128,10 @@ function renderPhrasesList() {
 
   listContainer.innerHTML = userMotivationalPhrases.map(phrase => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f3f4f6;">
-      <span style="color: #1f2937; font-style: italic;">“${escapePhraseHtml(phrase.text)}”</span>
+      <span style="color: #1f2937; font-style: italic;">“${window.escapeHtml(phrase.text)}”</span>
       ${phrase.id !== 'default' ? `
       <button
-        data-delete-phrase="${escapePhraseHtml(phrase.id)}"
+        data-delete-phrase="${window.escapeHtml(phrase.id)}"
         class="btn-icon error" 
         style="font-size: 16px; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;"
         title="Eliminar frase"
@@ -279,9 +279,9 @@ window.renderMotivationalPhrasesList = function () {
 
   container.innerHTML = userMotivationalPhrases.map(phrase => `
     <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f3f4f6;">
-      <span style="color:#1f2937; font-style:italic;">“${escapePhraseHtml(phrase.text)}”</span>
+      <span style="color:#1f2937; font-style:italic;">“${window.escapeHtml(phrase.text)}”</span>
       ${phrase.id !== 'default' ? `
-      <button data-delete-phrase="${escapePhraseHtml(phrase.id)}" class="btn-icon error"
+      <button data-delete-phrase="${window.escapeHtml(phrase.id)}" class="btn-icon error"
         style="font-size:16px; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
         title="Eliminar frase">❌</button>
       ` : ''}

@@ -67,7 +67,7 @@ function renderProfileUI() {
 // ============================================================
 function renderProfileHeader(userData, preferences) {
   const defaultAvatar = `<span class="material-icons-round text-6xl">person</span>`;
-  const userAvatar = preferences.avatar ? `<span class="text-6xl">${preferences.avatar}</span>` : defaultAvatar;
+  const userAvatar = preferences.avatar ? `<span class="text-6xl">${window.escapeHtml(preferences.avatar)}</span>` : defaultAvatar;
 
   return `
     <section class="profile-gradient rounded-3xl p-8 text-center text-white ios-shadow relative overflow-hidden">
@@ -76,20 +76,20 @@ function renderProfileHeader(userData, preferences) {
         <div class="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-white/30">
           ${userAvatar}
         </div>
-        <h2 class="text-2xl font-bold mb-1">${userData.nombrePromotor || 'Promotor'}</h2>
+        <h2 class="text-2xl font-bold mb-1">${window.escapeHtml(userData.nombrePromotor || 'Promotor')}</h2>
         <div class="space-y-2 opacity-90 text-sm font-light">
           <div class="flex items-center justify-center gap-2">
             <span class="material-icons-round text-sm">alternate_email</span>
-            <span>${userData.email || 'N/A'}</span>
+            <span>${window.escapeHtml(userData.email || 'N/A')}</span>
           </div>
           <div class="flex items-center justify-center gap-2">
             <span class="material-icons-round text-sm">store</span>
-            <span>${userData.nombreTienda || 'Sin tienda asignada'}</span>
+            <span>${window.escapeHtml(userData.nombreTienda || 'Sin tienda asignada')}</span>
           </div>
         </div>
         <div class="mt-6 inline-flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full text-xs font-medium border border-white/10">
           <span class="material-icons-round text-sm text-yellow-400">vpn_key</span>
-          <span>Determinante: <span class="font-bold">${userData.determinante || 'N/A'}</span></span>
+          <span>Determinante: <span class="font-bold">${window.escapeHtml(userData.determinante || 'N/A')}</span></span>
         </div>
       </div>
     </section>
@@ -159,7 +159,7 @@ function renderWeatherSceneLayer() {
 // RENDERIZAR TARJETA DE CLIMA
 // ============================================================
 function renderWeatherCard(weather) {
-  const weatherCity = weather?.city || 'Ubicacion actual';
+  const weatherCity = window.escapeHtml(weather?.city || 'Ubicacion actual');
   const scene = getWeatherSceneMeta(weather);
 
   if (!weather || weather.error) {
@@ -184,7 +184,7 @@ function renderWeatherCard(weather) {
           <span class="material-icons-round weather-icon-animated text-6xl text-blue-400 mb-2">${statusIcon}</span>
           <p class="weather-placeholder-title">${statusTitle}</p>
           <p class="weather-placeholder-copy">${statusText}</p>
-          <p class="weather-source-line">${weather?.source || 'Open-Meteo'}${weather?.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
+          <p class="weather-source-line">${window.escapeHtml(weather?.source || 'Open-Meteo')}${weather?.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
           <p class="weather-time-chip">${scene.phaseLabel} · ${scene.timeLabel}</p>
         </div>
       </section>
@@ -206,8 +206,8 @@ function renderWeatherCard(weather) {
       <div class="weather-panel-animated weather-scene-panel bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center text-center">
         <span class="material-icons-round weather-icon-animated text-6xl text-yellow-500 mb-2">${weather.icon || 'wb_sunny'}</span>
         <div class="text-5xl font-extrabold text-primary dark:text-blue-400 mb-1">${weather.temperature}°C</div>
-        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${weather.condition || 'Desconocido'}</p>
-        <p class="weather-source-line">${weather.source || 'Clima'}${weather.updatedAt ? ` · ${weather.updatedAt}` : ''}${weather.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">${window.escapeHtml(weather.condition || 'Desconocido')}</p>
+        <p class="weather-source-line">${window.escapeHtml(weather.source || 'Clima')}${weather.updatedAt ? ` · ${window.escapeHtml(weather.updatedAt)}` : ''}${weather.usedFallbackLocation ? ' · ubicacion aprox.' : ''}</p>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
           <span class="material-icons-round text-[14px]">location_on</span>
           <span>${weatherCity}</span>
@@ -252,7 +252,7 @@ function renderPreferencesCard(preferences) {
         <div>
           <label for="profile-frase" class="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 ml-1">Frase Motivacional</label>
           <div class="relative">
-            <input id="profile-frase" class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-4 px-4 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Escribe tu frase aquí..." type="text" value="${preferences.fraseMotivacional || ''}"/>
+            <input id="profile-frase" class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-4 px-4 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Escribe tu frase aquí..." type="text" value="${window.escapeHtml(preferences.fraseMotivacional || '')}"/>
           </div>
           <p class="text-[11px] text-slate-400 mt-2 ml-1 italic flex items-center gap-1">
             <span class="material-icons-round text-[14px]">info</span>

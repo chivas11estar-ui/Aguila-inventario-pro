@@ -134,9 +134,9 @@ function initRefillAutocomplete() {
       const results = await window.buscarCatalogoPorNombre(query);
       if (results.length > 0) {
         suggestions.innerHTML = results.map(p => `
-          <div class="suggestion-item" data-code="${p.codigo}">
-            <strong>${p.nombre}</strong>
-            <small>${p.marca} • ${p.codigo}</small>
+          <div class="suggestion-item" data-code="${window.escapeHtml(p.codigo)}">
+            <strong>${window.escapeHtml(p.nombre)}</strong>
+            <small>${window.escapeHtml(p.marca)} • ${window.escapeHtml(p.codigo)}</small>
           </div>
         `).join('');
         suggestions.style.display = 'block';
@@ -187,15 +187,6 @@ window.searchProductForRefillSafe = async function(barcode) {
   } catch (e) { showToast('❌ Error de red', 'error'); }
 };
 
-function escaparHtmlSeguro(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function renderLoteSelector(lotes) {
   const infoDiv = document.getElementById('refill-product-info');
   if (!infoDiv) return;
@@ -212,23 +203,23 @@ function renderLoteSelector(lotes) {
 
   const validLotes = refillMode === 'entry' ? uniqueLotes : uniqueLotes.filter(l => l.stock > 0);
   let html = `<div style="padding:10px; background:rgba(59,130,246,0.1); border-radius:12px; margin-bottom:15px;">
-                <h4 style="margin:0;">📦 Stock Total: ${escaparHtmlSeguro(refillCurrentProduct.stockTotal)} cajas</h4>
+                <h4 style="margin:0;">📦 Stock Total: ${window.escapeHtml(refillCurrentProduct.stockTotal)} cajas</h4>
               </div>`;
 
   if (validLotes.length > 0) {
     html += `<p style="font-size:11px; opacity:0.7;">${refillMode === 'entry' ? 'Selecciona destino:' : 'Selecciona bodega o deja vacío para "Auto-Relleno":'}</p>
              <div style="display:grid; gap:8px;">`;
     validLotes.forEach(l => {
-      const loteIdSafe = escaparHtmlSeguro(l.loteId);
-      const bodegaSafe = escaparHtmlSeguro(l.bodega);
-      const fechaSafe = l.fechaCaducidad ? ` (Vence: ${escaparHtmlSeguro(l.fechaCaducidad)})` : ' (Sin fecha)';
+      const loteIdSafe = window.escapeHtml(l.loteId);
+      const bodegaSafe = window.escapeHtml(l.bodega);
+      const fechaSafe = l.fechaCaducidad ? ` (Vence: ${window.escapeHtml(l.fechaCaducidad)})` : ' (Sin fecha)';
       html += `<div data-lote-id="${loteIdSafe}" data-bodega="${bodegaSafe}" class="aguila-lote-btn"
                 style="padding:12px; border-radius:10px; border:2px solid var(--border); cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; flex-direction:column;">
                   <strong>📍 ${bodegaSafe}</strong>
                   <small style="font-size:10px; opacity:0.6;">${fechaSafe}</small>
                 </div>
-                <span style="font-weight:700;">${escaparHtmlSeguro(l.stock)} <small>caj</small></span>
+                <span style="font-weight:700;">${window.escapeHtml(l.stock)} <small>caj</small></span>
                </div>`;
     });
     html += `</div>`;

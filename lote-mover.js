@@ -69,7 +69,7 @@
       .filter(b => b !== loteOrigen.bodega)
       .sort((a, b) => a.localeCompare(b, 'es-MX'));
     const optionsHtml = destinosActivos
-      .map(b => '<option value="' + b + '">' + b + '</option>')
+      .map(b => '<option value="' + window.escapeHtml(b) + '">' + window.escapeHtml(b) + '</option>')
       .join('');
 
     modal.innerHTML =
@@ -77,9 +77,9 @@
       'padding:24px;box-shadow:0 10px 40px rgba(0,0,0,0.3);color:#111;">' +
       '<h3 style="margin:0 0 8px 0;color:#004aad;font-size:18px;">🔀 Mover lote</h3>' +
       '<div style="font-size:13px;color:#374151;margin-bottom:16px;">' +
-      '<b>' + (producto.nombre || producto.codigoBarras) + '</b><br>' +
-      'Origen: <b>' + loteOrigen.bodega + '</b> · Stock: ' + loteOrigen.stock + ' caja(s)' +
-      (loteOrigen.fechaCaducidad ? ' · Cad: ' + loteOrigen.fechaCaducidad : '') +
+      '<b>' + window.escapeHtml(producto.nombre || producto.codigoBarras) + '</b><br>' +
+      'Origen: <b>' + window.escapeHtml(loteOrigen.bodega) + '</b> · Stock: ' + window.escapeHtml(loteOrigen.stock) + ' caja(s)' +
+      (loteOrigen.fechaCaducidad ? ' · Cad: ' + window.escapeHtml(loteOrigen.fechaCaducidad) : '') +
       '</div>' +
       '<label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">' +
       'Bodega destino</label>' +

@@ -9,6 +9,33 @@
 'use strict';
 
 /**
+ * Escapa caracteres especiales para prevenir XSS en HTML.
+ */
+window.escapeHtml = function(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+};
+
+/**
+ * Sanitiza una cadena para ser usada de forma segura como argumento
+ * dentro de un atributo onclick (string literal).
+ */
+window.escapeJsStr = function(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+};
+
+/**
  * Encripta una cadena de texto (PASSTHROUGH)
  * Retorna el texto original sin modificaciones para mantener compatibilidad.
  */
@@ -30,4 +57,4 @@ window.decryptData = function(cipherText) {
     return cipherText;
 };
 
-console.log('🛡️ Security Utils: Modo Passthrough (Encriptación Desactivada) activo.');
+console.log('🛡️ Security Utils: Funciones de escape y modo Passthrough activos.');
