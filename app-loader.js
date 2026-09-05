@@ -37,15 +37,12 @@
     'app.js?v=2.3',
     'audit.js?v=3.1',
     'system.js?v=1.3',
-    'system-events.js?v=1.3',
     'weather.js?v=1.7',
     'profile.js?v=1.8',
     'profile-ui.js?v=2.3',
     'analytics.js?v=1.9',
     'ai-phrases.js?v=1.6',
-    'phrases.js?v=1.4',
-    'migrate-to-v2.js?v=2.1',
-    'ai-phrases-enhanced.js?v=1.1'
+    'phrases.js?v=1.4'
   ];
 
   // Fase 2: módulos que dependen de la fase 1 (también en paralelo entre sí).
