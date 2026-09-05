@@ -148,17 +148,27 @@ async function handleLogin() {
       loginButton.textContent = 'Validando...';
     }
 
+    // Activar bandera para que startAuthStateObserver no cargue la app prematuramente
+    window.__AGUILA_MANUAL_LOGIN = true;
+
     const loginFn = window.AuthLoginModule?.loginWithDeterminante || fallbackLoginWithDeterminante;
     const result = await loginFn(email, password, determinante);
 
     if (!result.success) {
+      window.__AGUILA_MANUAL_LOGIN = false; // Resetear bandera en fallo
       showToast('❌ ' + result.error, 'error');
       return;
     }
 
     console.log('✅ Login exitoso:', result.user.email);
+
+    // Ahora cargamos los datos explícitamente tras pasar la validación del determinante
+    await loadUserData(result.user.uid);
+
+    window.__AGUILA_MANUAL_LOGIN = false; // Limpiar bandera tras éxito
     showToast('✅ Acceso concedido', 'success');
   } catch (error) {
+    window.__AGUILA_MANUAL_LOGIN = false; // Asegurar reset de bandera en excepción
     console.error('❌ Error login:', {
       code: error.code || error.message || 'unknown',
       timestamp: new Date().toISOString()
@@ -424,6 +434,14 @@ async function startAuthStateObserver() {
     if (user) {
       currentUser = user;
       console.log('✅ Usuario autenticado:', user.email);
+
+      // Si el login es manual, NO cargamos datos automáticamente aquí.
+      // El flujo de handleLogin se encargará de llamar a loadUserData tras validar el determinante.
+      if (window.__AGUILA_MANUAL_LOGIN) {
+        console.log('ℹ️ Login manual detectado, postergando carga de datos hasta validar determinante.');
+        return;
+      }
+
       loadUserData(user.uid);
     } else {
       currentUser = null;
