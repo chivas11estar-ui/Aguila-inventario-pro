@@ -10,6 +10,11 @@ window.INVENTORY_CORE = {
   determinante: null,
   _initialized: false,
   RECEPTION_WAREHOUSE: "📥 Recepción",
+  _catalogCache: { data: null, timestamp: 0 },
+  invalidateCatalogCache: () => {
+    window.INVENTORY_CORE._catalogCache = { data: null, timestamp: 0 };
+    console.log('🧹 [CORE] Catalog Cache invalidado');
+  },
   ...(window.INVENTORY_CORE || {})
 };
 
@@ -119,8 +124,19 @@ async function buscarCatalogoPorNombre(query) {
   const term = query.trim().toLowerCase();
 
   try {
-    const snapshot = await firebase.database().ref('catalogoProductos').once('value');
-    const catalog = snapshot.val() || {};
+    const now = Date.now();
+    const cache = window.INVENTORY_CORE._catalogCache;
+    let catalog = cache.data;
+
+    // Cache TTL de 1 hora (3600000 ms)
+    if (!catalog || (now - cache.timestamp > 3600000)) {
+      console.log('📡 [CORE] Consultando Firebase para catálogo (Cache miss/expirado)');
+      const snapshot = await firebase.database().ref('catalogoProductos').once('value');
+      catalog = snapshot.val() || {};
+      window.INVENTORY_CORE._catalogCache = { data: catalog, timestamp: now };
+    } else {
+      console.log('⚡ [CORE] Usando catálogo desde caché local');
+    }
 
     return Object.entries(catalog)
       .map(([codigo, data]) => ({ codigo, ...data }))
@@ -131,6 +147,17 @@ async function buscarCatalogoPorNombre(query) {
       .slice(0, 8); // Límite de sugerencias
   } catch (error) {
     console.error('❌ Error buscando en catálogo:', error);
+    // En caso de error, intentar usar el cache si existe (Resiliencia)
+    const fallback = window.INVENTORY_CORE._catalogCache.data;
+    if (fallback) {
+      return Object.entries(fallback)
+        .map(([codigo, data]) => ({ codigo, ...data }))
+        .filter(p =>
+          String(p.nombre || '').toLowerCase().includes(term) ||
+          String(p.marca || '').toLowerCase().includes(term)
+        )
+        .slice(0, 8);
+    }
     return [];
   }
 }
@@ -250,6 +277,10 @@ async function guardarProducto(formData) {
       creadoEn: ahora,
       creadoPor: firebase.auth().currentUser?.uid || 'sistema'
     });
+    // Invalidad cache después de un alta exitosa en el catálogo
+    if (typeof window.INVENTORY_CORE.invalidateCatalogCache === 'function') {
+      window.INVENTORY_CORE.invalidateCatalogCache();
+    }
   }
 
   // La llegada se acumula dentro de una transacción sobre el producto.
@@ -768,6 +799,7 @@ window.parseRequiredInteger = parseRequiredInteger;
 window.validateProductInput = validateProductInput;
 window.generarLoteId = generarLoteId;
 window.buscarProductoPorCodigo = buscarProductoPorCodigo;
+window.buscarCatalogoPorNombre = buscarCatalogoPorNombre;
 window.guardarProducto = guardarProducto;
 window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
