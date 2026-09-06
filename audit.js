@@ -601,84 +601,107 @@ async function saveQuickAudit() {
     return;
   }
 
-  const det     = getStoreId();
+  const det = getStoreId();
   const usuario = firebase.auth().currentUser?.email || 'sistema';
-  showToast('💾 Guardando auditoría rápida...', 'info');
+  const RECEPTION = window.INVENTORY_CORE?.RECEPTION_WAREHOUSE || "📥 Recepción";
 
-  const updates  = {};
-  const auditLog = [];
-  const ahora    = Date.now();
+  showToast('💾 Procesando auditoría rápida...', 'info');
+
+  let successCount = 0;
+  let failCount = 0;
 
   for (const item of quickAuditItems) {
-    const safeCode = sanitizeBarcode(item.codigoBarras);
-    if (!safeCode) continue;
+    try {
+      const safeCode = sanitizeBarcode(item.codigoBarras);
+      if (!safeCode) continue;
 
-    // Lógica Inteligente: Buscar si hay stock en Recepción para este producto
-    // Nota: item.lotes ya viene del fetchProductDataForBodega
-    const productoCompleto = await buscarProductoPorCodigo(item.codigoBarras);
-    const lotes = productoCompleto?.lotes || [];
-    const loteRecepcion = lotes.find(l => l.bodega === '📥 Recepción');
-    const stockRecepcion = loteRecepcion ? parseFloat(loteRecepcion.stock) || 0 : 0;
+      // 1. Obtener estado fresco del producto
+      const producto = await buscarProductoPorCodigo(item.codigoBarras);
+      const lotes = producto?.lotes || [];
 
-    const stockActualBodega = item.stockSistema;
-    const diferenciaContada = item.quantity - stockActualBodega;
-    let tomadoDeRecepcion = 0;
+      // Identificar stock en bodega y en recepción
+      const stockActualBodega = item.loteId
+          ? (lotes.find(l => l.loteId === item.loteId)?.stock || 0)
+          : 0;
 
-    if (diferenciaContada > 0 && stockRecepcion > 0) {
-        tomadoDeRecepcion = Math.min(diferenciaContada, stockRecepcion);
-        const nuevoStockRecepcion = parseFloat((stockRecepcion - tomadoDeRecepcion).toFixed(2));
+      const fechaCad = item.fechaCaducidad || (lotes.length > 0 ? lotes[0].fechaCaducidad : '');
+      const loteRecepcion = lotes.find(l => l.bodega === RECEPTION && l.fechaCaducidad === fechaCad);
+      const stockRecepcion = loteRecepcion ? parseFloat(loteRecepcion.stock) || 0 : 0;
 
-        if (nuevoStockRecepcion <= 0) {
-            updates[`productos/${det}/${safeCode}/lotes/${loteRecepcion.loteId}`] = null;
-        } else {
-            updates[`productos/${det}/${safeCode}/lotes/${loteRecepcion.loteId}/stock`] = nuevoStockRecepcion;
-            updates[`productos/${det}/${safeCode}/lotes/${loteRecepcion.loteId}/actualizado`] = ahora;
+      const diferencia = item.quantity - stockActualBodega;
+      let targetLoteId = item.loteId;
+
+      // 2. Ejecución Transaccional por Item
+      if (diferencia > 0 && stockRecepcion > 0) {
+        // Mover de recepción lo que se encontró en bodega
+        const cantidadAMover = Math.min(diferencia, stockRecepcion);
+
+        if (!targetLoteId) {
+          const arrival = await guardarProducto({
+            codigoBarras: item.codigoBarras,
+            nombre: item.nombre,
+            marca: item.marca,
+            piezasPorCaja: producto?.piezasPorCaja || 24,
+            ubicacion: currentAuditWarehouse,
+            fechaCaducidad: fechaCad,
+            cajas: 0
+          });
+          targetLoteId = arrival.loteId;
         }
+
+        await window.asignarStockDesdeRecepcion(safeCode, currentAuditWarehouse, targetLoteId, cantidadAMover);
+
+        // Si hay excedente sobre recepción, ajustar el final
+        const finalExpected = stockActualBodega + cantidadAMover;
+        if (Math.abs(item.quantity - finalExpected) > 0.001) {
+          await modificarStock(safeCode, item.quantity, 'establecer', targetLoteId);
+        }
+      } else {
+        // Ajuste directo (sin recepción)
+        if (!targetLoteId) {
+          const arrival = await guardarProducto({
+            codigoBarras: item.codigoBarras,
+            nombre: item.nombre,
+            marca: item.marca,
+            piezasPorCaja: producto?.piezasPorCaja || 24,
+            ubicacion: currentAuditWarehouse,
+            fechaCaducidad: fechaCad,
+            cajas: item.quantity
+          });
+          targetLoteId = arrival.loteId;
+        } else {
+          await modificarStock(safeCode, item.quantity, 'establecer', targetLoteId);
+        }
+      }
+
+      // 3. Registrar Historial (No crítico)
+      await firebase.database().ref(`auditorias/${det}`).push({
+        producto: item.nombre,
+        codigo: item.codigoBarras,
+        bodega: currentAuditWarehouse,
+        loteId: targetLoteId,
+        esperado: stockActualBodega,
+        contado: item.quantity,
+        diferencia: item.quantity - stockActualBodega,
+        fecha: getLocalISOString(),
+        usuario,
+        modo: 'rapido_transaccional'
+      });
+
+      successCount++;
+    } catch (error) {
+      console.error(`❌ Falló item ${item.codigoBarras}:`, error);
+      failCount++;
     }
-
-    if (item.loteId) {
-      // Lote existente en esta bodega
-      updates[`productos/${det}/${safeCode}/lotes/${item.loteId}/stock`]      = item.quantity;
-      updates[`productos/${det}/${safeCode}/lotes/${item.loteId}/actualizado`] = ahora;
-    } else {
-      // Producto sin lote en esta bodega — crear lote
-      const loteId = generarLoteId(currentAuditWarehouse, item.fechaCaducidad || '');
-      updates[`productos/${det}/${safeCode}/lotes/${loteId}/bodega`]         = currentAuditWarehouse;
-      updates[`productos/${det}/${safeCode}/lotes/${loteId}/fechaCaducidad`]  = item.fechaCaducidad || '';
-      updates[`productos/${det}/${safeCode}/lotes/${loteId}/stock`]           = item.quantity;
-      updates[`productos/${det}/${safeCode}/lotes/${loteId}/actualizado`]     = ahora;
-    }
-
-    updates[`productos/${det}/${safeCode}/fechaActualizacion`] = ahora;
-
-    auditLog.push({
-      producto:    item.nombre,
-      codigo:      item.codigoBarras,
-      bodega:      currentAuditWarehouse,
-      loteId:      item.loteId || 'nuevo',
-      esperado:    item.stockSistema,
-      contado:     item.quantity,
-      diferencia:  diferenciaContada,
-      tomadoDeRecepcion,
-      fecha:       getLocalISOString(),
-      usuario,
-      modo:        'rapido_inteligente'
-    });
   }
 
-  try {
-    if (Object.keys(updates).length > 0) {
-      await firebase.database().ref().update(updates);
-    }
-    for (const log of auditLog) {
-      await firebase.database().ref(`auditorias/${det}`).push(log);
-    }
-
-    showToast(`✅ Auditoría guardada y stock balanceado`, 'success');
+  if (successCount > 0) {
+    showToast(`✅ ${successCount} productos guardados`, 'success');
+    if (failCount > 0) showToast(`⚠️ ${failCount} errores detectados`, 'warning');
     endQuickAudit();
-  } catch (error) {
-    console.error('❌ Error guardando auditoría:', error);
-    showToast('❌ Error guardando los datos', 'error');
+    if (typeof window.cargarInventario === 'function') window.cargarInventario();
+  } else {
+    showToast('❌ No se pudo guardar ningún cambio', 'error');
   }
 }
 
