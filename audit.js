@@ -333,110 +333,118 @@ window.seleccionarLoteAudit = function(loteId, stock, bodega, fecha) {
 };
 
 // ============================================================
-// REGISTRAR CONTEO — Con Asignación Inteligente de Recepción
+// REGISTRAR CONTEO — Con Asignación Inteligente Atómica
 // ============================================================
 async function registrarConteo() {
-  const cajasContadas = parseInt(document.getElementById('audit-boxes').value);
+  const cajasContadas = parseFloat(document.getElementById('audit-boxes').value);
 
   if (isNaN(cajasContadas) || !currentAuditProduct) {
     showToast('⚠️ Datos incompletos', 'warning');
     return;
   }
 
-  const det     = getStoreId();
+  const det = getStoreId();
   const usuario = firebase.auth().currentUser?.email || 'sistema';
-  const codigo  = sanitizeBarcode(currentAuditProduct.codigoBarras);
+  const codigo = sanitizeBarcode(currentAuditProduct.codigoBarras);
+  const RECEPTION = window.INVENTORY_CORE?.RECEPTION_WAREHOUSE || "📥 Recepción";
 
   try {
-    // 1. Calcular inventario total (todas las bodegas + recepción)
-    const lotes = currentAuditProduct.lotes || [];
-    const loteRecepcion = lotes.find(l => l.bodega === '📥 Recepción');
-    const stockRecepcion = loteRecepcion ? parseFloat(loteRecepcion.stock) || 0 : 0;
+    // 1. Obtener estado actual del producto para validaciones previas
+    const producto = await buscarProductoPorCodigo(currentAuditProduct.codigoBarras);
+    const lotes = producto.lotes || [];
 
-    // Stock en otras bodegas (excluyendo la actual y recepción)
-    const stockOtrasBodegas = lotes
-      .filter(l => l.bodega !== currentAuditWarehouse && l.bodega !== '📥 Recepción')
-      .reduce((sum, l) => sum + (parseFloat(l.stock) || 0), 0);
-
+    // Identificar lote de recepción para este producto/caducidad
     const loteActual = lotes.find(l => l.loteId === currentAuditLoteId);
     const stockActualSistema = loteActual ? parseFloat(loteActual.stock) || 0 : 0;
+    const fechaCad = loteActual ? loteActual.fechaCaducidad : (document.getElementById('audit-expiry-date')?.value || '');
 
-    const stockTotalConocido = stockActualSistema + stockOtrasBodegas + stockRecepcion;
-    const stockResultante = cajasContadas + stockOtrasBodegas;
+    const loteRecepcion = lotes.find(l => l.bodega === RECEPTION && l.fechaCaducidad === fechaCad);
+    const stockRecepcion = loteRecepcion ? parseFloat(loteRecepcion.stock) || 0 : 0;
 
-    // 2. ¿Hay un excedente no registrado? (Cajas que no estaban ni en bodega ni en recepción)
-    if (stockResultante > stockTotalConocido) {
-      const excedente = stockResultante - stockTotalConocido;
-      const confirmar = confirm(`⚠️ Hay ${excedente.toFixed(2)} cajas más de las registradas.\n¿Deseas agregarlas como stock nuevo o prefieres recontar?`);
-      if (!confirmar) return; // Aborta para que el usuario reconte
+    const diferencia = cajasContadas - stockActualSistema;
+
+    // 2. Manejo de Excedentes (Validación antes de la transacción)
+    if (diferencia > stockRecepcion + 0.001) {
+      const excedenteReal = diferencia - stockRecepcion;
+      const msg = `⚠️ Sistema: ${stockActualSistema} en bodega + ${stockRecepcion} en recepción = ${stockActualSistema + stockRecepcion} total.\n\n` +
+                  `Has contado ${cajasContadas} (${excedenteReal.toFixed(2)} cajas extra).\n\n` +
+                  `¿Deseas agregar este excedente como stock nuevo o prefieres recontar?`;
+      if (!confirm(msg)) return;
     }
 
-    // 3. Lógica de balanceo: Restar de recepción lo que ahora está en esta bodega
-    let nuevoStockRecepcion = stockRecepcion;
-    if (stockRecepcion > 0) {
-      const diferenciaBodega = cajasContadas - stockActualSistema;
-      if (diferenciaBodega > 0) {
-        // Estamos encontrando producto en esta bodega: lo tomamos de la "Recepción"
-        const tomadoDeRecepcion = Math.min(diferenciaBodega, stockRecepcion);
-        nuevoStockRecepcion = parseFloat((stockRecepcion - tomadoDeRecepcion).toFixed(2));
-        if (tomadoDeRecepcion > 0) {
-          showToast(`📦 Se asignaron ${tomadoDeRecepcion} cajas desde Recepción`, 'info');
-        }
-      }
-    }
-
-    // 4. Preparar actualizaciones masivas (Atomic)
-    const updates = {};
-    const ahora = Date.now();
-
-    // Actualizar bodega actual
+    // 3. EJECUCIÓN TRANSACCIONAL
+    let exito = false;
     let targetLoteId = currentAuditLoteId;
-    if (!targetLoteId) {
-      const fechaCad = document.getElementById('audit-expiry-date')?.value || '';
-      targetLoteId = generarLoteId(currentAuditWarehouse, fechaCad);
-      updates[`productos/${det}/${codigo}/lotes/${targetLoteId}/bodega`] = currentAuditWarehouse;
-      updates[`productos/${det}/${codigo}/lotes/${targetLoteId}/fechaCaducidad`] = fechaCad;
-    }
-    updates[`productos/${det}/${codigo}/lotes/${targetLoteId}/stock`] = cajasContadas;
-    updates[`productos/${det}/${codigo}/lotes/${targetLoteId}/actualizado`] = ahora;
 
-    // Actualizar lote de Recepción si cambió
-    if (loteRecepcion && nuevoStockRecepcion !== stockRecepcion) {
-      if (nuevoStockRecepcion <= 0) {
-        updates[`productos/${det}/${codigo}/lotes/${loteRecepcion.loteId}`] = null; // Eliminar si queda en 0
-      } else {
-        updates[`productos/${det}/${codigo}/lotes/${loteRecepcion.loteId}/stock`] = nuevoStockRecepcion;
-        updates[`productos/${det}/${codigo}/lotes/${loteRecepcion.loteId}/actualizado`] = ahora;
+    if (diferencia > 0 && stockRecepcion > 0) {
+      // CASO A: Hay stock en recepción para cubrir el hallazgo en bodega
+      const cantidadAMover = Math.min(diferencia, stockRecepcion);
+
+      // Si el lote destino no existe, lo creamos primero (atómico)
+      if (!targetLoteId) {
+          const arrival = await guardarProducto({
+              codigoBarras: producto.codigoBarras,
+              nombre: producto.nombre,
+              marca: producto.marca,
+              piezasPorCaja: producto.piezasPorCaja,
+              ubicacion: currentAuditWarehouse,
+              fechaCaducidad: fechaCad,
+              cajas: 0 // Empezamos en 0 para que asignarStock lo llene
+          });
+          targetLoteId = arrival.loteId;
       }
+
+      await window.asignarStockDesdeRecepcion(codigo, currentAuditWarehouse, targetLoteId, cantidadAMover);
+
+      // Si después de mover de recepción aún hay diferencia (excedente confirmado), ajustamos el remanente
+      const diferenciaRestante = cajasContadas - (stockActualSistema + cantidadAMover);
+      if (Math.abs(diferenciaRestante) > 0.001) {
+          await modificarStock(codigo, cajasContadas, 'establecer', targetLoteId);
+      }
+      exito = true;
+    } else {
+      // CASO B: Ajuste directo (No hay stock en recepción o es una resta)
+      if (!targetLoteId) {
+          // Crear lote nuevo si no existía
+          const arrival = await guardarProducto({
+              codigoBarras: producto.codigoBarras,
+              nombre: producto.nombre,
+              marca: producto.marca,
+              piezasPorCaja: producto.piezasPorCaja,
+              ubicacion: currentAuditWarehouse,
+              fechaCaducidad: fechaCad,
+              cajas: cajasContadas
+          });
+          targetLoteId = arrival.loteId;
+      } else {
+          await modificarStock(codigo, cajasContadas, 'establecer', targetLoteId);
+      }
+      exito = true;
     }
 
-    updates[`productos/${det}/${codigo}/fechaActualizacion`] = ahora;
-    updates[`productos/${det}/${codigo}/actualizadoPor`] = usuario;
+    if (exito) {
+      // 4. Registrar en historial de auditoría
+      await firebase.database().ref(`auditorias/${det}`).push({
+        producto: producto.nombre,
+        codigo,
+        bodega: currentAuditWarehouse,
+        loteId: targetLoteId,
+        esperado: stockActualSistema,
+        contado: cajasContadas,
+        diferencia: cajasContadas - stockActualSistema,
+        fecha: getLocalISOString(),
+        usuario,
+        modo: 'audit_v3_transaccional'
+      });
 
-    // Guardar en Firebase
-    await firebase.database().ref().update(updates);
-
-    // Registrar en historial de auditoría
-    await firebase.database().ref(`auditorias/${det}`).push({
-      producto: currentAuditProduct.nombre,
-      codigo,
-      bodega: currentAuditWarehouse,
-      loteId: targetLoteId,
-      esperado: stockActualSistema,
-      contado: cajasContadas,
-      diferencia: cajasContadas - stockActualSistema,
-      tomadoDeRecepcion: stockRecepcion - nuevoStockRecepcion,
-      fecha: getLocalISOString(),
-      usuario,
-      modo: 'normal_inteligente'
-    });
-
-    showToast('✅ Conteo registrado y stock balanceado', 'success');
-    limpiarCamposAudit();
+      showToast('✅ Conteo registrado correctamente', 'success');
+      limpiarCamposAudit();
+      if (typeof window.cargarInventario === 'function') window.cargarInventario();
+    }
 
   } catch (e) {
-    console.error(e);
-    showToast('❌ Error al guardar', 'error');
+    console.error('❌ Error en auditoría:', e);
+    showToast('❌ Error: ' + e.message, 'error');
   }
 }
 

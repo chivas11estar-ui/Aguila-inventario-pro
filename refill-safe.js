@@ -94,7 +94,7 @@ window.setRefillModeSafe = function(mode) {
 
   if (submitBtn) {
       if (mode === 'reception') {
-          submitBtn.textContent = '🚚 Recibir Mercancía';
+          submitBtn.textContent = '🏎️ Recepción Ferrari';
           submitBtn.className = 'success';
       } else if (mode === 'entry') {
           submitBtn.textContent = '➕ Registrar Entrada';
@@ -112,6 +112,13 @@ window.setRefillModeSafe = function(mode) {
     renderLoteSelector(refillCurrentProduct.lotes || []);
   } else {
     actualizarVisibilidadManualEntry();
+  }
+
+  // Foco automático para velocidad
+  if (mode === 'reception') {
+    setTimeout(() => document.getElementById('refill-name-search')?.focus(), 200);
+  } else {
+    setTimeout(() => document.getElementById('refill-barcode')?.focus(), 200);
   }
 };
 
@@ -260,12 +267,13 @@ window.seleccionarLote = function(id, bodega) {
 function actualizarVisibilidadManualEntry() {
   const expiryGroup = document.getElementById('refill-expiry-date-group');
   const warehouseInput = document.getElementById('refill-warehouse');
+  const RECEPTION = window.INVENTORY_CORE?.RECEPTION_WAREHOUSE || "📥 Recepción";
 
   if (refillMode === 'reception') {
     if (expiryGroup) expiryGroup.style.display = 'none';
     if (warehouseInput) {
       warehouseInput.readOnly = true;
-      warehouseInput.value = "📥 Recepción";
+      warehouseInput.value = RECEPTION;
     }
   } else if (refillMode === 'entry' && !refillCurrentLoteId) {
     // Modo Entrada y NO se ha seleccionado un lote existente -> Mostrar fecha y permitir editar bodega
@@ -330,7 +338,8 @@ async function executeRefillOperation(operation) {
     let stockBodegaDescontado = true;
 
     if (mode === 'entry' || mode === 'reception') {
-      const targetWarehouse = mode === 'reception' ? '📥 Recepción' : (warehouse || 'General');
+      const RECEPTION = window.INVENTORY_CORE?.RECEPTION_WAREHOUSE || "📥 Recepción";
+      const targetWarehouse = mode === 'reception' ? RECEPTION : (warehouse || 'General');
 
       if (selectedLoteId && mode !== 'reception') {
         await modificarStock(product.codigoBarras, totalCajas, 'sumar', selectedLoteId);
@@ -400,6 +409,14 @@ async function executeRefillOperation(operation) {
 
     showToast('✅ Éxito: Inventario y Estadísticas actualizadas', 'success');
     limpiarFormularioRefillSafe();
+
+    // UX Ferrari: Mantener foco para el siguiente escaneo
+    if (refillMode === 'reception') {
+      document.getElementById('refill-name-search')?.focus();
+    } else {
+      document.getElementById('refill-barcode')?.focus();
+    }
+
     if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
     return { success: true, operationId, cajasConfirmadas, movementType };
