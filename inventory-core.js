@@ -9,6 +9,7 @@
 window.INVENTORY_CORE = {
   determinante: null,
   _initialized: false,
+  RECEPTION_WAREHOUSE: "📥 Recepción",
   ...(window.INVENTORY_CORE || {})
 };
 
@@ -459,6 +460,88 @@ async function modificarStockMultiLote(codigoBarras, cantidadTotal, motivo = 'Re
 }
 
 // ============================================================
+// 7.2 ASIGNAR STOCK DESDE RECEPCIÓN (Movimiento Atómico)
+// ============================================================
+async function asignarStockDesdeRecepcion(codigoBarras, bodegaDestino, loteDestinoId, cantidadACubrir) {
+  const det = await getCachedDeterminante();
+  if (!det) throw new Error('Sin determinante');
+
+  const safeCode = sanitizeBarcode(codigoBarras);
+  if (!safeCode) throw new Error('Código inválido');
+
+  const productRef = firebase.database().ref('productos/' + det + '/' + safeCode);
+  const ahora = Date.now();
+  const usuario = firebase.auth().currentUser?.email || 'sistema';
+  const RECEPTION = window.INVENTORY_CORE.RECEPTION_WAREHOUSE;
+
+  console.log(`🚀 [CORE] Iniciando balanceo desde recepción para ${safeCode} -> ${bodegaDestino}`);
+
+  return new Promise((resolve, reject) => {
+    productRef.transaction((currentProduct) => {
+      if (!currentProduct || !currentProduct.lotes || typeof currentProduct.lotes !== 'object') {
+        console.error('[CORE] Producto sin estructura de lotes');
+        return undefined;
+      }
+
+      const lotes = { ...currentProduct.lotes };
+      const loteDest = lotes[loteDestinoId];
+      if (!loteDest) {
+        console.error('[CORE] Lote destino no encontrado en transacción');
+        return undefined;
+      }
+
+      // Generar ID del lote origen en recepción (usando la misma caducidad)
+      const loteOrigId = generarLoteId(RECEPTION, loteDest.fechaCaducidad || '');
+      const loteOrig = lotes[loteOrigId];
+
+      if (!loteOrig) {
+        console.error(`[CORE] No hay stock de recepción para caducidad ${loteDest.fechaCaducidad}`);
+        return undefined;
+      }
+
+      const stockDisponible = parseFloat(loteOrig.stock) || 0;
+      const solicitado = parseFloat(cantidadACubrir) || 0;
+
+      if (stockDisponible < solicitado - 0.001) {
+        console.error(`[CORE] Stock insuficiente en recepción: ${stockDisponible} < ${solicitado}`);
+        return undefined;
+      }
+
+      // 1. Restar de recepción
+      const nuevoStockOrig = parseFloat((stockDisponible - solicitado).toFixed(2));
+      if (nuevoStockOrig <= 0.001) {
+        delete lotes[loteOrigId];
+      } else {
+        lotes[loteOrigId].stock = nuevoStockOrig;
+        lotes[loteOrigId].actualizado = ahora;
+      }
+
+      // 2. Sumar a bodega destino
+      const stockDestinoActual = parseFloat(loteDest.stock) || 0;
+      lotes[loteDestinoId].stock = parseFloat((stockDestinoActual + solicitado).toFixed(2));
+      lotes[loteDestinoId].actualizado = ahora;
+
+      // Actualizar metadata raíz
+      currentProduct.lotes = lotes;
+      currentProduct.fechaActualizacion = ahora;
+      currentProduct.actualizadoPor = usuario;
+
+      return currentProduct;
+    }, (error, committed, snapshot) => {
+      if (error) {
+        console.error('❌ [TRANSACTION ERROR] Asignación fallida:', error);
+        reject(error);
+      } else if (!committed) {
+        reject(new Error('STOCK_RECEPCION_INSUFICIENTE_O_CONFLICTO'));
+      } else {
+        console.log('✅ [TRANSACTION] Balanceo completado con éxito');
+        resolve(snapshot.val());
+      }
+    });
+  });
+}
+
+// ============================================================
 // 8. CARGAR INVENTARIO — expande lotes como filas individuales
 // ============================================================
 async function cargarInventario() {
@@ -682,6 +765,7 @@ window.buscarProductoPorCodigo = buscarProductoPorCodigo;
 window.guardarProducto = guardarProducto;
 window.modificarStock = modificarStock;
 window.modificarStockMultiLote = modificarStockMultiLote;
+window.asignarStockDesdeRecepcion = asignarStockDesdeRecepcion;
 window.cargarInventario = cargarInventario;
 window.getProductRef = getProductRef;
 window.getCatalogProductRef = getCatalogProductRef;

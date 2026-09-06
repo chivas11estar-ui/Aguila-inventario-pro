@@ -3,7 +3,7 @@
  * Simulación de la lógica transaccional de balanceo de stock.
  */
 
-const RECEPTION = "🚚 POR ACOMODAR";
+const RECEPTION = "📥 Recepción";
 
 // Mock de btoa para Node.js
 const btoa = (str) => Buffer.from(str).toString('base64');

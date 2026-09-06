@@ -15,7 +15,7 @@ Se ha creado una función especializada que encapsula el movimiento de mercancí
 - **Prevención de Lost Updates**: Al operar sobre el objeto producto completo, Firebase garantiza que no se sobrescriban cambios concurrentes de otros usuarios.
 
 ### Estructura de Datos (Multi-Lote V3)
-- **Ubicación Reservada**: Se definió `INVENTORY_CORE.RECEPTION_WHAREHOUSE = "🚚 POR ACOMODAR"`.
+- **Ubicación Reservada**: Se definió `INVENTORY_CORE.RECEPTION_WAREHOUSE = "📥 Recepción"`.
 - **Identificación de Lote**: El sistema busca automáticamente el lote en recepción que coincida con la `fechaCaducidad` del lote destino auditado.
 
 ### Tratamiento de Lotes
