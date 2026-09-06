@@ -40,11 +40,12 @@ function simulateTransaction(currentProduct, bodegaDestino, loteDestinoId, canti
 
     const stockDisponible = parseFloat(loteOrig.stock) || 0;
     const solicitado = parseFloat(cantidadACubrir) || 0;
+    const aMoverReal = Math.min(stockDisponible, solicitado);
 
-    if (stockDisponible < solicitado - 0.001) return { error: 'INSUFFICIENT_STOCK' };
+    if (aMoverReal <= 0.001) return { error: 'NOTHING_TO_MOVE' };
 
     // 1. Restar de recepción
-    const nuevoStockOrig = parseFloat((stockDisponible - solicitado).toFixed(2));
+    const nuevoStockOrig = parseFloat((stockDisponible - aMoverReal).toFixed(2));
     if (nuevoStockOrig <= 0.001) {
         delete lotes[loteOrigId];
     } else {
@@ -53,7 +54,7 @@ function simulateTransaction(currentProduct, bodegaDestino, loteDestinoId, canti
 
     // 2. Sumar a bodega destino
     const stockDestinoActual = parseFloat(loteDest.stock) || 0;
-    lotes[loteDestinoId].stock = parseFloat((stockDestinoActual + solicitado).toFixed(2));
+    lotes[loteDestinoId].stock = parseFloat((stockDestinoActual + aMoverReal).toFixed(2));
 
     const updatedProduct = { ...currentProduct, lotes };
     return { success: true, updatedProduct };
@@ -107,13 +108,13 @@ if (!resC.updatedProduct.lotes[LOTE_ORIG_ID] && resC.updatedProduct.lotes[LOTE_D
     console.error('❌ FAIL:', resC.updatedProduct.lotes);
 }
 
-// PRUEBA D: Intentar mover mas de lo disponible
-console.log('Prueba D: Intentar mover 101');
+// PRUEBA D: Intentar mover mas de lo disponible (Greedy mode)
+console.log('Prueba D: Intentar mover 101 (Debe mover 100)');
 const resD = simulateTransaction(initialState, "Bodega 12", LOTE_DEST_ID, 101);
-if (resD.error === 'INSUFFICIENT_STOCK') {
-    console.log('✅ PASS: Operación rechazada correctamente.');
+if (resD.updatedProduct.lotes[LOTE_DEST_ID].stock === 100 && !resD.updatedProduct.lotes[LOTE_ORIG_ID]) {
+    console.log('✅ PASS: Movió el máximo disponible (100) sin sobregiro.');
 } else {
-    console.error('❌ FAIL: Se permitió sobregiro.');
+    console.error('❌ FAIL: Comportamiento inesperado.', resD.updatedProduct.lotes);
 }
 
 // PRUEBA F: Verificación de Invariante

@@ -649,11 +649,15 @@ async function saveQuickAudit() {
           targetLoteId = arrival.loteId;
         }
 
-        await window.asignarStockDesdeRecepcion(safeCode, currentAuditWarehouse, targetLoteId, cantidadAMover);
+        const res = await window.asignarStockDesdeRecepcion(safeCode, currentAuditWarehouse, targetLoteId, cantidadAMover);
 
-        // Si hay excedente sobre recepción, ajustar el final
-        const finalExpected = stockActualBodega + cantidadAMover;
-        if (Math.abs(item.quantity - finalExpected) > 0.001) {
+        if (res.committed) {
+          const finalExpected = stockActualBodega + res.moved;
+          if (Math.abs(item.quantity - finalExpected) > 0.001) {
+            await modificarStock(safeCode, item.quantity, 'establecer', targetLoteId);
+          }
+        } else {
+          // Si la asignación falló (ej. otro ya se llevó la recepción), hacemos ajuste directo
           await modificarStock(safeCode, item.quantity, 'establecer', targetLoteId);
         }
       } else {

@@ -477,6 +477,7 @@ async function asignarStockDesdeRecepcion(codigoBarras, bodegaDestino, loteDesti
   console.log(`🚀 [CORE] Iniciando balanceo desde recepción para ${safeCode} -> ${bodegaDestino}`);
 
   return new Promise((resolve, reject) => {
+    let moved = 0;
     productRef.transaction((currentProduct) => {
       if (!currentProduct || !currentProduct.lotes || typeof currentProduct.lotes !== 'object') {
         console.error('[CORE] Producto sin estructura de lotes');
@@ -495,20 +496,25 @@ async function asignarStockDesdeRecepcion(codigoBarras, bodegaDestino, loteDesti
       const loteOrig = lotes[loteOrigId];
 
       if (!loteOrig) {
-        console.error(`[CORE] No hay stock de recepción para caducidad ${loteDest.fechaCaducidad}`);
+        console.warn(`[CORE] No hay stock de recepción para caducidad ${loteDest.fechaCaducidad}`);
+        moved = 0;
         return undefined;
       }
 
       const stockDisponible = parseFloat(loteOrig.stock) || 0;
       const solicitado = parseFloat(cantidadACubrir) || 0;
+      const aMoverReal = Math.min(stockDisponible, solicitado);
 
-      if (stockDisponible < solicitado - 0.001) {
-        console.error(`[CORE] Stock insuficiente en recepción: ${stockDisponible} < ${solicitado}`);
+      if (aMoverReal <= 0.001) {
+        console.warn(`[CORE] Nada que mover desde recepción para caducidad ${loteDest.fechaCaducidad}`);
+        moved = 0;
         return undefined;
       }
 
+      moved = aMoverReal;
+
       // 1. Restar de recepción
-      const nuevoStockOrig = parseFloat((stockDisponible - solicitado).toFixed(2));
+      const nuevoStockOrig = parseFloat((stockDisponible - aMoverReal).toFixed(2));
       if (nuevoStockOrig <= 0.001) {
         delete lotes[loteOrigId];
       } else {
@@ -518,7 +524,7 @@ async function asignarStockDesdeRecepcion(codigoBarras, bodegaDestino, loteDesti
 
       // 2. Sumar a bodega destino
       const stockDestinoActual = parseFloat(loteDest.stock) || 0;
-      lotes[loteDestinoId].stock = parseFloat((stockDestinoActual + solicitado).toFixed(2));
+      lotes[loteDestinoId].stock = parseFloat((stockDestinoActual + aMoverReal).toFixed(2));
       lotes[loteDestinoId].actualizado = ahora;
 
       // Actualizar metadata raíz
@@ -532,10 +538,10 @@ async function asignarStockDesdeRecepcion(codigoBarras, bodegaDestino, loteDesti
         console.error('❌ [TRANSACTION ERROR] Asignación fallida:', error);
         reject(error);
       } else if (!committed) {
-        reject(new Error('STOCK_RECEPCION_INSUFICIENTE_O_CONFLICTO'));
+        resolve({ moved: 0, snapshot: snapshot.val(), committed: false });
       } else {
         console.log('✅ [TRANSACTION] Balanceo completado con éxito');
-        resolve(snapshot.val());
+        resolve({ moved, snapshot: snapshot.val(), committed: true });
       }
     });
   });
